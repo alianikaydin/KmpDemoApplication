@@ -107,6 +107,7 @@ kotlin {
             implementation(libs.turbine)
             implementation(libs.assertk)
             implementation(libs.ktor.client.mock)
+            implementation(libs.multiplatform.settings.test)
         }
         jsMain.dependencies {
             implementation(libs.wrappers.browser)
