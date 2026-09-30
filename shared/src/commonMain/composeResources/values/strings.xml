@@ -1,0 +1,36 @@
+<resources>
+    <!-- Login -->
+    <string name="login_title">Login</string>
+    <string name="login_email_label">Email</string>
+    <string name="login_password_label">Password</string>
+    <string name="login_button">Login</string>
+    <string name="login_show_password">Show password</string>
+    <string name="login_hide_password">Hide password</string>
+    <string name="login_no_account_sign_up">Don\'t have an account? Sign Up</string>
+    <string name="login_forgot_password">Forgot password?</string>
+
+    <!-- Sign up -->
+    <string name="signup_title">Create Account</string>
+    <string name="signup_confirm_password_label">Confirm password</string>
+    <string name="signup_button">Sign Up</string>
+    <string name="signup_have_account_login">Already have an account? Log in</string>
+
+    <!-- Validation -->
+    <string name="error_email_required">Email is required</string>
+    <string name="error_email_invalid">Enter a valid email address</string>
+    <string name="error_password_required">Password is required</string>
+    <string name="error_password_too_short">Password must be at least 8 characters</string>
+    <string name="error_password_no_digit">Password must contain at least one number</string>
+    <string name="error_password_no_uppercase">Password must contain at least one uppercase letter</string>
+    <string name="error_passwords_do_not_match">Passwords do not match</string>
+
+    <!-- Auth / network errors -->
+    <string name="error_invalid_credentials">Email or password is incorrect</string>
+    <string name="error_email_already_registered">An account with this email already exists</string>
+    <string name="error_no_internet">No internet connection. Check your connection and try again.</string>
+    <string name="error_request_timeout">The request took too long. Please try again.</string>
+    <string name="error_too_many_requests">Too many attempts. Please try again later.</string>
+    <string name="error_server">Something went wrong. Please try again.</string>
+    <string name="error_unknown">Something went wrong. Please try again.</string>
+    <string name="error_session_expired">Your session expired. Please sign in again.</string>
+</resources>
