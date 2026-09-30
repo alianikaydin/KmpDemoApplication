@@ -5,6 +5,7 @@ import com.anksoft.myapplication.core.domain.Result
 import io.ktor.client.call.body
 import io.ktor.client.plugins.HttpRequestTimeoutException
 import io.ktor.client.statement.HttpResponse
+import io.ktor.serialization.ContentConvertException
 import io.ktor.util.network.UnresolvedAddressException
 import kotlinx.coroutines.ensureActive
 import kotlinx.serialization.SerializationException
@@ -34,6 +35,9 @@ suspend inline fun <reified T> HttpResponse.toResult(): Result<T, DataError.Remo
         in 200..299 -> try {
             Result.Success(body<T>())
         } catch (_: SerializationException) {
+            Result.Failure(DataError.Remote.SERIALIZATION)
+        } catch (_: ContentConvertException) {
+            // Ktor 3 wraps kotlinx.serialization failures in JsonConvertException.
             Result.Failure(DataError.Remote.SERIALIZATION)
         }
         401 -> Result.Failure(DataError.Remote.UNAUTHORIZED)
