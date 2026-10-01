@@ -32,4 +32,5 @@ Kurallar:
 - PR'ı merge etmek kullanıcıya aittir.
 - Kullanıcıyla ve sprint dokümanlarında Türkçe yazılır; kod, yorumlar, commit
   mesajları ve PR metinleri İngilizcedir ve Android (Kotlin/Compose) ile iOS
-  (Swift/SwiftUI) kodlama kurallarına uyar.
+  (Swift/SwiftUI) kodlama kurallarına uyar: `docs/guidelines/android.md`,
+  `docs/guidelines/ios.md`.

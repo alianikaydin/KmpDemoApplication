@@ -41,31 +41,15 @@ plandan sapmalar ve nedenleri, eklenen testler, bilinen eksikler. Kısa tut.
 
 ## Code language and platform guidelines
 
-- **Code is written in English:** class, function and variable names,
-  comments, KDoc, test names, string resource keys, commit messages, branch
-  names, PR titles and PR descriptions. Only the sprint documents (`0x-*.md`)
-  and messages to the user are in Turkish.
-- **Kotlin / Android:** Follow the [Kotlin coding conventions](https://kotlinlang.org/docs/coding-conventions.html),
-  the [Android Kotlin style guide](https://developer.android.com/kotlin/style-guide)
-  and the [Compose API guidelines](https://github.com/androidx/androidx/blob/androidx-main/compose/docs/compose-api-guidelines.md):
-  stateless composables with state hoisting, `modifier: Modifier = Modifier`
-  as the first optional parameter, `remember`/`derivedStateOf` for derived
-  values, Material 3 components and theme tokens, `contentDescription` for
-  accessibility, no hard-coded user-facing text, previews for new screens.
-  Respect Android architecture guidance (unidirectional data flow, lifecycle
-  awareness, no blocking work on the main thread).
-- **Swift / iOS:** Code in `iosApp/` follows the
-  [Swift API Design Guidelines](https://www.swift.org/documentation/api-design-guidelines/)
-  and SwiftUI conventions, and UI follows Apple's Human Interface Guidelines.
-  Kotlin APIs called from Swift must be Swift-friendly: avoid exposing
-  generics-heavy or `suspend` APIs without a wrapper, add `@Throws` where
-  Swift needs to catch, and keep iOS entry points (`MainViewController`,
-  `doInitKoin`) simple.
-- **Android and iOS MCP tools:** If Android (emulator, adb, Gradle) or iOS
-  (Xcode, simulator) MCP tools are available in the session, use them to
-  build, run and visually check the change on both platforms. If they are
-  not available, rely on the Gradle commands and say what could not be
-  checked on a device.
+- Code is written in English: identifiers, comments, KDoc, test names,
+  string resource keys, commit messages, branch names, PR titles and
+  descriptions. Sprint documents and messages to the user stay in Turkish.
+- Follow `docs/guidelines/android.md` for all Kotlin and Compose code. Read
+  `docs/guidelines/ios.md` only when the task touches `iosApp/`, `iosMain`
+  or public Kotlin API that Swift calls.
+- If Android (emulator, adb) or iOS (Xcode, simulator) MCP tools are
+  available, use them to build and check the change on a device; otherwise
+  use Gradle and state what could not be checked on a device.
 
 Testleri asla silme, devre dışı bırakma veya `@Ignore` ile atlama. Kullanıcıyla
 Türkçe yazış.
