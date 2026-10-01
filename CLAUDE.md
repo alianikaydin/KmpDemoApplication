@@ -10,6 +10,7 @@ altında. Koin (DI), Ktor (ağ), Voyager (navigasyon, ScreenModel) kullanılır.
 - Unit testler: `./gradlew :shared:testAndroidHostTest` (CI bunu çalıştırır)
 - Android build: `./gradlew :androidApp:assembleDebug` (CI bunu çalıştırır)
 - Web: `./gradlew :webApp:wasmJsBrowserDevelopmentRun`
+- UI smoke testleri (Maestro, emülatör/simülatör): bkz. `docs/ui-tests.md`
 
 ## Scrum akışı
 

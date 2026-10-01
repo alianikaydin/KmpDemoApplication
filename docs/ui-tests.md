@@ -1,0 +1,64 @@
+# UI smoke tests (Maestro)
+
+Every pull request to `master` runs a small set of UI flows on an Android
+emulator and an iOS simulator. The flows are written with
+[Maestro](https://maestro.mobile.dev) (YAML) so they read like manual test
+steps. The workflow is `.github/workflows/ui-tests.yml` (`UI Tests`); it is
+independent from `ci.yml`.
+
+## Where things live
+
+| Path | Purpose |
+|------|---------|
+| `.maestro/flows/` | One file per flow, named `NN_what_it_checks.yaml` |
+| `.maestro/subflows/` | Reusable steps (`launch_clean`, `login_with`) |
+| `.maestro/config.yaml` | Flow selection and execution order |
+| `scripts/ui-tests/` | Install, run, boot and classify scripts used by CI (and locally) |
+
+Current flows: `01_app_launch` (Login screen is shown), `02_login_success`
+(demo user reaches Home), `03_login_wrong_password` (error is shown, user stays
+on Login). The app runs in demo mode (in-app mock backend), so the demo user is
+`demo@example.com` / `Demo1234` and no network is needed.
+
+## Adding a flow
+
+1. Add `.maestro/flows/NN_name.yaml`, starting with
+   `runFlow: ../subflows/launch_clean.yaml` so every flow begins from a clean state.
+2. Target elements with `id:` (a Compose `testTag`). Add new tag values to the
+   `*TestTags` objects (`LoginTestTags`, `HomeTestTags`) and use them in the
+   screen with `Modifier.testTag(...)`. Do not hard-code tag strings in Kotlin.
+3. Assert user-facing text with `assertVisible: "<text>"` where the text matters.
+4. Take a `takeScreenshot` at the end of the flow.
+
+## Running locally
+
+Install Maestro (`curl -fsSL https://get.maestro.mobile.dev | bash`), then:
+
+- Android: start an emulator, run `./gradlew :androidApp:assembleDebug`, then
+  `bash scripts/ui-tests/run-android.sh` (override `APK` and `OUT_DIR` if needed).
+- iOS: build the app with Xcode for a simulator, boot it, then
+  `SIM_UDID=<udid> APP_PATH=<path to MyApplication.app> bash scripts/ui-tests/run-ios.sh`.
+- Quick loop without the scripts:
+  `maestro test .maestro/ -e APP_ID=com.anksoft.myapplication` (Android) or
+  `-e APP_ID=com.anksoft.myapplication.MyApplication` (iOS).
+
+## Results and artifacts
+
+Open the run in GitHub: Actions, `UI Tests`, the run, then **Artifacts** at the
+bottom. Download `android-ui-results` and `ios-ui-results`. They are kept for
+14 days. Layout:
+
+- `report.xml`: JUnit result per flow
+- `screenshots/` and `maestro/`: screenshots and Maestro debug output
+- `video/*.mp4`: screen recording (best effort)
+- `logcat.txt` (Android) or `xcodebuild.log` (iOS)
+- `stage`: last stage the job reached (`build`, `boot`, `install`, `test`)
+
+## Failure types
+
+A failed job shows one of two annotations (and a line in the run summary):
+
+- **UI test failure**: a Maestro flow failed in the `test` stage. Check
+  `report.xml` and the screenshots.
+- **Infrastructure failure**: the build, emulator/simulator boot or app
+  install failed before the flows could run. This is not a UI assertion.
