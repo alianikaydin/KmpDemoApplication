@@ -1,5 +1,6 @@
 import org.jetbrains.kotlin.gradle.ExperimentalWasmDsl
 import org.jetbrains.kotlin.gradle.dsl.JvmTarget
+import org.gradle.api.tasks.testing.logging.TestExceptionFormat
 
 plugins {
     alias(libs.plugins.kotlinMultiplatform)
@@ -114,4 +115,12 @@ kotlin {
 
 dependencies {
     androidRuntimeClasspath(libs.compose.uiTooling)
+}
+
+// Print assertion messages in CI logs instead of only the exception class.
+tasks.withType<AbstractTestTask>().configureEach {
+    testLogging {
+        events("failed")
+        exceptionFormat = TestExceptionFormat.FULL
+    }
 }
