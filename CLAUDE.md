@@ -18,13 +18,19 @@ sırayla ilerler. Her aşamanın çıktısı sprint klasörüne yazılır:
 `/mnt/project-files/sprints/<kisa-is-adi>/` varsa orası, yoksa
 `docs/sprints/<kisa-is-adi>/`.
 
-| # | Rol | Ajan | Çıktı | Onay |
-|---|-----|------|-------|------|
-| 1 | Product Owner | `po` | `01-story.md`: user story, Given/When/Then kabul kriterleri, öncelik | Kullanıcı onayı |
-| 2 | Teknik Analist | `tech-analyst` | `02-analysis.md`: etkilenen modüller, veri akışı, API, riskler | |
-| 3 | Senior Developer | `senior-dev` | `03-plan.md`: dosya bazında plan, test stratejisi, alt görevler | Kullanıcı onayı |
-| 4 | Junior Developer | `junior-dev` | Draft PR + `04-implementation.md`; `senior-dev` PR'ı review eder | |
-| 5 | QA | `qa` | `05-qa-report.md`: AC bazında test sonuçları; hata varsa 4'e döner | |
+| # | Rol | Ajan | Model | Çıktı | Onay |
+|---|-----|------|-------|-------|------|
+| 1 | Product Owner | `po` | sonnet | `01-story.md`: user story, Given/When/Then kabul kriterleri, öncelik | Kullanıcı onayı |
+| 2 | Teknik Analist | `tech-analyst` | opus | `02-analysis.md`: etkilenen modüller, veri akışı, API, riskler | |
+| 3 | Senior Developer | `senior-dev` | opus | `03-plan.md`: dosya bazında plan, test stratejisi, alt görevler | Kullanıcı onayı |
+| 4 | Junior Developer | `junior-dev` | sonnet | Draft PR + `04-implementation.md`; `senior-dev` PR'ı review eder | |
+| 5 | QA | `qa` | sonnet | `05-qa-report.md`: AC bazında test sonuçları; hata varsa 4'e döner | |
+
+Model: Her ajanın modeli kendi dosyasındaki `model:` satırıyla belirlenir
+(`.claude/agents/<ajan>.md`). Değerler: `opus`, `sonnet`, `haiku`, tam model
+ID'si veya ana oturumun modelini kullanmak için `inherit`. Karar ve review
+gerektiren roller (analist, senior) daha güçlü modelde, uygulama ve test
+rolleri daha ekonomik modelde çalışır.
 
 Kurallar:
 

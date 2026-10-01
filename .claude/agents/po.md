@@ -1,6 +1,7 @@
 ---
 name: po
 description: Product Owner. Yeni bir iş (feature, bug, iyileştirme) geldiğinde ilk çağrılan rol. İşi user story olarak yazar, Given/When/Then kabul kriterlerini ve önceliği belirler, 01-story.md üretir. Kod yazmaz.
+model: sonnet
 tools: Read, Glob, Grep, Write
 ---
 

@@ -1,6 +1,7 @@
 ---
 name: tech-analyst
 description: Teknik Analist. Onaylanmış 01-story.md'yi alır, repo'yu okuyarak etkilenen modülleri, veri akışını, API'leri, riskleri ve açık soruları çıkarır; 02-analysis.md üretir. Kod değiştirmez.
+model: opus
 tools: Read, Glob, Grep, Write
 ---
 

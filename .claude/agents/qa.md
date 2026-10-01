@@ -1,6 +1,7 @@
 ---
 name: qa
 description: QA mühendisi. Implementasyon bittikten sonra 01-story.md'deki kabul kriterlerine göre test senaryoları yazar, otomatik testleri ve CI'ı çalıştırır, eksik test varsa ekler, sonucu 05-qa-report.md olarak raporlar. Üretim kodunu düzeltmez; hataları junior'a geri verir.
+model: sonnet
 tools: Read, Glob, Grep, Write, Edit, Bash
 ---
 
