@@ -37,6 +37,7 @@ cleanup() {
 trap cleanup EXIT
 
 mark_stage test
+run_marker="$(mktemp)"
 status=0
 maestro --udid "$SIM_UDID" test .maestro/ \
   -e APP_ID="$APP_ID" \
@@ -50,11 +51,22 @@ find . -maxdepth 1 -name '*.png' -exec mv {} "$OUT_DIR/screenshots/" \;
 if [ "$status" -ne 0 ]; then
   # Log what is on screen after the failure so it can be diagnosed without the artifact.
   echo "::group::Simulator view hierarchy after failure"
-  maestro --udid "$SIM_UDID" hierarchy 2>/dev/null \
+  # `maestro hierarchy` prints log lines before the JSON document; skip them.
+  maestro --udid "$SIM_UDID" hierarchy 2>/dev/null | sed -n '/^{/,$p' \
     | jq -c '.. | .attributes? // empty | {id: .["resource-id"], text, accessibilityText, value, enabled}
         | with_entries(select(.value != null and .value != ""))
         | select(has("id") or has("text") or has("accessibilityText") or has("value"))' \
     || echo "Could not read the view hierarchy"
   echo "::endgroup::"
+
+  # Print crash reports of the app produced during this run.
+  for report in $(find "$HOME/Library/Logs/DiagnosticReports" -name 'MyApplication*.ips' -newer "$run_marker" 2>/dev/null); do
+    echo "::group::Crash report $(basename "$report")"
+    tail -n +2 "$report" | jq '{
+        exception, termination, asi,
+        frames: [.threads[.faultingThread].frames[]? | "\(.imageIndex) \(.symbol // "?")"][:60]
+      }' 2>/dev/null || head -c 8000 "$report"
+    echo "::endgroup::"
+  done
 fi
 exit "$status"
