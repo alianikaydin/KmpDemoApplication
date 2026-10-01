@@ -70,6 +70,10 @@ jobs:
           emulator-options: -no-window -gpu swiftshader_indirect -noaudio -no-boot-anim -camera-back none
           script: bash scripts/ui-tests/run-android.sh
 
+      - name: Classify failure
+        if: failure()
+        run: bash scripts/ui-tests/classify-failure.sh android
+
       - name: Upload UI test results
         if: always()
         uses: actions/upload-artifact@v4
@@ -122,6 +126,10 @@ jobs:
         env:
           APP_PATH: build/ios/Build/Products/Debug-iphonesimulator/MyApplication.app
         run: bash scripts/ui-tests/run-ios.sh
+
+      - name: Classify failure
+        if: failure()
+        run: bash scripts/ui-tests/classify-failure.sh ios
 
       - name: Upload UI test results
         if: always()
