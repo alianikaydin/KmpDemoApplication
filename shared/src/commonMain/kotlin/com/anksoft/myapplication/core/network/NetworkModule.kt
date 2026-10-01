@@ -1,7 +1,12 @@
 package com.anksoft.myapplication.core.network
 
+import com.anksoft.myapplication.core.config.AppConfig
+import com.anksoft.myapplication.core.network.mock.MockAuthServer
+import com.anksoft.myapplication.core.network.mock.createMockEngine
 import com.anksoft.myapplication.core.storage.SessionManager
 import io.ktor.client.HttpClient
+import io.ktor.client.HttpClientConfig
+import io.ktor.client.engine.HttpClientEngine
 import io.ktor.client.plugins.HttpTimeout
 import io.ktor.client.plugins.auth.Auth
 import io.ktor.client.plugins.auth.providers.BearerTokens
@@ -13,56 +18,64 @@ import io.ktor.client.plugins.logging.Logging
 import io.ktor.http.ContentType
 import io.ktor.http.contentType
 import io.ktor.serialization.kotlinx.json.json
-import kotlinx.serialization.json.Json
 import org.koin.dsl.module
 
 /** Auth request timeout per the performance NFR. */
 private const val REQUEST_TIMEOUT_MILLIS = 15_000L
 
 val networkModule = module {
+    single { MockAuthServer() }
     single {
-        val sessionManager = get<SessionManager>()
-        HttpClient {
-            install(ContentNegotiation) {
-                json(
-                    Json {
-                        ignoreUnknownKeys = true
-                        isLenient = true
-                    }
-                )
-            }
-            install(HttpTimeout) {
-                requestTimeoutMillis = REQUEST_TIMEOUT_MILLIS
-            }
-            install(Auth) {
-                bearer {
-                    // Attaches the stored access token to outgoing requests.
-                    // Previously the token was saved but never sent.
-                    loadTokens {
-                        sessionManager.getToken()?.let { accessToken ->
-                            BearerTokens(
-                                accessToken = accessToken,
-                                refreshToken = sessionManager.getRefreshToken()
-                            )
-                        }
-                    }
-                    // Silent refresh (AC-5.2) needs the backend refresh contract,
-                    // which does not exist yet -- deliberately left to P1 rather
-                    // than guessed at. Until then a 401 surfaces to the caller.
-                }
-            }
-            install(Logging) {
-                // LogLevel.ALL would print request bodies -- i.e. plaintext
-                // passwords -- to logcat. HEADERS only, per AC-1.8.
-                level = LogLevel.HEADERS
-            }
-            defaultRequest {
-                url(BASE_URL)
-                contentType(ContentType.Application.Json)
-            }
-        }
+        val config = get<AppConfig>()
+        createHttpClient(
+            engine = if (config.useMockBackend) createMockEngine(get()) else null,
+            config = config,
+            sessionManager = get()
+        )
     }
 }
 
-// TODO move to a build-config field per flavour once a real backend exists.
-private const val BASE_URL = "https://api.example.com/"
+/**
+ * Builds the app's HttpClient. A null [engine] uses the platform default
+ * (OkHttp / Darwin / Js); demo mode and tests pass a MockEngine instead.
+ */
+fun createHttpClient(
+    engine: HttpClientEngine?,
+    config: AppConfig,
+    sessionManager: SessionManager
+): HttpClient {
+    val block: HttpClientConfig<*>.() -> Unit = {
+        install(ContentNegotiation) {
+            json(appJson)
+        }
+        install(HttpTimeout) {
+            requestTimeoutMillis = REQUEST_TIMEOUT_MILLIS
+        }
+        install(Auth) {
+            bearer {
+                // Attaches the stored access token to outgoing requests.
+                loadTokens {
+                    sessionManager.getToken()?.let { accessToken ->
+                        BearerTokens(
+                            accessToken = accessToken,
+                            refreshToken = sessionManager.getRefreshToken()
+                        )
+                    }
+                }
+                // Silent refresh (AC-5.2) needs the backend refresh contract,
+                // which does not exist yet -- deliberately left to P1 rather
+                // than guessed at. Until then a 401 surfaces to the caller.
+            }
+        }
+        install(Logging) {
+            // LogLevel.ALL would print request bodies -- i.e. plaintext
+            // passwords -- to logcat. HEADERS only, per AC-1.8.
+            level = LogLevel.HEADERS
+        }
+        defaultRequest {
+            url(config.baseUrl)
+            contentType(ContentType.Application.Json)
+        }
+    }
+    return if (engine == null) HttpClient(block) else HttpClient(engine, block)
+}

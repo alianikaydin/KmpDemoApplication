@@ -79,6 +79,8 @@ kotlin {
             implementation(libs.ktor.serialization.kotlinx.json)
             implementation(libs.ktor.client.logging)
             implementation(libs.ktor.client.auth)
+            // Serves demo mode (AppConfig.Demo) without a backend.
+            implementation(libs.ktor.client.mock)
             
             // Multiplatform Settings
             implementation(libs.multiplatform.settings)
@@ -99,7 +101,6 @@ kotlin {
             implementation(libs.kotlinx.coroutines.test)
             implementation(libs.turbine)
             implementation(libs.assertk)
-            implementation(libs.ktor.client.mock)
             implementation(libs.multiplatform.settings.test)
         }
         iosMain.dependencies {

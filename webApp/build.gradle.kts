@@ -23,6 +23,8 @@ kotlin {
             implementation(project(":shared"))
 
             implementation(libs.compose.ui)
+            // main() calls initKoin, whose return type comes from koin-core.
+            implementation(libs.koin.core)
         }
     }
 }
