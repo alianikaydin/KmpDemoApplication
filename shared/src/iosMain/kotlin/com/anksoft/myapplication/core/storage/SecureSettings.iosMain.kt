@@ -20,14 +20,16 @@ private const val KEYCHAIN_SERVICE = "com.anksoft.myapplication.session"
     ExperimentalSettingsApi::class,
     ExperimentalForeignApi::class,
 )
+internal fun createSessionKeychain(): Settings = KeychainSettings(
+    // The retained service string is intentionally never released: the app
+    // creates this once per process as a Koin single.
+    kSecAttrService to CFBridgingRetain(KEYCHAIN_SERVICE),
+    // ThisDeviceOnly keeps tokens out of backups restored to another device.
+    kSecAttrAccessible to kSecAttrAccessibleAfterFirstUnlockThisDeviceOnly,
+)
+
 actual fun createSecureSettings(): Settings {
-    // The retained service string is intentionally never released: this is
-    // created once per process as a Koin single.
-    val keychain = KeychainSettings(
-        kSecAttrService to CFBridgingRetain(KEYCHAIN_SERVICE),
-        // ThisDeviceOnly keeps tokens out of backups restored to another device.
-        kSecAttrAccessible to kSecAttrAccessibleAfterFirstUnlockThisDeviceOnly,
-    )
+    val keychain = createSessionKeychain()
     val userDefaults = NSUserDefaultsSettings(NSUserDefaults.standardUserDefaults)
     // A failed migration must not crash app launch; it is retried next launch.
     runCatching {
