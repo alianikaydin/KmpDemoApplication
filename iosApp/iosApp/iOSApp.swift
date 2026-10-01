@@ -4,7 +4,13 @@ import shared
 @main
 struct iOSApp: App {
     init() {
-        AppModuleKt.doInitKoin()
+        // Debug builds run against the in-app mock backend; release uses the real API.
+        #if DEBUG
+        let useMockBackend = true
+        #else
+        let useMockBackend = false
+        #endif
+        AppModuleKt.doInitKoin(useMockBackend: useMockBackend)
     }
 
     var body: some Scene {
