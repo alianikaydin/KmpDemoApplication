@@ -1,4 +1,4 @@
-# AC-1 (story): the app opens and shows the Login screen.
+# AC-3 (story): the app opens and shows the Login screen.
 appId: ${APP_ID}
 ---
 - runFlow: ../subflows/launch_clean.yaml
@@ -10,6 +10,7 @@ appId: ${APP_ID}
     id: login_password_input
 - assertVisible:
     id: login_submit_button
+- assertVisible: "Login"
 - assertVisible: "Email"
 - assertVisible: "Password"
 - takeScreenshot: 01_login_screen

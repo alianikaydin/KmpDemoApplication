@@ -26,6 +26,12 @@ video_pid=$!
 cleanup() {
   # SIGINT lets simctl finalize the mp4 file.
   kill -INT "$video_pid" 2>/dev/null || true
+  # Give simctl ~10s to finalize the mp4, then force it down.
+  for _ in $(seq 1 10); do
+    kill -0 "$video_pid" 2>/dev/null || break
+    sleep 1
+  done
+  kill -TERM "$video_pid" 2>/dev/null || true
   wait "$video_pid" 2>/dev/null || true
 }
 trap cleanup EXIT

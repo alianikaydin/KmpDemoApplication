@@ -54,7 +54,9 @@ jobs:
           sudo udevadm trigger --name-match=kvm
 
       - name: Install Maestro
-        run: bash scripts/ui-tests/install-maestro.sh
+        run: |
+          echo setup > "$OUT_DIR/stage"
+          bash scripts/ui-tests/install-maestro.sh
 
       - name: Cache AVD
         uses: actions/cache@v4
@@ -64,6 +66,9 @@ jobs:
             ~/.android/avd/*
             ~/.android/adb*
           key: avd-34-x86_64-google_apis-pixel_6
+
+      - name: Mark emulator boot stage
+        run: echo boot > "$OUT_DIR/stage"
 
       - name: Create AVD and generate snapshot for caching
         if: steps.avd-cache.outputs.cache-hit != 'true'
@@ -91,7 +96,7 @@ jobs:
           force-avd-creation: false
           disable-animations: true
           emulator-boot-timeout: 600
-          emulator-options: -no-window -gpu swiftshader_indirect -noaudio -no-boot-anim -camera-back none
+          emulator-options: -no-window -no-snapshot-save -gpu swiftshader_indirect -noaudio -no-boot-anim -camera-back none
           script: bash scripts/ui-tests/run-android.sh
 
       - name: Classify failure
