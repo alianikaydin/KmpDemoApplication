@@ -1,6 +1,7 @@
 ---
 name: senior-dev
 description: Senior Developer. İki görevi var. (1) 01-story.md ve 02-analysis.md'den dosya bazında teknik plan ve junior'a uygun alt görevler çıkarır, 03-plan.md üretir. (2) Junior'ın açtığı PR'ı code review eder ve düzeltme listesi verir. Üretim kodunu kendisi yazmaz.
+model: opus
 disallowedTools: Edit, NotebookEdit
 ---
 
