@@ -1,17 +1,36 @@
 name: UI Tests
 
-# Skeleton: only the iOS simulator build for now. The Maestro flows and the
-# Android job are added in later commits.
 on:
+  pull_request:
+    branches: [master]
+    paths-ignore:
+      - "**.md"
+      - "docs/**"
+  push:
+    branches: [master]
+    paths-ignore:
+      - "**.md"
+      - "docs/**"
   workflow_dispatch:
+
+# Independent from ci.yml on purpose. Master runs are never cancelled.
+concurrency:
+  group: ui-tests-${{ github.ref }}
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
 
 permissions:
   contents: read
 
+env:
+  # Pinned in one place; both jobs install exactly this Maestro version.
+  MAESTRO_VERSION: "2.0.10"
+
 jobs:
-  ios-ui:
-    runs-on: macos-15
-    timeout-minutes: 60
+  android-ui:
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
+    env:
+      OUT_DIR: ui-results/android
     steps:
       - uses: actions/checkout@v4
 
@@ -22,28 +41,40 @@ jobs:
 
       - uses: gradle/actions/setup-gradle@v4
 
-      - name: Select Xcode
-        run: sudo xcode-select -s /Applications/Xcode_16.4.app
-
-      - name: Build iOS app for the simulator
+      - name: Build debug APK
         run: |
-          set -o pipefail
-          mkdir -p ui-results/ios
-          xcodebuild \
-            -project iosApp/iosApp.xcodeproj \
-            -scheme iosApp \
-            -configuration Debug \
-            -sdk iphonesimulator \
-            -destination 'generic/platform=iOS Simulator' \
-            -derivedDataPath build/ios \
-            CODE_SIGN_IDENTITY=- CODE_SIGN_STYLE=Manual DEVELOPMENT_TEAM= \
-            build 2>&1 | tee ui-results/ios/xcodebuild.log
+          mkdir -p "$OUT_DIR"
+          echo build > "$OUT_DIR/stage"
+          ./gradlew :androidApp:assembleDebug --stacktrace
 
-      - name: Upload build log
+      - name: Enable KVM
+        run: |
+          echo 'KERNEL=="kvm", GROUP="kvm", MODE="0666", OPTIONS+="static_node=kvm"' | sudo tee /etc/udev/rules.d/99-kvm4all.rules
+          sudo udevadm control --reload-rules
+          sudo udevadm trigger --name-match=kvm
+
+      - name: Install Maestro
+        run: bash scripts/ui-tests/install-maestro.sh
+
+      - name: Run Maestro flows on the emulator
+        uses: reactivecircus/android-emulator-runner@v2
+        env:
+          APK: androidApp/build/outputs/apk/debug/androidApp-debug.apk
+        with:
+          api-level: 34
+          target: google_apis
+          arch: x86_64
+          profile: pixel_6
+          disable-animations: true
+          emulator-boot-timeout: 600
+          emulator-options: -no-window -gpu swiftshader_indirect -noaudio -no-boot-anim -camera-back none
+          script: bash scripts/ui-tests/run-android.sh
+
+      - name: Upload UI test results
         if: always()
         uses: actions/upload-artifact@v4
         with:
-          name: ios-ui-results
-          path: ui-results/ios/
+          name: android-ui-results
+          path: ui-results/android/
           retention-days: 14
           if-no-files-found: warn
