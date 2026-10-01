@@ -30,4 +30,6 @@ Kurallar:
 
 - 1 ve 3 sonrası kullanıcı onayı olmadan bir sonraki aşamaya geçilmez.
 - PR'ı merge etmek kullanıcıya aittir.
-- Kullanıcıyla Türkçe yazışılır.
+- Kullanıcıyla ve sprint dokümanlarında Türkçe yazılır; kod, yorumlar, commit
+  mesajları ve PR metinleri İngilizcedir ve Android (Kotlin/Compose) ile iOS
+  (Swift/SwiftUI) kodlama kurallarına uyar.
