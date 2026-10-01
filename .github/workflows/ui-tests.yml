@@ -134,8 +134,17 @@ jobs:
           key: konan-${{ runner.os }}-${{ hashFiles('gradle/libs.versions.toml') }}
           restore-keys: konan-${{ runner.os }}-
 
+      # Compose Multiplatform links against iOS 26 SDK symbols (e.g. UIViewLayoutRegion),
+      # so the app must be built with Xcode 26+; pick the newest one on the image.
       - name: Select Xcode
-        run: sudo xcode-select -s /Applications/Xcode_16.4.app
+        run: |
+          xcode_app="$(ls -d /Applications/Xcode_26*.app 2>/dev/null | sort -V | tail -n 1)"
+          if [ -z "$xcode_app" ]; then
+            echo "::error title=Infrastructure failure::No Xcode 26 installation found on the runner"
+            exit 1
+          fi
+          echo "Using $xcode_app"
+          sudo xcode-select -s "$xcode_app"
 
       - name: Build iOS app for the simulator
         run: |
