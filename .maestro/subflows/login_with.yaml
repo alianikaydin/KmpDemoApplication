@@ -8,6 +8,9 @@ appId: ${APP_ID}
 - tapOn:
     id: login_password_input
 - inputText: ${PASSWORD}
-- hideKeyboard
+# Dismiss the keyboard by tapping the title: `hideKeyboard` is unreliable on iOS
+# and the keyboard can cover the submit button.
+- tapOn:
+    id: login_title
 - tapOn:
     id: login_submit_button

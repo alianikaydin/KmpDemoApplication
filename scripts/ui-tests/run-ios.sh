@@ -47,4 +47,14 @@ maestro --udid "$SIM_UDID" test .maestro/ \
 # Screenshots land in the working directory when Maestro ignores the output dir.
 mkdir -p "$OUT_DIR/screenshots"
 find . -maxdepth 1 -name '*.png' -exec mv {} "$OUT_DIR/screenshots/" \;
+if [ "$status" -ne 0 ]; then
+  # Log what is on screen after the failure so it can be diagnosed without the artifact.
+  echo "::group::Simulator view hierarchy after failure"
+  maestro --udid "$SIM_UDID" hierarchy 2>/dev/null \
+    | jq -c '.. | .attributes? // empty | {id: .["resource-id"], text, accessibilityText, value, enabled}
+        | with_entries(select(.value != null and .value != ""))
+        | select(has("id") or has("text") or has("accessibilityText") or has("value"))' \
+    || echo "Could not read the view hierarchy"
+  echo "::endgroup::"
+fi
 exit "$status"
