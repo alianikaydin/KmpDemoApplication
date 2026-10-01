@@ -1,63 +1,80 @@
 package com.anksoft.myapplication.core.storage
 
 import com.russhwolf.settings.Settings
-import com.russhwolf.settings.get
-import com.russhwolf.settings.set
 
 /**
  * Single owner of session state. Method names are unchanged from the previous
  * version so App.kt and SettingsScreenModel keep compiling.
  *
- * Backed by [createSecureSettings] rather than a plain Settings() so tokens are
- * not written in cleartext on Android. NOTE: only the Android actual is
- * hardware-backed today; see createSecureSettings for per-platform status.
+ * Backed by [createSecureSettings] rather than a plain Settings(). Only the iOS
+ * actual (Keychain) is encrypted at rest today; see createSecureSettings for
+ * per-platform status.
+ *
+ * Storage failures (e.g. a Keychain error) are treated as "no value" so a broken
+ * store sends the user to Login instead of crashing the app.
  */
 class SessionManager(private val settings: Settings) {
 
     fun saveToken(token: String) {
-        settings[KEY_TOKEN] = token
+        write(KEY_TOKEN, token)
     }
 
-    fun getToken(): String? = settings[KEY_TOKEN]
+    fun getToken(): String? = read(KEY_TOKEN)
 
     fun saveRefreshToken(token: String) {
-        settings[KEY_REFRESH_TOKEN] = token
+        write(KEY_REFRESH_TOKEN, token)
     }
 
-    fun getRefreshToken(): String? = settings[KEY_REFRESH_TOKEN]
+    fun getRefreshToken(): String? = read(KEY_REFRESH_TOKEN)
 
     fun saveUserId(userId: String) {
-        settings[KEY_USER_ID] = userId
+        write(KEY_USER_ID, userId)
     }
 
-    fun getUserId(): String? = settings[KEY_USER_ID]
+    fun getUserId(): String? = read(KEY_USER_ID)
 
     fun saveUserEmail(email: String) {
-        settings[KEY_USER_EMAIL] = email
+        write(KEY_USER_EMAIL, email)
     }
 
-    fun getUserEmail(): String? = settings[KEY_USER_EMAIL]
+    fun getUserEmail(): String? = read(KEY_USER_EMAIL)
 
     fun saveUserName(name: String) {
-        settings[KEY_USER_NAME] = name
+        write(KEY_USER_NAME, name)
     }
 
-    fun getUserName(): String? = settings[KEY_USER_NAME]
+    fun getUserName(): String? = read(KEY_USER_NAME)
 
     /** Wipes every session key. Called on logout and on refresh failure (AC-5.3). */
     fun clear() {
-        settings.remove(KEY_TOKEN)
-        settings.remove(KEY_REFRESH_TOKEN)
-        settings.remove(KEY_USER_ID)
-        settings.remove(KEY_USER_EMAIL)
-        settings.remove(KEY_USER_NAME)
+        SESSION_KEYS.forEach(::delete)
+    }
+
+    private fun read(key: String): String? =
+        runCatching { settings.getStringOrNull(key) }.getOrNull()
+
+    private fun write(key: String, value: String) {
+        runCatching { settings.putString(key, value) }
+    }
+
+    private fun delete(key: String) {
+        runCatching { settings.remove(key) }
     }
 
     companion object {
-        private const val KEY_TOKEN = "auth_token"
-        private const val KEY_REFRESH_TOKEN = "refresh_token"
-        private const val KEY_USER_ID = "user_id"
-        private const val KEY_USER_EMAIL = "user_email"
-        private const val KEY_USER_NAME = "user_name"
+        internal const val KEY_TOKEN = "auth_token"
+        internal const val KEY_REFRESH_TOKEN = "refresh_token"
+        internal const val KEY_USER_ID = "user_id"
+        internal const val KEY_USER_EMAIL = "user_email"
+        internal const val KEY_USER_NAME = "user_name"
+
+        /** Every key this class owns; used by [SessionStorageMigrator]. */
+        internal val SESSION_KEYS = listOf(
+            KEY_TOKEN,
+            KEY_REFRESH_TOKEN,
+            KEY_USER_ID,
+            KEY_USER_EMAIL,
+            KEY_USER_NAME,
+        )
     }
 }

@@ -20,13 +20,6 @@ kotlin {
         }
     }
     
-    val iosMain by sourceSets.creating {
-        dependsOn(sourceSets.getByName("commonMain"))
-        dependencies {
-            implementation(libs.ktor.client.darwin)
-        }
-    }
-    
     js {
         browser()
     }
@@ -108,6 +101,9 @@ kotlin {
             implementation(libs.assertk)
             implementation(libs.ktor.client.mock)
             implementation(libs.multiplatform.settings.test)
+        }
+        iosMain.dependencies {
+            implementation(libs.ktor.client.darwin)
         }
         jsMain.dependencies {
             implementation(libs.wrappers.browser)
