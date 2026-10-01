@@ -1,0 +1,13 @@
+# Fills in the Login form and submits it.
+# Requires the EMAIL and PASSWORD env vars.
+appId: ${APP_ID}
+---
+- tapOn:
+    id: login_email_input
+- inputText: ${EMAIL}
+- tapOn:
+    id: login_password_input
+- inputText: ${PASSWORD}
+- hideKeyboard
+- tapOn:
+    id: login_submit_button

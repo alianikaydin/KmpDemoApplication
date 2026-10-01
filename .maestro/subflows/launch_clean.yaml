@@ -1,0 +1,12 @@
+# Starts the app from a clean state and waits for the Login screen.
+# Requires the APP_ID env var (passed with `maestro test -e APP_ID=...`).
+appId: ${APP_ID}
+---
+- launchApp:
+    clearState: true
+    clearKeychain: true   # iOS keeps the session token in the Keychain across installs
+    stopApp: true
+- extendedWaitUntil:
+    visible:
+      id: login_title
+    timeout: 60000   # first launch on an emulator is slow

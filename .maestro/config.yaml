@@ -1,0 +1,4 @@
+flows:
+  - "flows/*"
+executionOrder:
+  continueOnFailure: true   # one broken flow must not hide the others
