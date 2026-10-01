@@ -8,9 +8,18 @@ appId: ${APP_ID}
 - tapOn:
     id: login_password_input
 - inputText: ${PASSWORD}
-# Dismiss the keyboard by tapping the title: `hideKeyboard` is unreliable on iOS
-# and the keyboard can cover the submit button.
-- tapOn:
-    id: login_title
-- tapOn:
-    id: login_submit_button
+- runFlow:
+    when:
+      platform: Android
+    commands:
+      - hideKeyboard
+      - tapOn:
+          id: login_submit_button
+# On iOS the keyboard covers the submit button and Compose does not dismiss it
+# on an outside tap, so submit with the keyboard's Done key (ImeAction.Done
+# triggers the same LoginClicked event as the button).
+- runFlow:
+    when:
+      platform: iOS
+    commands:
+      - pressKey: Enter
