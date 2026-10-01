@@ -5,6 +5,7 @@ import androidx.compose.material3.*
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.unit.dp
 import cafe.adriel.voyager.core.screen.Screen
 import cafe.adriel.voyager.navigator.LocalNavigator
@@ -22,7 +23,7 @@ class HomeScreen : Screen {
 
         Scaffold(
             topBar = {
-                TopAppBar(title = { Text("Home") })
+                TopAppBar(title = { Text("Home", modifier = Modifier.testTag(HomeTestTags.TITLE)) })
             }
         ) { padding ->
             BoxWithConstraints(
