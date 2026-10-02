@@ -55,7 +55,8 @@ kotlin {
     }
 
     sourceSets {
-        named("webMain") {
+        // webMain comes from the default hierarchy template and is created lazily.
+        matching { it.name == "webMain" }.configureEach {
             kotlin.srcDir(generateWebBuildEnv.map { it.outputDir })
         }
         commonMain.dependencies {
