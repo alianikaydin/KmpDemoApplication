@@ -4,13 +4,15 @@ import Shared
 @main
 struct iOSApp: App {
     init() {
-        // Debug builds run against the in-app mock backend; release uses the real API.
+        // Debug builds run against the in-app mock backend unless a backend URL is configured;
+        // release uses the real API.
+        let backendUrl = Bundle.main.object(forInfoDictionaryKey: "KMPBackendURL") as? String
         #if DEBUG
-        let useMockBackend = true
+        let isDebug = true
         #else
-        let useMockBackend = false
+        let isDebug = false
         #endif
-        AppModuleKt.doInitKoin(useMockBackend: useMockBackend)
+        AppModuleKt.doInitKoin(isDebug: isDebug, backendUrl: backendUrl)
     }
 
     var body: some Scene {

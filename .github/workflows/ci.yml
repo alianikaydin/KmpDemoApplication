@@ -30,6 +30,9 @@ jobs:
       - name: Build Android app
         run: ./gradlew :androidApp:assembleDebug --stacktrace
 
+      - name: Build web app
+        run: ./gradlew :webApp:wasmJsBrowserDistribution :webApp:jsBrowserDistribution --stacktrace
+
       - name: Upload test reports
         if: failure()
         uses: actions/upload-artifact@v4

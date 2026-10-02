@@ -41,10 +41,12 @@ API sözleşmesini onunla birlikte belirlersin.
 
 ## Repo yerleşimi (varsayılan)
 
-Backend aynı repoda, aynı Gradle build'inde ayrı bir modüldür: `server/`
-(`include(":server")`). Böylece Kotlin, sürüm kataloğu
-(`gradle/libs.versions.toml`) ve gerekirse ortak sözleşme modelleri paylaşılır.
-Farklı bir yerleşim seçersen gerekçesini plana yaz.
+Backend ayrı bir repodadır: `alianikaydin/KmpDemoBackend` (kendi Gradle
+build'i ve CI'ı; `server/` ve `contract/` modülleri). API sözleşmesi
+`contract` modülünden sürümlü `com.anksoft.kmpdemo:contract` kütüphanesi olarak
+GitHub Packages'a yayımlanır ve uygulama bunu sabit sürümle kullanır.
+Sözleşmede bozan değişiklik yeni major sürüm ve yeni API sürümü (`/api/v2`)
+demektir.
 
 ## Görev 1: Mimari karar ve plan (03-plan.md)
 

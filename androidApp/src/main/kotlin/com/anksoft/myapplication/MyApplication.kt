@@ -8,8 +8,9 @@ import org.koin.android.ext.koin.androidContext
 class MyApplication : Application() {
     override fun onCreate() {
         super.onCreate()
-        // Debug builds run against the in-app mock backend; release uses the real API.
-        initKoin(config = if (BuildConfig.DEBUG) AppConfig.Demo else AppConfig()) {
+        // Debug builds use the in-app mock backend unless -PkmpBackendUrl is set;
+        // release always uses the default config.
+        initKoin(config = AppConfig.forBuild(BuildConfig.DEBUG, BuildConfig.BACKEND_URL)) {
             androidContext(this@MyApplication)
         }
     }

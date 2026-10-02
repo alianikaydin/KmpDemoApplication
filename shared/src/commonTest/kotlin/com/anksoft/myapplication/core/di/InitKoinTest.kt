@@ -1,6 +1,7 @@
 package com.anksoft.myapplication.core.di
 
 import assertk.assertThat
+import assertk.assertions.isEqualTo
 import assertk.assertions.isInstanceOf
 import com.anksoft.myapplication.core.config.AppConfig
 import com.anksoft.myapplication.core.domain.Result
@@ -32,5 +33,13 @@ class InitKoinTest {
         val result = koin.get<AuthRepository>().login(demoUser.email, demoUser.password)
 
         assertThat(result).isInstanceOf(Result.Success::class)
+    }
+
+    // AC-15
+    @Test
+    fun doInitKoinWithEmptyUrlInDebugUsesDemoConfig() {
+        val koin = doInitKoin(isDebug = true, backendUrl = "").koin
+
+        assertThat(koin.get<AppConfig>()).isEqualTo(AppConfig.Demo)
     }
 }
