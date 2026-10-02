@@ -10,6 +10,14 @@ kotlin {
         jvmTarget = JvmTarget.JVM_11
     }
 }
+
+// Optional backend for debug builds: -PkmpBackendUrl=http://10.0.2.2:8081/api/v1/
+// Empty keeps the in-app demo backend. Release builds never read it.
+val backendUrl: String = providers.gradleProperty("kmpBackendUrl").orElse("").get().trim()
+require(backendUrl.isEmpty() || Regex("^https?://[^\\s\"\\\\$]+$").matches(backendUrl)) {
+    "kmpBackendUrl must start with http:// or https:// and contain no spaces, quotes, backslashes or '$'"
+}
+
 dependencies {
     implementation(project(":shared"))
 
@@ -38,7 +46,11 @@ android {
         }
     }
     buildTypes {
+        debug {
+            buildConfigField("String", "BACKEND_URL", "\"$backendUrl\"")
+        }
         release {
+            buildConfigField("String", "BACKEND_URL", "\"\"")
             isMinifyEnabled = false
             proguardFiles(
                 getDefaultProguardFile("proguard-android-optimize.txt"),
