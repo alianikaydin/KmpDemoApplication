@@ -21,6 +21,9 @@ fun initKoin(
     )
 }
 
-/** iOS entry point; Swift passes true for DEBUG builds. */
-fun doInitKoin(useMockBackend: Boolean) =
-    initKoin(if (useMockBackend) AppConfig.Demo else AppConfig())
+/**
+ * iOS entry point. Swift cannot see default arguments, so both parameters are explicit.
+ * [backendUrl] null or blank means demo mode in debug builds.
+ */
+fun doInitKoin(isDebug: Boolean, backendUrl: String?) =
+    initKoin(AppConfig.forBuild(isDebug, backendUrl))
