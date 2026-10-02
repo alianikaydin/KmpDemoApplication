@@ -36,8 +36,9 @@ Backend işlerinde 3. ve 4. aşamalarda backend rolleri devreye girer:
 
 İş hem istemci hem backend içeriyorsa `senior-dev` istemci, `backend-architect`
 backend bölümünü aynı `03-plan.md`'de yazar; API sözleşmesini birlikte
-belirlerler. Backend kodu varsayılan olarak aynı Gradle build'inde `server/`
-modülündedir.
+belirlerler. Backend kodu bu repoda değil, ayrı `alianikaydin/KmpDemoBackend`
+reposundadır; API sözleşmesi bu repodan sürümlü `com.anksoft.kmpdemo:contract`
+kütüphanesi üzerinden gelir (Ali'nin kararı, 2026-10-02).
 
 Model: Her ajanın modeli kendi dosyasındaki `model:` satırıyla belirlenir
 (`.claude/agents/<ajan>.md`). Değerler: `opus`, `sonnet`, `haiku`, tam model
