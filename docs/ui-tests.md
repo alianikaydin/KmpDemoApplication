@@ -20,6 +20,19 @@ Current flows: `01_app_launch` (Login screen is shown), `02_login_success`
 on Login). The app runs in demo mode (in-app mock backend), so the demo user is
 `demo@example.com` / `Demo1234` and no network is needed.
 
+## iOS session storage check
+
+`.github/workflows/ios-session-storage.yml` runs only when session storage or
+the iOS app changes (or by hand). It builds the iOS app twice: as it is, and
+with the old NSUserDefaults `createSecureSettings()` restored. Then
+`scripts/ui-tests/check-ios-session-storage.sh` runs the flows in
+`.maestro/storage/` and reads the app's NSUserDefaults plist on the simulator:
+
+- Update from the old build: log in on the old build, install the new build
+  over it, and Home must open with no session keys left in NSUserDefaults.
+- Fresh login on the new build: no session keys in NSUserDefaults, and Home
+  opens again after a restart (the session is in the Keychain).
+
 ## Adding a flow
 
 1. Add `.maestro/flows/NN_name.yaml`, starting with
