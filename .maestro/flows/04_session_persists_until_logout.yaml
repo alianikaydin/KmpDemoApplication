@@ -1,0 +1,36 @@
+# ios-keychain AC-2: a logged-in session survives an app restart.
+# ios-keychain AC-3: after logout, a restart shows Login.
+# On iOS this exercises the real Keychain, which simulator unit tests cannot reach.
+appId: ${APP_ID}
+---
+- runFlow: ../subflows/launch_clean.yaml
+- runFlow:
+    file: ../subflows/login_with.yaml
+    env:
+      EMAIL: demo@example.com
+      PASSWORD: Demo1234
+- extendedWaitUntil:
+    visible:
+      id: home_title
+    timeout: 20000
+- launchApp:
+    stopApp: true
+- extendedWaitUntil:
+    visible:
+      id: home_title
+    timeout: 60000
+- takeScreenshot: 04_home_after_restart
+- tapOn: "Go to Settings"
+- tapOn: "Logout"
+- extendedWaitUntil:
+    visible:
+      id: login_title
+    timeout: 20000
+- launchApp:
+    stopApp: true
+- extendedWaitUntil:
+    visible:
+      id: login_title
+    timeout: 60000
+- assertNotVisible:
+    id: home_title

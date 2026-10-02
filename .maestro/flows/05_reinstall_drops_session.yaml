@@ -1,0 +1,25 @@
+# ios-keychain AC-5: clearing app data (like a reinstall) shows Login, even
+# though iOS keeps Keychain items. The Keychain is deliberately NOT cleared here.
+appId: ${APP_ID}
+---
+- runFlow: ../subflows/launch_clean.yaml
+- runFlow:
+    file: ../subflows/login_with.yaml
+    env:
+      EMAIL: demo@example.com
+      PASSWORD: Demo1234
+- extendedWaitUntil:
+    visible:
+      id: home_title
+    timeout: 20000
+- launchApp:
+    clearState: true
+    clearKeychain: false
+    stopApp: true
+- extendedWaitUntil:
+    visible:
+      id: login_title
+    timeout: 60000
+- assertNotVisible:
+    id: home_title
+- takeScreenshot: 05_login_after_reinstall
