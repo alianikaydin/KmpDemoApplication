@@ -69,8 +69,17 @@ if [ "$status" -ne 0 ]; then
     fi
   done
 
+  # The app's own log shows why it stopped when no crash report is written.
+  echo "::group::App log (last 15 minutes)"
+  xcrun simctl spawn "$SIM_UDID" log show --last 15m --style compact \
+    --predicate 'process == "MyApplication" OR (process == "SpringBoard" AND eventMessage CONTAINS "com.anksoft") OR (process == "runningboardd" AND eventMessage CONTAINS "com.anksoft")' \
+    2>/dev/null | grep -v '^Filtering' | tail -n 300 || echo "Could not read the simulator log"
+  echo "::endgroup::"
+
   # Crash reports are written asynchronously; give ReportCrash a moment.
   sleep 10
+  echo "Diagnostic reports written during this run:"
+  find "$HOME/Library/Logs/DiagnosticReports" -newer "$run_marker" -type f 2>/dev/null || true
   # Print crash reports of the app produced during this run.
   for report in $(find "$HOME/Library/Logs/DiagnosticReports" -name '*.ips' -newer "$run_marker" 2>/dev/null | grep -i 'MyApplication\|iosApp'); do
     echo "::group::Crash report $(basename "$report")"
