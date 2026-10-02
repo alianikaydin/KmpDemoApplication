@@ -13,9 +13,11 @@ appId: ${APP_ID}
     visible:
       id: home_title
     timeout: 20000
-- stopApp
+# Restart through launchApp's own stop (simctl terminate), like flow 05. A
+# separate stopApp makes Maestro's iOS driver report the relaunching app as
+# "not running", which fails the flow as a crash.
 - launchApp:
-    stopApp: false
+    stopApp: true
 - extendedWaitUntil:
     visible:
       id: home_title
@@ -27,9 +29,8 @@ appId: ${APP_ID}
     visible:
       id: login_title
     timeout: 20000
-- stopApp
 - launchApp:
-    stopApp: false
+    stopApp: true
 - extendedWaitUntil:
     visible:
       id: login_title

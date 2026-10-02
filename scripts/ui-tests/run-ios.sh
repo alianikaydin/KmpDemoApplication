@@ -38,6 +38,7 @@ trap cleanup EXIT
 
 mark_stage test
 run_marker="$(mktemp)"
+run_start="$(date '+%Y-%m-%d %H:%M:%S')"
 status=0
 maestro --udid "$SIM_UDID" test .maestro/ \
   -e APP_ID="$APP_ID" \
@@ -69,8 +70,31 @@ if [ "$status" -ne 0 ]; then
     fi
   done
 
+  # The app's own log shows why it stopped when no crash report is written.
+  # XCTest/automation chatter from Maestro's driver is filtered out so the whole
+  # run fits; the whole filtered log is kept in the artifact as app.log.
+  xcrun simctl spawn "$SIM_UDID" log show --start "$run_start" --style compact \
+    --predicate '(process == "MyApplication" AND NOT (subsystem BEGINSWITH "com.apple.dt" OR subsystem == "com.apple.xpc" OR subsystem == "com.apple.CoreAnalytics")) OR ((process == "SpringBoard" OR process == "runningboardd" OR process == "launchd_sim") AND eventMessage CONTAINS[c] "anksoft" AND NOT eventMessage CONTAINS "SBHLibrary")' \
+    2>/dev/null | grep -v '^Filtering' > "$OUT_DIR/app.log" || echo "Could not read the simulator log"
+  echo "::group::App launches and terminations during the run"
+  # One line per launch, termination request and exit (with its reason), plus the
+  # app's own errors and faults.
+  grep -E 'Creating and launching job|to terminate application|SpringBoard:Workspace\] Process exited|MyApplication\[[0-9:a-f]+\] .*(Fault|Error)| (E|F) +MyApplication\[' "$OUT_DIR/app.log" \
+    | cut -c1-400 | tail -n 400 || true
+  echo "::endgroup::"
+  echo "::group::App log (last 200 lines)"
+  cut -c1-400 "$OUT_DIR/app.log" | tail -n 200
+  echo "::endgroup::"
+  echo "::group::Maestro log lines about the app stopping"
+  # Maestro keeps its own log under ~/.maestro/tests even with --test-output-dir.
+  grep -rihE 'crash|not running|terminat|stopped|launchApp|stopApp' "$OUT_DIR/maestro" "$HOME/.maestro/tests" --include='*.log' 2>/dev/null \
+    | cut -c1-400 | tail -n 120 || true
+  echo "::endgroup::"
+
   # Crash reports are written asynchronously; give ReportCrash a moment.
   sleep 10
+  echo "Diagnostic reports written during this run:"
+  find "$HOME/Library/Logs/DiagnosticReports" -newer "$run_marker" -type f 2>/dev/null || true
   # Print crash reports of the app produced during this run.
   for report in $(find "$HOME/Library/Logs/DiagnosticReports" -name '*.ips' -newer "$run_marker" 2>/dev/null | grep -i 'MyApplication\|iosApp'); do
     echo "::group::Crash report $(basename "$report")"
