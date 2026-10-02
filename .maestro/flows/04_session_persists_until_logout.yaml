@@ -13,8 +13,9 @@ appId: ${APP_ID}
     visible:
       id: home_title
     timeout: 20000
+- stopApp
 - launchApp:
-    stopApp: true
+    stopApp: false
 - extendedWaitUntil:
     visible:
       id: home_title
@@ -26,8 +27,9 @@ appId: ${APP_ID}
     visible:
       id: login_title
     timeout: 20000
+- stopApp
 - launchApp:
-    stopApp: true
+    stopApp: false
 - extendedWaitUntil:
     visible:
       id: login_title
