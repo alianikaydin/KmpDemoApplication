@@ -1,0 +1,186 @@
+name: UI Tests
+
+on:
+  pull_request:
+    branches: [master]
+    paths-ignore:
+      - "**.md"
+      - "docs/**"
+  push:
+    branches: [master]
+    paths-ignore:
+      - "**.md"
+      - "docs/**"
+  workflow_dispatch:
+
+# Independent from ci.yml on purpose. Master runs are never cancelled.
+concurrency:
+  group: ui-tests-${{ github.ref }}
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
+
+permissions:
+  contents: read
+
+env:
+  # Pinned in one place; both jobs install exactly this Maestro version.
+  MAESTRO_VERSION: "2.0.10"
+
+jobs:
+  android-ui:
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
+    env:
+      OUT_DIR: ui-results/android
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: 21
+
+      - uses: gradle/actions/setup-gradle@v4
+
+      - name: Build debug APK
+        run: |
+          mkdir -p "$OUT_DIR"
+          echo build > "$OUT_DIR/stage"
+          ./gradlew :androidApp:assembleDebug --stacktrace
+
+      - name: Enable KVM
+        run: |
+          echo 'KERNEL=="kvm", GROUP="kvm", MODE="0666", OPTIONS+="static_node=kvm"' | sudo tee /etc/udev/rules.d/99-kvm4all.rules
+          sudo udevadm control --reload-rules
+          sudo udevadm trigger --name-match=kvm
+
+      - name: Install Maestro
+        run: |
+          echo setup > "$OUT_DIR/stage"
+          bash scripts/ui-tests/install-maestro.sh
+
+      - name: Cache AVD
+        uses: actions/cache@v4
+        id: avd-cache
+        with:
+          path: |
+            ~/.android/avd/*
+            ~/.android/adb*
+          key: avd-34-x86_64-google_apis-pixel_6
+
+      - name: Mark emulator boot stage
+        run: echo boot > "$OUT_DIR/stage"
+
+      - name: Create AVD and generate snapshot for caching
+        if: steps.avd-cache.outputs.cache-hit != 'true'
+        uses: reactivecircus/android-emulator-runner@v2
+        with:
+          api-level: 34
+          target: google_apis
+          arch: x86_64
+          profile: pixel_6
+          force-avd-creation: false
+          emulator-boot-timeout: 600
+          emulator-options: -no-window -gpu swiftshader_indirect -noaudio -no-boot-anim -camera-back none
+          disable-animations: false
+          script: echo "Generated AVD snapshot for caching."
+
+      - name: Run Maestro flows on the emulator
+        uses: reactivecircus/android-emulator-runner@v2
+        env:
+          APK: androidApp/build/outputs/apk/debug/androidApp-debug.apk
+        with:
+          api-level: 34
+          target: google_apis
+          arch: x86_64
+          profile: pixel_6
+          force-avd-creation: false
+          disable-animations: true
+          emulator-boot-timeout: 600
+          emulator-options: -no-window -no-snapshot-save -gpu swiftshader_indirect -noaudio -no-boot-anim -camera-back none
+          script: bash scripts/ui-tests/run-android.sh
+
+      - name: Classify failure
+        if: failure()
+        run: bash scripts/ui-tests/classify-failure.sh android
+
+      - name: Upload UI test results
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: android-ui-results
+          path: ui-results/android/
+          retention-days: 14
+          if-no-files-found: warn
+
+  ios-ui:
+    runs-on: macos-15
+    timeout-minutes: 60
+    env:
+      OUT_DIR: ui-results/ios
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: 21
+
+      - uses: gradle/actions/setup-gradle@v4
+
+      - name: Cache Kotlin/Native
+        uses: actions/cache@v4
+        with:
+          path: ~/.konan
+          key: konan-${{ runner.os }}-${{ hashFiles('gradle/libs.versions.toml') }}
+          restore-keys: konan-${{ runner.os }}-
+
+      # Compose Multiplatform links against iOS 26 SDK symbols (e.g. UIViewLayoutRegion),
+      # so the app must be built with Xcode 26+; pick the newest one on the image.
+      - name: Select Xcode
+        run: |
+          xcode_app="$(ls -d /Applications/Xcode_26*.app 2>/dev/null | sort -V | tail -n 1)"
+          if [ -z "$xcode_app" ]; then
+            echo "::error title=Infrastructure failure::No Xcode 26 installation found on the runner"
+            exit 1
+          fi
+          echo "Using $xcode_app"
+          sudo xcode-select -s "$xcode_app"
+
+      - name: Build iOS app for the simulator
+        run: |
+          set -o pipefail
+          mkdir -p "$OUT_DIR"
+          echo build > "$OUT_DIR/stage"
+          xcodebuild \
+            -project iosApp/iosApp.xcodeproj \
+            -scheme iosApp \
+            -configuration Debug \
+            -sdk iphonesimulator \
+            -destination 'generic/platform=iOS Simulator' \
+            -derivedDataPath build/ios \
+            CODE_SIGN_IDENTITY=- CODE_SIGN_STYLE=Manual DEVELOPMENT_TEAM= \
+            build 2>&1 | tee "$OUT_DIR/xcodebuild.log"
+
+      - name: Boot iOS simulator
+        run: bash scripts/ui-tests/boot-ios-simulator.sh
+
+      - name: Install Maestro
+        run: bash scripts/ui-tests/install-maestro.sh
+
+      - name: Run Maestro flows on the simulator
+        env:
+          APP_PATH: build/ios/Build/Products/Debug-iphonesimulator/MyApplication.app
+        run: bash scripts/ui-tests/run-ios.sh
+
+      - name: Classify failure
+        if: failure()
+        run: bash scripts/ui-tests/classify-failure.sh ios
+
+      - name: Upload UI test results
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: ios-ui-results
+          path: ui-results/ios/
+          retention-days: 14
+          if-no-files-found: warn

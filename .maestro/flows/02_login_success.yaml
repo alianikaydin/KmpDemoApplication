@@ -1,0 +1,15 @@
+# Demo user logs in and lands on the Home screen.
+appId: ${APP_ID}
+---
+- runFlow: ../subflows/launch_clean.yaml
+- runFlow:
+    file: ../subflows/login_with.yaml
+    env:
+      EMAIL: demo@example.com
+      PASSWORD: Demo1234
+- extendedWaitUntil:
+    visible:
+      id: home_title
+    timeout: 20000
+- assertVisible: "Home"
+- takeScreenshot: 02_home
