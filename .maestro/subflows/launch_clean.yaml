@@ -4,7 +4,9 @@ appId: ${APP_ID}
 ---
 - launchApp:
     clearState: true
-    clearKeychain: true   # iOS keeps the session token in the Keychain across installs
+    # No clearKeychain: resetting the simulator Keychain while it holds this app's
+    # items stops the app on iOS. The app itself drops a session left in the
+    # Keychain once its data is cleared (see flow 05).
     stopApp: true
 - extendedWaitUntil:
     visible:
