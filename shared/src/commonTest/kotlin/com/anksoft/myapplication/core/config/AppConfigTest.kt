@@ -3,7 +3,6 @@ package com.anksoft.myapplication.core.config
 import assertk.assertThat
 import assertk.assertions.isEqualTo
 import assertk.assertions.isFalse
-import assertk.assertions.isInstanceOf
 import kotlin.test.Test
 import kotlin.test.assertFailsWith
 
@@ -36,10 +35,9 @@ class AppConfigTest {
 
     @Test
     fun non_http_scheme_throws() {
-        val error = assertFailsWith<IllegalArgumentException> {
+        assertFailsWith<IllegalArgumentException> {
             AppConfig.fromBackendUrl("ftp://example.com/")
         }
-        assertThat(error).isInstanceOf(IllegalArgumentException::class)
     }
 
     // AC-15

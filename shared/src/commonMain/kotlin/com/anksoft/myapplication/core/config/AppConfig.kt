@@ -3,10 +3,10 @@ package com.anksoft.myapplication.core.config
 /**
  * Build-time app configuration, supplied by each platform entry point to initKoin.
  *
- * @property baseUrl Root URL for every API request.
  * Each platform passes one optional backend URL (Gradle property or xcconfig); the decision
  * between demo mode and a real backend lives here, in [fromBackendUrl] and [forBuild].
  *
+ * @property baseUrl Root URL for every API request.
  * @property useMockBackend When true, requests are served by the in-app MockAuthServer
  * instead of the network. Must stay false for release builds.
  */
