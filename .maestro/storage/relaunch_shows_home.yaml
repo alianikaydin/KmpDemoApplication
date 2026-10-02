@@ -1,0 +1,10 @@
+# Used by scripts/ui-tests/check-ios-session-storage.sh, not by the flows/ suite.
+# Restarts the app without clearing its data and expects the stored session to open Home.
+appId: ${APP_ID}
+---
+- launchApp:
+    stopApp: true
+- extendedWaitUntil:
+    visible:
+      id: home_title
+    timeout: 60000

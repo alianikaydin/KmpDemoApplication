@@ -1,0 +1,113 @@
+name: iOS Session Storage
+
+# Checks on the iOS simulator that the session is not written to NSUserDefaults
+# and that updating from the NSUserDefaults build keeps the user logged in.
+# Runs only when session storage or the iOS app changes; it builds the app twice.
+on:
+  pull_request:
+    branches: [master]
+    paths:
+      - "shared/src/commonMain/kotlin/com/anksoft/myapplication/core/storage/**"
+      - "shared/src/iosMain/**"
+      - "iosApp/**"
+      - ".maestro/storage/**"
+      - ".maestro/subflows/**"
+      - "scripts/ui-tests/check-ios-session-storage.sh"
+      - ".github/workflows/ios-session-storage.yml"
+  workflow_dispatch:
+
+concurrency:
+  group: ios-session-storage-${{ github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+
+env:
+  MAESTRO_VERSION: "2.0.10"
+
+jobs:
+  ios-session-storage:
+    runs-on: macos-15
+    timeout-minutes: 75
+    env:
+      OUT_DIR: ui-results/ios-storage
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: 21
+
+      - uses: gradle/actions/setup-gradle@v4
+
+      - name: Cache Kotlin/Native
+        uses: actions/cache@v4
+        with:
+          path: ~/.konan
+          key: konan-${{ runner.os }}-${{ hashFiles('gradle/libs.versions.toml') }}
+          restore-keys: konan-${{ runner.os }}-
+
+      # Same Xcode selection as ui-tests.yml: the app needs the iOS 26 SDK.
+      - name: Select Xcode
+        run: |
+          xcode_app="$(ls -d /Applications/Xcode_26*.app 2>/dev/null | sort -V | tail -n 1)"
+          if [ -z "$xcode_app" ]; then
+            echo "::error title=Infrastructure failure::No Xcode 26 installation found on the runner"
+            exit 1
+          fi
+          echo "Using $xcode_app"
+          sudo xcode-select -s "$xcode_app"
+
+      - name: Build the current iOS app
+        run: |
+          set -o pipefail
+          mkdir -p "$OUT_DIR"
+          echo build > "$OUT_DIR/stage"
+          xcodebuild -project iosApp/iosApp.xcodeproj -scheme iosApp -configuration Debug \
+            -sdk iphonesimulator -destination 'generic/platform=iOS Simulator' \
+            -derivedDataPath build/ios \
+            CODE_SIGN_IDENTITY=- CODE_SIGN_STYLE=Manual DEVELOPMENT_TEAM= \
+            build 2>&1 | tee "$OUT_DIR/xcodebuild.log"
+
+      # The release before the Keychain change kept the session in NSUserDefaults
+      # through Settings(). Older commits no longer build for iOS, so rebuild the
+      # current app with that one file restored.
+      - name: Build the app with the old NSUserDefaults session storage
+        run: |
+          set -o pipefail
+          cat > shared/src/iosMain/kotlin/com/anksoft/myapplication/core/storage/SecureSettings.iosMain.kt <<'KOTLIN'
+          package com.anksoft.myapplication.core.storage
+
+          import com.russhwolf.settings.Settings
+
+          actual fun createSecureSettings(): Settings = Settings()
+          KOTLIN
+          xcodebuild -project iosApp/iosApp.xcodeproj -scheme iosApp -configuration Debug \
+            -sdk iphonesimulator -destination 'generic/platform=iOS Simulator' \
+            -derivedDataPath build/ios-legacy \
+            CODE_SIGN_IDENTITY=- CODE_SIGN_STYLE=Manual DEVELOPMENT_TEAM= \
+            build 2>&1 | tee "$OUT_DIR/xcodebuild-legacy.log"
+          git checkout -- shared/src/iosMain
+
+      - name: Boot iOS simulator
+        run: bash scripts/ui-tests/boot-ios-simulator.sh
+
+      - name: Install Maestro
+        run: bash scripts/ui-tests/install-maestro.sh
+
+      - name: Check session storage on the simulator
+        env:
+          APP_PATH: build/ios/Build/Products/Debug-iphonesimulator/MyApplication.app
+          LEGACY_APP_PATH: build/ios-legacy/Build/Products/Debug-iphonesimulator/MyApplication.app
+        run: bash scripts/ui-tests/check-ios-session-storage.sh
+
+      - name: Upload results
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: ios-session-storage-results
+          path: ui-results/ios-storage/
+          retention-days: 14
+          if-no-files-found: warn
