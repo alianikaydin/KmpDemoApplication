@@ -77,13 +77,18 @@ if [ "$status" -ne 0 ]; then
     --predicate '(process == "MyApplication" AND NOT (subsystem BEGINSWITH "com.apple.dt" OR subsystem == "com.apple.xpc" OR subsystem == "com.apple.CoreAnalytics")) OR ((process == "SpringBoard" OR process == "runningboardd" OR process == "launchd_sim") AND eventMessage CONTAINS[c] "anksoft" AND NOT eventMessage CONTAINS "SBHLibrary")' \
     2>/dev/null | grep -v '^Filtering' > "$OUT_DIR/app.log" || echo "Could not read the simulator log"
   echo "::group::App launches and terminations during the run"
-  grep -iE 'launch|terminat|exit|crash|kill|watchdog|jetsam|signal|fault' "$OUT_DIR/app.log" | cut -c1-400 | tail -n 200 || true
+  # One line per launch, termination request and exit (with its reason), plus the
+  # app's own errors and faults.
+  grep -E 'Creating and launching job|to terminate application|SpringBoard:Workspace\] Process exited|MyApplication\[[0-9:a-f]+\] .*(Fault|Error)| (E|F) +MyApplication\[' "$OUT_DIR/app.log" \
+    | cut -c1-400 | tail -n 400 || true
   echo "::endgroup::"
   echo "::group::App log (last 200 lines)"
   cut -c1-400 "$OUT_DIR/app.log" | tail -n 200
   echo "::endgroup::"
   echo "::group::Maestro log lines about the app stopping"
-  grep -rihE 'crash|not running|terminat|stopped' "$OUT_DIR/maestro" --include='*.log' | cut -c1-400 | tail -n 80 || true
+  # Maestro keeps its own log under ~/.maestro/tests even with --test-output-dir.
+  grep -rihE 'crash|not running|terminat|stopped|launchApp|stopApp' "$OUT_DIR/maestro" "$HOME/.maestro/tests" --include='*.log' 2>/dev/null \
+    | cut -c1-400 | tail -n 120 || true
   echo "::endgroup::"
 
   # Crash reports are written asynchronously; give ReportCrash a moment.
