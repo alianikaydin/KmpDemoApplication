@@ -4,6 +4,8 @@ appId: ${APP_ID}
 ---
 - launchApp:
     stopApp: true
+- waitForAnimationToEnd:   # see subflows/launch_clean.yaml
+    timeout: 5000
 - extendedWaitUntil:
     visible:
       id: home_title

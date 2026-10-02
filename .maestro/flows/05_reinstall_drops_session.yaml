@@ -16,6 +16,8 @@ appId: ${APP_ID}
     clearState: true
     clearKeychain: false
     stopApp: true
+- waitForAnimationToEnd:   # see subflows/launch_clean.yaml
+    timeout: 5000
 - extendedWaitUntil:
     visible:
       id: login_title

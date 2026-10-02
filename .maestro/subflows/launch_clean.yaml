@@ -8,6 +8,11 @@ appId: ${APP_ID}
     # items stops the app on iOS. The app itself drops a session left in the
     # Keychain once its data is cleared (see flow 05).
     stopApp: true
+# Maestro's iOS driver can answer the first view-hierarchy request right after
+# a launch with "Application is not running" and fail the flow as a crash.
+# This wait compares screenshots only, so it lets the launch finish first.
+- waitForAnimationToEnd:
+    timeout: 5000
 - extendedWaitUntil:
     visible:
       id: login_title
