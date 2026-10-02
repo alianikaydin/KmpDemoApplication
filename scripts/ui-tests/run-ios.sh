@@ -59,8 +59,20 @@ if [ "$status" -ne 0 ]; then
     || echo "Could not read the view hierarchy"
   echo "::endgroup::"
 
+  # Print the command-by-command status of each failed flow, so the failing step is visible.
+  for commands in $(find "$OUT_DIR/maestro" -name 'commands-*.json' 2>/dev/null); do
+    if jq -e 'any(.[]; .metadata.status == "FAILED")' "$commands" >/dev/null 2>&1; then
+      echo "::group::Steps of $(basename "$commands")"
+      jq -r '.[] | "\(.metadata.status // "?")\t\(.command | keys[0])\t\(.command | tostring | .[0:160])"' "$commands" \
+        || head -c 8000 "$commands"
+      echo "::endgroup::"
+    fi
+  done
+
+  # Crash reports are written asynchronously; give ReportCrash a moment.
+  sleep 10
   # Print crash reports of the app produced during this run.
-  for report in $(find "$HOME/Library/Logs/DiagnosticReports" -name 'MyApplication*.ips' -newer "$run_marker" 2>/dev/null); do
+  for report in $(find "$HOME/Library/Logs/DiagnosticReports" -name '*.ips' -newer "$run_marker" 2>/dev/null | grep -i 'MyApplication\|iosApp'); do
     echo "::group::Crash report $(basename "$report")"
     tail -n +2 "$report" | jq '{
         exception, termination, asi,
