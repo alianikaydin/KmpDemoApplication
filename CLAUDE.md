@@ -24,7 +24,7 @@ sırayla ilerler. Her aşamanın çıktısı sprint klasörüne yazılır:
 | 1 | Product Owner | `po` | sonnet | `01-story.md`: user story, Given/When/Then kabul kriterleri, öncelik | Kullanıcı onayı |
 | 2 | Teknik Analist | `tech-analyst` | opus | `02-analysis.md`: etkilenen modüller, veri akışı, API, riskler | |
 | 3 | Senior Developer | `senior-dev` | opus | `03-plan.md`: dosya bazında plan, test stratejisi, alt görevler | Kullanıcı onayı |
-| 4 | Junior Developer | `junior-dev` | sonnet | Draft PR + `04-implementation.md`; `senior-dev` PR'ı review eder | |
+| 4 | Junior Developer | `junior-dev` | sonnet | Draft PR + `04-implementation.md`; `senior-dev` PR'ı review edip merge eder | |
 | 5 | QA | `qa` | sonnet | `05-qa-report.md`: AC bazında test sonuçları; hata varsa 4'e döner | |
 
 Model: Her ajanın modeli kendi dosyasındaki `model:` satırıyla belirlenir
@@ -36,7 +36,10 @@ rolleri daha ekonomik modelde çalışır.
 Kurallar:
 
 - 1 ve 3 sonrası kullanıcı onayı olmadan bir sonraki aşamaya geçilmez.
-- PR'ı merge etmek kullanıcıya aittir.
+- Junior'ın PR'ını `senior-dev` review eder ve şu üç koşul sağlanınca
+  squash-merge eder: CI yeşil, QA raporu geçti, açık review bulgusu yok.
+  Karar veremediği bir durum olursa (ör. AC yorumu, kapsam dışı değişiklik,
+  geçmeyen ama nedeni belirsiz test) merge etmez, kullanıcıya sorar.
 - Kullanıcıyla ve sprint dokümanlarında Türkçe yazılır; kod, yorumlar, commit
   mesajları ve PR metinleri İngilizcedir ve Android (Kotlin/Compose) ile iOS
   (Swift/SwiftUI) kodlama kurallarına uyar: `docs/guidelines/android.md`,
