@@ -2,10 +2,10 @@ package com.anksoft.myapplication.core.network.mock
 
 import com.anksoft.myapplication.core.network.appJson
 import com.anksoft.myapplication.features.auth.data.datasource.AuthRemoteDataSource
-import com.anksoft.myapplication.features.auth.data.dto.AuthResponseDto
-import com.anksoft.myapplication.features.auth.data.dto.LoginRequestDto
-import com.anksoft.myapplication.features.auth.data.dto.RegisterRequestDto
-import com.anksoft.myapplication.features.auth.data.dto.UserDto
+import com.anksoft.kmpdemo.contract.auth.AuthResponseDto
+import com.anksoft.kmpdemo.contract.auth.LoginRequestDto
+import com.anksoft.kmpdemo.contract.auth.RegisterRequestDto
+import com.anksoft.kmpdemo.contract.auth.UserDto
 import io.ktor.client.engine.mock.MockRequestHandleScope
 import io.ktor.client.engine.mock.respond
 import io.ktor.client.engine.mock.toByteArray

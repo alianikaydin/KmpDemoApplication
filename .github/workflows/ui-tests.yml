@@ -24,6 +24,9 @@ permissions:
 env:
   # Pinned in one place; both jobs install exactly this Maestro version.
   MAESTRO_VERSION: "2.0.10"
+  # Read access to the contract library on GitHub Packages.
+  ORG_GRADLE_PROJECT_kmpDemoBackendUsername: ${{ github.actor }}
+  ORG_GRADLE_PROJECT_kmpDemoBackendPassword: ${{ secrets.GPR_READ_TOKEN }}
 
 jobs:
   android-ui:

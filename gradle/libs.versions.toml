@@ -22,6 +22,7 @@ kotlinx-serialization = "1.11.0"
 kotlinx-coroutines = "1.11.0"
 turbine = "1.2.1"
 assertk = "0.28.1"
+kmpdemo-contract = "0.1.0"
 
 [libraries]
 kotlin-test = { module = "org.jetbrains.kotlin:kotlin-test", version.ref = "kotlin" }
@@ -74,6 +75,7 @@ kotlinx-coroutines-core = { module = "org.jetbrains.kotlinx:kotlinx-coroutines-c
 kotlinx-coroutines-test = { module = "org.jetbrains.kotlinx:kotlinx-coroutines-test", version.ref = "kotlinx-coroutines" }
 turbine = { module = "app.cash.turbine:turbine", version.ref = "turbine" }
 assertk = { module = "com.willowtreeapps.assertk:assertk", version.ref = "assertk" }
+kmpdemo-contract = { module = "com.anksoft.kmpdemo:contract", version.ref = "kmpdemo-contract" }
 
 [plugins]
 androidApplication = { id = "com.android.application", version.ref = "agp" }

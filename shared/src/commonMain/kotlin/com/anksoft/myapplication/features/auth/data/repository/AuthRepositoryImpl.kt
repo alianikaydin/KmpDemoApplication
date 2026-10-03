@@ -5,7 +5,7 @@ import com.anksoft.myapplication.core.domain.Result
 import com.anksoft.myapplication.core.domain.map
 import com.anksoft.myapplication.core.storage.SessionManager
 import com.anksoft.myapplication.features.auth.data.datasource.AuthRemoteDataSource
-import com.anksoft.myapplication.features.auth.data.dto.AuthResponseDto
+import com.anksoft.kmpdemo.contract.auth.AuthResponseDto
 import com.anksoft.myapplication.features.auth.data.mapper.toUser
 import com.anksoft.myapplication.features.auth.domain.model.User
 import com.anksoft.myapplication.features.auth.domain.repository.AuthRepository
