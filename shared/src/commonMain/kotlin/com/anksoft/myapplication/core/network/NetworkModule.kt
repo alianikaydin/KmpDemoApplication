@@ -14,8 +14,10 @@ import io.ktor.client.plugins.auth.providers.bearer
 import io.ktor.client.plugins.contentnegotiation.ContentNegotiation
 import io.ktor.client.plugins.defaultRequest
 import io.ktor.client.plugins.logging.LogLevel
+import io.ktor.client.plugins.logging.Logger
 import io.ktor.client.plugins.logging.Logging
 import io.ktor.http.ContentType
+import io.ktor.http.HttpHeaders
 import io.ktor.http.contentType
 import io.ktor.serialization.kotlinx.json.json
 import org.koin.dsl.module
@@ -42,7 +44,8 @@ val networkModule = module {
 fun createHttpClient(
     engine: HttpClientEngine?,
     config: AppConfig,
-    sessionManager: SessionManager
+    sessionManager: SessionManager,
+    logger: Logger = Logger.DEFAULT
 ): HttpClient {
     val block: HttpClientConfig<*>.() -> Unit = {
         install(ContentNegotiation) {
@@ -70,7 +73,10 @@ fun createHttpClient(
         install(Logging) {
             // LogLevel.ALL would print request bodies -- i.e. plaintext
             // passwords -- to logcat. HEADERS only, per AC-1.8.
+            this.logger = logger
             level = LogLevel.HEADERS
+            // Never print the bearer token.
+            sanitizeHeader { header -> header == HttpHeaders.Authorization }
         }
         defaultRequest {
             url(config.baseUrl)
