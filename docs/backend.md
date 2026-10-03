@@ -1,0 +1,77 @@
+# Backend
+
+The backend lives in its own repository,
+[`alianikaydin/KmpDemoBackend`](https://github.com/alianikaydin/KmpDemoBackend)
+(Kotlin, Ktor, PostgreSQL). Its README explains how to start the server; this
+page covers what the app needs to build against it and to talk to it.
+
+## Contract library (needed to build)
+
+The auth DTOs, route paths and credential rules come from the published
+library `com.anksoft.kmpdemo:contract` on GitHub Packages. Gradle needs a token
+with `read:packages` to download it, so **every build needs credentials**, also
+when you only use demo mode.
+
+Put them in `~/.gradle/gradle.properties` (never in the repo):
+
+```
+kmpDemoBackendUsername=<your GitHub user name>
+kmpDemoBackendPassword=<classic personal access token with read:packages>
+```
+
+In CI they come from the `GPR_READ_TOKEN` Actions secret
+(`ORG_GRADLE_PROJECT_kmpDemoBackendUsername` / `...Password` in the workflows).
+iOS builds started from Xcode call Gradle, which reads the same file.
+
+A `401` from `maven.pkg.github.com` means the token is missing, expired or
+lacks `read:packages`. Check the token first.
+
+## Start the backend
+
+```
+git clone https://github.com/alianikaydin/KmpDemoBackend
+cd KmpDemoBackend
+scripts/server-up.sh        # needs JDK 21, Docker with compose, openssl, curl
+```
+
+The server then answers at `http://localhost:8081/api/v1/` (health:
+`/health/ready`). Stop it with `scripts/server-down.sh` (`--volumes` also
+deletes the data). The local Docker setup allows the web origins
+`http://localhost:8080` and `http://127.0.0.1:8080` through CORS.
+
+## Running the apps against the backend
+
+Without a backend URL, debug builds run in demo mode (in-app mock server, user
+`demo@example.com` / `Demo1234`). Release builds never use the mock. The URL
+must end with `/`.
+
+| Platform | Base URL | How to set it |
+|----------|----------|---------------|
+| Android emulator | `http://10.0.2.2:8081/api/v1/` | `-PkmpBackendUrl=...` |
+| Android device over USB | `http://localhost:8081/api/v1/` | `adb reverse tcp:8081 tcp:8081`, then the same property |
+| iOS simulator | `http://localhost:8081/api/v1/` | `iosApp/Configuration/Local.xcconfig` |
+| Web | `http://localhost:8081/api/v1/` | `-PkmpBackendUrl=...` |
+| Physical device without adb | `http://<host-ip>:8081/api/v1/` | same as above; the host and the phone must share a network |
+
+Android:
+
+```
+./gradlew :androidApp:installDebug -PkmpBackendUrl=http://10.0.2.2:8081/api/v1/
+```
+
+iOS: copy `iosApp/Configuration/Local.xcconfig.example` to
+`iosApp/Configuration/Local.xcconfig` (git-ignored) and build in Xcode. In
+xcconfig files `//` starts a comment, so the example writes the URL as
+`http:/$()/localhost:8081/api/v1/`.
+
+Web:
+
+```
+./gradlew :webApp:wasmJsBrowserDevelopmentRun -PkmpBackendUrl=http://localhost:8081/api/v1/
+```
+
+Open the page at `http://localhost:8080` (or `127.0.0.1:8080`); any other
+origin is blocked by the backend's CORS list.
+
+Cleartext HTTP is allowed only in debug builds (Android network security
+config, iOS `NSAllowsLocalNetworking`).
