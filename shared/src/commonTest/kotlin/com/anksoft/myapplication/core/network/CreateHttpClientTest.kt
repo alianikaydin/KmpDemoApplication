@@ -1,11 +1,10 @@
 package com.anksoft.myapplication.core.network
 
 import assertk.assertThat
-import assertk.assertions.isEqualTo
 import assertk.assertions.contains
 import assertk.assertions.doesNotContain
+import assertk.assertions.isEqualTo
 import assertk.assertions.isFalse
-import assertk.assertions.isTrue
 import com.anksoft.myapplication.core.config.AppConfig
 import com.anksoft.myapplication.core.storage.SessionManager
 import com.russhwolf.settings.MapSettings
@@ -16,8 +15,8 @@ import io.ktor.client.request.get
 import io.ktor.client.request.header
 import io.ktor.http.HttpHeaders
 import io.ktor.http.Url
-import kotlinx.coroutines.test.runTest
 import kotlin.test.Test
+import kotlinx.coroutines.test.runTest
 
 class CreateHttpClientTest {
 
@@ -45,12 +44,15 @@ class CreateHttpClientTest {
     }
 
     @Test
-    fun logsNeverContainTheAuthorizationHeaderValue() = runTest {
+    fun logsMaskTheBearerTokenTheSessionAttaches() = runTest {
         val lines = mutableListOf<String>()
+        val sessionManager = SessionManager(MapSettings()).apply {
+            saveToken("secret-token-value")
+        }
         val client = createHttpClient(
             engine = MockEngine { respondOk() },
             config = AppConfig(baseUrl = "https://configured.test/api/"),
-            sessionManager = SessionManager(MapSettings()),
+            sessionManager = sessionManager,
             logger = object : Logger {
                 override fun log(message: String) {
                     lines += message
@@ -59,13 +61,13 @@ class CreateHttpClientTest {
         )
 
         client.get("auth/me") {
-            header(HttpHeaders.Authorization, "Bearer secret-token-value")
             header("X-Plain", "visible-value")
         }
 
         val log = lines.joinToString("\n")
         assertThat(log).doesNotContain("secret-token-value")
-        assertThat(log.contains(HttpHeaders.Authorization)).isTrue()
+        // Ktor replaces a sanitized header value with "***".
+        assertThat(log).contains("${HttpHeaders.Authorization}: ***")
         // Other headers stay readable, so the log is still useful.
         assertThat(log).contains("visible-value")
     }

@@ -1,12 +1,12 @@
 package com.anksoft.myapplication.features.auth.data.datasource
 
-import com.anksoft.myapplication.core.domain.DataError
-import com.anksoft.myapplication.core.domain.Result
-import com.anksoft.myapplication.core.network.safeCall
 import com.anksoft.kmpdemo.contract.auth.AuthPaths
 import com.anksoft.kmpdemo.contract.auth.AuthResponseDto
 import com.anksoft.kmpdemo.contract.auth.LoginRequestDto
 import com.anksoft.kmpdemo.contract.auth.RegisterRequestDto
+import com.anksoft.myapplication.core.domain.DataError
+import com.anksoft.myapplication.core.domain.Result
+import com.anksoft.myapplication.core.network.safeCall
 import io.ktor.client.HttpClient
 import io.ktor.client.request.post
 import io.ktor.client.request.setBody

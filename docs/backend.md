@@ -42,8 +42,8 @@ deletes the data). The local Docker setup allows the web origins
 ## Running the apps against the backend
 
 Without a backend URL, debug builds run in demo mode (in-app mock server, user
-`demo@example.com` / `Demo1234`). Release builds never use the mock. The URL
-must end with `/`.
+`demo@example.com` / `Demo1234`). Release builds never use the mock. A missing
+trailing `/` on the URL is added automatically.
 
 | Platform | Base URL | How to set it |
 |----------|----------|---------------|
@@ -51,7 +51,6 @@ must end with `/`.
 | Android device over USB | `http://localhost:8081/api/v1/` | `adb reverse tcp:8081 tcp:8081`, then the same property |
 | iOS simulator | `http://localhost:8081/api/v1/` | `iosApp/Configuration/Local.xcconfig` |
 | Web | `http://localhost:8081/api/v1/` | `-PkmpBackendUrl=...` |
-| Physical device without adb | `http://<host-ip>:8081/api/v1/` | same as above; the host and the phone must share a network |
 
 Android:
 
@@ -73,5 +72,14 @@ Web:
 Open the page at `http://localhost:8080` (or `127.0.0.1:8080`); any other
 origin is blocked by the backend's CORS list.
 
-Cleartext HTTP is allowed only in debug builds (Android network security
-config, iOS `NSAllowsLocalNetworking`).
+Cleartext HTTP:
+
+- Android: only in debug builds, and only to `10.0.2.2` and `localhost` (debug
+  network security config).
+- iOS: `NSAllowsLocalNetworking` is set in every configuration on purpose; it
+  permits local-network hosts such as `localhost` and `*.local`.
+
+iOS physical device: the phone can reach the Mac as `http://<mac-name>.local:8081/api/v1/`
+(set it in `Local.xcconfig`). The backend's `compose.yaml` binds the port to
+`127.0.0.1` only, so its port binding must be changed to allow LAN access
+first. Android physical devices should use `adb reverse` as above.
