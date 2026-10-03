@@ -45,7 +45,7 @@ fun createHttpClient(
     engine: HttpClientEngine?,
     config: AppConfig,
     sessionManager: SessionManager,
-    logger: Logger = Logger.DEFAULT
+    logger: Logger = Logger.SIMPLE
 ): HttpClient {
     val block: HttpClientConfig<*>.() -> Unit = {
         install(ContentNegotiation) {
