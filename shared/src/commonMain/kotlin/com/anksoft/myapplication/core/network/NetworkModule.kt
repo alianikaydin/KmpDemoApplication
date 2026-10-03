@@ -22,6 +22,16 @@ import io.ktor.http.contentType
 import io.ktor.serialization.kotlinx.json.json
 import org.koin.dsl.module
 
+/**
+ * Default HTTP logger. Ktor's Logger.DEFAULT / Logger.SIMPLE are not declared in
+ * commonMain, so this tiny implementation serves all platforms.
+ */
+internal object PrintlnLogger : Logger {
+    override fun log(message: String) {
+        println(message)
+    }
+}
+
 /** Auth request timeout per the performance NFR. */
 private const val REQUEST_TIMEOUT_MILLIS = 15_000L
 
@@ -45,7 +55,7 @@ fun createHttpClient(
     engine: HttpClientEngine?,
     config: AppConfig,
     sessionManager: SessionManager,
-    logger: Logger = Logger.SIMPLE
+    logger: Logger = PrintlnLogger
 ): HttpClient {
     val block: HttpClientConfig<*>.() -> Unit = {
         install(ContentNegotiation) {
