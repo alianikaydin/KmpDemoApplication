@@ -25,6 +25,9 @@ permissions:
 
 env:
   MAESTRO_VERSION: "2.0.10"
+  # Read access to the contract library on GitHub Packages.
+  ORG_GRADLE_PROJECT_kmpDemoBackendUsername: ${{ github.actor }}
+  ORG_GRADLE_PROJECT_kmpDemoBackendPassword: ${{ secrets.GPR_READ_TOKEN }}
 
 jobs:
   ios-session-storage:

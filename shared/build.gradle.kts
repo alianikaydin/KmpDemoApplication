@@ -93,6 +93,9 @@ kotlin {
             implementation(libs.voyager.transitions)
             implementation(libs.voyager.koin)
             
+            // Contract shared with the backend
+            implementation(libs.kmpdemo.contract)
+
             // Kotlinx
             implementation(libs.kotlinx.serialization.json)
             implementation(libs.kotlinx.coroutines.core)

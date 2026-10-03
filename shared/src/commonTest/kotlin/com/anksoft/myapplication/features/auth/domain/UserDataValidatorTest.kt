@@ -77,4 +77,15 @@ class UserDataValidatorTest {
         assertThat(validator.validatePassword("password1"))
             .containsExactlyInAnyOrder(PasswordError.NoUppercase)
     }
+
+    @Test
+    fun unicodeUppercaseLetterCountsAsUppercase() {
+        // Delegated to CredentialRules; a non-ASCII uppercase letter satisfies the rule.
+        assertThat(validator.validatePassword("Ürünler1")).isEmpty()
+    }
+
+    @Test
+    fun overlongPasswordIsNotReportedAsAChecklistError() {
+        assertThat(validator.validatePassword("Aa1" + "x".repeat(200))).isEmpty()
+    }
 }

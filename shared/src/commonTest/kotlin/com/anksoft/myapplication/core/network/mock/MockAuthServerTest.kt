@@ -4,6 +4,7 @@ import assertk.assertThat
 import assertk.assertions.isEqualTo
 import assertk.assertions.isInstanceOf
 import assertk.assertions.isNotNull
+import com.anksoft.kmpdemo.contract.auth.AuthResponseDto
 import com.anksoft.myapplication.core.config.AppConfig
 import com.anksoft.myapplication.core.domain.DataError
 import com.anksoft.myapplication.core.domain.Result
@@ -11,13 +12,12 @@ import com.anksoft.myapplication.core.network.createHttpClient
 import com.anksoft.myapplication.core.network.safeCall
 import com.anksoft.myapplication.core.storage.SessionManager
 import com.anksoft.myapplication.features.auth.data.datasource.AuthRemoteDataSource
-import com.anksoft.myapplication.features.auth.data.dto.AuthResponseDto
 import com.anksoft.myapplication.features.auth.data.repository.AuthRepositoryImpl
 import com.anksoft.myapplication.features.auth.domain.model.User
 import com.russhwolf.settings.MapSettings
 import io.ktor.client.request.post
-import kotlinx.coroutines.test.runTest
 import kotlin.test.Test
+import kotlinx.coroutines.test.runTest
 
 class MockAuthServerTest {
 

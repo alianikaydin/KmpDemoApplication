@@ -1,5 +1,7 @@
 package com.anksoft.myapplication.features.auth.domain
 
+import com.anksoft.kmpdemo.contract.auth.CredentialRules
+import com.anksoft.kmpdemo.contract.auth.PasswordRule
 import com.anksoft.myapplication.core.domain.Error
 
 sealed interface PasswordError : Error {
@@ -9,24 +11,28 @@ sealed interface PasswordError : Error {
 }
 
 /**
- * Pure Kotlin so it is directly unit-testable in commonTest with no platform deps.
- * Rules per the validation table: >= 8 chars, >= 1 digit, >= 1 uppercase.
+ * Delegates to [CredentialRules] from the contract library so the app and the
+ * backend always agree on what a valid e-mail and password are. The library is
+ * pure Kotlin, so this stays unit-testable in commonTest with no platform deps.
  */
 class UserDataValidator {
 
-    fun isValidEmail(email: String): Boolean = EMAIL_REGEX.matches(email.trim())
+    fun isValidEmail(email: String): Boolean = CredentialRules.isValidEmail(email.trim())
 
-    /** Returns every unmet rule, so the UI can render a live checklist rather than one error at a time. */
-    fun validatePassword(password: String): List<PasswordError> = buildList {
-        if (password.length < MIN_PASSWORD_LENGTH) add(PasswordError.TooShort)
-        if (password.none { it.isDigit() }) add(PasswordError.NoDigit)
-        if (password.none { it.isUpperCase() }) add(PasswordError.NoUppercase)
+    /**
+     * Returns every unmet rule, so the UI can render a live checklist rather than one error at a time.
+     * The server-only maximum length (TOO_LONG) is not surfaced as a checklist item.
+     */
+    fun validatePassword(password: String): List<PasswordError> {
+        val violations = CredentialRules.passwordViolations(password)
+        return buildList {
+            if (PasswordRule.TOO_SHORT in violations) add(PasswordError.TooShort)
+            if (PasswordRule.NO_DIGIT in violations) add(PasswordError.NoDigit)
+            if (PasswordRule.NO_UPPERCASE in violations) add(PasswordError.NoUppercase)
+        }
     }
 
     companion object {
-        const val MIN_PASSWORD_LENGTH = 8
-
-        // Pragmatic rather than RFC-complete: one @, no whitespace, a dotted TLD of >= 2 chars.
-        private val EMAIL_REGEX = Regex("^[A-Za-z0-9!#\$%&'*+/=?^_`{|}~-]+(?:\\.[A-Za-z0-9!#\$%&'*+/=?^_`{|}~-]+)*@[A-Za-z0-9](?:[A-Za-z0-9-]*[A-Za-z0-9])?(?:\\.[A-Za-z0-9](?:[A-Za-z0-9-]*[A-Za-z0-9])?)*\\.[A-Za-z]{2,}\$")
+        const val MIN_PASSWORD_LENGTH = CredentialRules.MIN_PASSWORD_LENGTH
     }
 }

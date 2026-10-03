@@ -10,6 +10,11 @@ concurrency:
   group: ci-${{ github.ref }}
   cancel-in-progress: true
 
+env:
+  # Read access to the contract library on GitHub Packages.
+  ORG_GRADLE_PROJECT_kmpDemoBackendUsername: ${{ github.actor }}
+  ORG_GRADLE_PROJECT_kmpDemoBackendPassword: ${{ secrets.GPR_READ_TOKEN }}
+
 jobs:
   build-and-test:
     runs-on: ubuntu-latest
