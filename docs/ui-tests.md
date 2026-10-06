@@ -20,6 +20,17 @@ Current flows: `01_app_launch` (Login screen is shown), `02_login_success`
 on Login). The app runs in demo mode (in-app mock backend), so the demo user is
 `demo@example.com` / `Demo1234` and no network is needed.
 
+## End-to-end check against the real backend (Android)
+
+The `android-e2e` job in the same workflow checks register -> logout -> login ->
+Home on the emulator against the real backend. It checks out
+`alianikaydin/KmpDemoBackend` into `backend/`, starts it with
+`scripts/server-up.sh`, builds the APK with
+`-PkmpBackendUrl=http://10.0.2.2:8081/api/v1/` and runs
+`.maestro-e2e/` through `scripts/ui-tests/run-android-e2e.sh` (a unique user
+per run). It is separate from `.maestro/`, so the demo-mode suite is unchanged.
+Results and the backend container log are in the `android-e2e-results` artifact.
+
 ## iOS session storage check
 
 `.github/workflows/ios-session-storage.yml` runs only when session storage or

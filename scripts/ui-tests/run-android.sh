@@ -3,12 +3,15 @@
 # Called from android-emulator-runner (the emulator is already booted) or run
 # locally with an emulator/device attached.
 #
-# Env: APK (path to the debug APK), OUT_DIR (default ui-results/android).
+# Env: APK (path to the debug APK), OUT_DIR (default ui-results/android),
+# FLOWS (Maestro workspace/flow path, default .maestro/),
+# MAESTRO_EXTRA_ARGS (extra `maestro test` arguments, e.g. "-e KEY=value").
 set -euo pipefail
 
 OUT_DIR="${OUT_DIR:-ui-results/android}"
 APK="${APK:-androidApp/build/outputs/apk/debug/androidApp-debug.apk}"
 APP_ID="com.anksoft.myapplication"
+FLOWS="${FLOWS:-.maestro/}"
 export OUT_DIR
 
 # shellcheck source=scripts/ui-tests/common.sh
@@ -56,8 +59,10 @@ trap cleanup EXIT
 
 mark_stage test
 status=0
-maestro test .maestro/ \
+# shellcheck disable=SC2086  # MAESTRO_EXTRA_ARGS is intentionally word-split
+maestro test "$FLOWS" \
   -e APP_ID="$APP_ID" \
+  ${MAESTRO_EXTRA_ARGS:-} \
   --format junit \
   --output "$OUT_DIR/report.xml" \
   --test-output-dir "$OUT_DIR/maestro" || status=$?

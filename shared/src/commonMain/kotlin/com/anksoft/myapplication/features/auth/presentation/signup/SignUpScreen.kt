@@ -12,6 +12,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.focus.onFocusChanged
 import androidx.compose.ui.semantics.LiveRegionMode
 import androidx.compose.ui.semantics.liveRegion
+import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.text.input.KeyboardType
@@ -92,6 +93,7 @@ fun SignUpContent(
                     label = { Text(stringResource(Res.string.login_email_label)) },
                     modifier = Modifier
                         .fillMaxWidth()
+                        .testTag(SignUpTestTags.EMAIL_INPUT)
                         .onFocusChanged { focusState ->
                             if (!focusState.isFocused) onEvent(SignUpEvent.EmailFocusLost)
                         },
@@ -113,7 +115,7 @@ fun SignUpContent(
                     value = state.password,
                     onValueChange = { onEvent(SignUpEvent.PasswordChanged(it)) },
                     label = { Text(stringResource(Res.string.login_password_label)) },
-                    modifier = Modifier.fillMaxWidth(),
+                    modifier = Modifier.fillMaxWidth().testTag(SignUpTestTags.PASSWORD_INPUT),
                     singleLine = true,
                     enabled = !state.isLoading,
                     isError = state.passwordError != null,
@@ -146,7 +148,7 @@ fun SignUpContent(
                     value = state.confirmPassword,
                     onValueChange = { onEvent(SignUpEvent.ConfirmPasswordChanged(it)) },
                     label = { Text(stringResource(Res.string.signup_confirm_password_label)) },
-                    modifier = Modifier.fillMaxWidth(),
+                    modifier = Modifier.fillMaxWidth().testTag(SignUpTestTags.CONFIRM_PASSWORD_INPUT),
                     singleLine = true,
                     enabled = !state.isLoading,
                     isError = state.confirmPasswordError != null,
@@ -179,7 +181,7 @@ fun SignUpContent(
 
                 Button(
                     onClick = { onEvent(SignUpEvent.SignUpClicked) },
-                    modifier = Modifier.fillMaxWidth(),
+                    modifier = Modifier.fillMaxWidth().testTag(SignUpTestTags.SUBMIT_BUTTON),
                     enabled = state.canSubmit
                 ) {
                     if (state.isLoading) {

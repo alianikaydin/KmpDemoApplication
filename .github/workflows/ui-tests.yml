@@ -115,6 +115,122 @@ jobs:
           retention-days: 14
           if-no-files-found: warn
 
+  # Device end-to-end check against the REAL backend (backend-service sprint, T6):
+  # register -> logout -> login -> Home. The backend repo is started with its own
+  # tooling; the emulator reaches the runner's loopback as 10.0.2.2.
+  android-e2e:
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
+    env:
+      OUT_DIR: ui-results/android-e2e
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/checkout@v4
+        with:
+          repository: alianikaydin/KmpDemoBackend
+          ref: main
+          path: backend
+
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: 21
+
+      - uses: gradle/actions/setup-gradle@v4
+
+      - name: Start the backend
+        run: |
+          mkdir -p "$OUT_DIR"
+          echo setup > "$OUT_DIR/stage"
+          cd backend
+          bash scripts/server-up.sh
+          for _ in $(seq 1 90); do
+            curl -fsS http://localhost:8081/health/ready >/dev/null 2>&1 && exit 0
+            sleep 2
+          done
+          echo "::error title=Infrastructure failure::Backend did not become ready on :8081"
+          exit 2
+
+      - name: Build debug APK against the backend
+        run: |
+          echo build > "$OUT_DIR/stage"
+          ./gradlew :androidApp:assembleDebug -PkmpBackendUrl=http://10.0.2.2:8081/api/v1/ --stacktrace
+
+      - name: Enable KVM
+        run: |
+          echo 'KERNEL=="kvm", GROUP="kvm", MODE="0666", OPTIONS+="static_node=kvm"' | sudo tee /etc/udev/rules.d/99-kvm4all.rules
+          sudo udevadm control --reload-rules
+          sudo udevadm trigger --name-match=kvm
+
+      - name: Install Maestro
+        run: |
+          echo setup > "$OUT_DIR/stage"
+          bash scripts/ui-tests/install-maestro.sh
+
+      - name: Cache AVD
+        uses: actions/cache@v4
+        id: avd-cache
+        with:
+          path: |
+            ~/.android/avd/*
+            ~/.android/adb*
+          key: avd-34-x86_64-google_apis-pixel_6
+
+      - name: Mark emulator boot stage
+        run: echo boot > "$OUT_DIR/stage"
+
+      - name: Create AVD and generate snapshot for caching
+        if: steps.avd-cache.outputs.cache-hit != 'true'
+        uses: reactivecircus/android-emulator-runner@v2
+        with:
+          api-level: 34
+          target: google_apis
+          arch: x86_64
+          profile: pixel_6
+          force-avd-creation: false
+          emulator-boot-timeout: 600
+          emulator-options: -no-window -gpu swiftshader_indirect -noaudio -no-boot-anim -camera-back none
+          disable-animations: false
+          script: echo "Generated AVD snapshot for caching."
+
+      - name: Run end-to-end flow on the emulator
+        uses: reactivecircus/android-emulator-runner@v2
+        env:
+          APK: androidApp/build/outputs/apk/debug/androidApp-debug.apk
+          FLOWS: .maestro-e2e/
+        with:
+          api-level: 34
+          target: google_apis
+          arch: x86_64
+          profile: pixel_6
+          force-avd-creation: false
+          disable-animations: true
+          emulator-boot-timeout: 600
+          emulator-options: -no-window -no-snapshot-save -gpu swiftshader_indirect -noaudio -no-boot-anim -camera-back none
+          script: bash scripts/ui-tests/run-android-e2e.sh
+
+      - name: Dump backend logs
+        if: always()
+        run: |
+          mkdir -p "$OUT_DIR"
+          cd backend
+          docker compose ps > "../$OUT_DIR/backend-ps.txt" 2>&1 || true
+          docker compose logs --no-color --timestamps > "../$OUT_DIR/backend.log" 2>&1 || true
+
+      - name: Classify failure
+        if: failure()
+        run: bash scripts/ui-tests/classify-failure.sh android-e2e
+
+      - name: Upload UI test results
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: android-e2e-results
+          path: ui-results/android-e2e/
+          retention-days: 14
+          if-no-files-found: warn
+
   ios-ui:
     runs-on: macos-15
     timeout-minutes: 60
