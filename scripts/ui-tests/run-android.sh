@@ -45,7 +45,21 @@ logcat_pid=$!
 ) &
 video_pid=$!
 
+# Prints what the device was doing into the job log (artifacts are not readable
+# from the log): focused window, crashes/ANRs and graphics errors from logcat.
+diagnose() {
+  echo "::group::Emulator diagnostics"
+  adb devices -l || true
+  adb shell dumpsys window 2>/dev/null | grep -E 'mCurrentFocus|mFocusedApp' || true
+  adb shell pidof "$APP_ID" || echo "app process not running"
+  adb shell screencap -p /sdcard/diag.png 2>/dev/null && adb pull /sdcard/diag.png "$OUT_DIR/diag.png" || true
+  echo "--- logcat: crashes, ANRs, graphics errors, app tag"
+  adb logcat -d 2>/dev/null | grep -E "FATAL EXCEPTION|AndroidRuntime|ANR in|Application Not Responding|EGL|GLES|am_crash|am_anr|Displayed|$APP_ID" | tail -n 80 || true
+  echo "::endgroup::"
+}
+
 cleanup() {
+  [ "${status:-0}" -ne 0 ] && diagnose
   kill "$video_pid" 2>/dev/null || true
   adb shell pkill -INT screenrecord 2>/dev/null || true
   sleep 2
