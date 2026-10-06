@@ -11,12 +11,17 @@ import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.unit.dp
 import cafe.adriel.voyager.core.screen.Screen
 import cafe.adriel.voyager.koin.koinScreenModel
 import cafe.adriel.voyager.navigator.LocalNavigator
 import cafe.adriel.voyager.navigator.currentOrThrow
 import com.anksoft.myapplication.features.auth.presentation.login.LoginScreen
+import myapplication.shared.generated.resources.Res
+import myapplication.shared.generated.resources.settings_environment
+import myapplication.shared.generated.resources.settings_version
+import org.jetbrains.compose.resources.stringResource
 
 class SettingsScreen : Screen {
 
@@ -74,11 +79,25 @@ class SettingsScreen : Screen {
                 Spacer(modifier = Modifier.height(32.dp))
                 
                 HorizontalDivider()
-                
+
+                Spacer(modifier = Modifier.height(16.dp))
+
+                Text(
+                    text = stringResource(Res.string.settings_environment, state.environmentName),
+                    style = MaterialTheme.typography.bodyMedium,
+                    modifier = Modifier.testTag(SettingsTestTags.ENVIRONMENT)
+                )
+                Text(
+                    text = stringResource(Res.string.settings_version, state.versionName, state.versionCode),
+                    style = MaterialTheme.typography.bodyMedium,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    modifier = Modifier.testTag(SettingsTestTags.VERSION)
+                )
+
                 Spacer(modifier = Modifier.height(16.dp))
                 
                 Button(
-                    onClick = { screenModel.logout() },
+                    onClick = { screenModel.onEvent(SettingsEvent.Logout) },
                     modifier = Modifier.fillMaxWidth(),
                     colors = ButtonDefaults.buttonColors(
                         containerColor = MaterialTheme.colorScheme.error

@@ -8,5 +8,5 @@ import org.koin.dsl.module
 val viewModelModule = module {
     factory { LoginScreenModel(get(), get()) }
     factory { SignUpScreenModel(get(), get()) }
-    factory { SettingsScreenModel(get()) }
+    factory { SettingsScreenModel(get(), get()) }
 }
