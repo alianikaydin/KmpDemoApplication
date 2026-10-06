@@ -4,7 +4,8 @@
 appId: ${APP_ID}
 ---
 - runFlow: ../../.maestro/subflows/launch_clean.yaml
-- tapOn: "Don't have an account\\? Sign Up"
+- tapOn:
+    id: login_sign_up_link
 - tapOn:
     id: signup_email_input
 - inputText: ${E2E_EMAIL}

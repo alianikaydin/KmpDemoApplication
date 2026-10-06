@@ -220,7 +220,7 @@ fun LoginContent(
 
                 TextButton(
                     onClick = onSignUpClick,
-                    modifier = Modifier.padding(top = 8.dp)
+                    modifier = Modifier.padding(top = 8.dp).testTag(LoginTestTags.SIGN_UP_LINK)
                 ) {
                     Text(stringResource(Res.string.login_no_account_sign_up))
                 }
