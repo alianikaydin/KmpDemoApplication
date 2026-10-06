@@ -7,4 +7,5 @@ internal object LoginTestTags {
     const val PASSWORD_INPUT = "login_password_input"
     const val SUBMIT_BUTTON = "login_submit_button"
     const val FORM_ERROR = "login_form_error"
+    const val SIGN_UP_LINK = "login_sign_up_link"
 }

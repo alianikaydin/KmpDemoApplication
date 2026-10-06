@@ -1,0 +1,4 @@
+# End-to-end flows against the REAL backend (see .github/workflows/ui-tests.yml,
+# job android-e2e). Kept apart from .maestro/ so the demo-mode suite is unchanged.
+flows:
+  - "flows/*"

@@ -3,12 +3,15 @@
 # Called from android-emulator-runner (the emulator is already booted) or run
 # locally with an emulator/device attached.
 #
-# Env: APK (path to the debug APK), OUT_DIR (default ui-results/android).
+# Env: APK (path to the debug APK), OUT_DIR (default ui-results/android),
+# FLOWS (Maestro workspace/flow path, default .maestro/),
+# MAESTRO_EXTRA_ARGS (extra `maestro test` arguments, e.g. "-e KEY=value").
 set -euo pipefail
 
 OUT_DIR="${OUT_DIR:-ui-results/android}"
 APK="${APK:-androidApp/build/outputs/apk/debug/androidApp-debug.apk}"
 APP_ID="com.anksoft.myapplication"
+FLOWS="${FLOWS:-.maestro/}"
 export OUT_DIR
 
 # shellcheck source=scripts/ui-tests/common.sh
@@ -42,7 +45,21 @@ logcat_pid=$!
 ) &
 video_pid=$!
 
+# Prints what the device was doing into the job log (artifacts are not readable
+# from the log): focused window, crashes/ANRs and graphics errors from logcat.
+diagnose() {
+  echo "::group::Emulator diagnostics"
+  adb devices -l || true
+  adb shell dumpsys window 2>/dev/null | grep -E 'mCurrentFocus|mFocusedApp' || true
+  adb shell pidof "$APP_ID" || echo "app process not running"
+  adb shell screencap -p /sdcard/diag.png 2>/dev/null && adb pull /sdcard/diag.png "$OUT_DIR/diag.png" || true
+  echo "--- logcat: crashes, ANRs, graphics errors, app tag"
+  adb logcat -d 2>/dev/null | grep -E "FATAL EXCEPTION|AndroidRuntime|ANR in|Application Not Responding|EGL|GLES|am_crash|am_anr|Displayed|$APP_ID" | tail -n 80 || true
+  echo "::endgroup::"
+}
+
 cleanup() {
+  [ "${status:-0}" -ne 0 ] && diagnose
   kill "$video_pid" 2>/dev/null || true
   adb shell pkill -INT screenrecord 2>/dev/null || true
   sleep 2
@@ -56,8 +73,10 @@ trap cleanup EXIT
 
 mark_stage test
 status=0
-maestro test .maestro/ \
+# shellcheck disable=SC2086  # MAESTRO_EXTRA_ARGS is intentionally word-split
+maestro test "$FLOWS" \
   -e APP_ID="$APP_ID" \
+  ${MAESTRO_EXTRA_ARGS:-} \
   --format junit \
   --output "$OUT_DIR/report.xml" \
   --test-output-dir "$OUT_DIR/maestro" || status=$?

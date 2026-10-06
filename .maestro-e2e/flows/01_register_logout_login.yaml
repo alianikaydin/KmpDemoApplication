@@ -1,0 +1,41 @@
+# Backend T6: register a fresh user -> Home -> logout -> login with the same
+# credentials -> Home, against the real backend.
+# Requires E2E_EMAIL (unique per run) and E2E_PASSWORD env vars.
+appId: ${APP_ID}
+---
+- runFlow: ../../.maestro/subflows/launch_clean.yaml
+- tapOn:
+    id: login_sign_up_link
+- tapOn:
+    id: signup_email_input
+- inputText: ${E2E_EMAIL}
+- tapOn:
+    id: signup_password_input
+- inputText: ${E2E_PASSWORD}
+- tapOn:
+    id: signup_confirm_password_input
+- inputText: ${E2E_PASSWORD}
+- hideKeyboard
+- tapOn:
+    id: signup_submit_button
+- extendedWaitUntil:
+    visible:
+      id: home_title
+    timeout: 30000
+- takeScreenshot: e2e_01_home_after_register
+- tapOn: "Go to Settings"
+- tapOn: "Logout"
+- extendedWaitUntil:
+    visible:
+      id: login_title
+    timeout: 30000
+- runFlow:
+    file: ../../.maestro/subflows/login_with.yaml
+    env:
+      EMAIL: ${E2E_EMAIL}
+      PASSWORD: ${E2E_PASSWORD}
+- extendedWaitUntil:
+    visible:
+      id: home_title
+    timeout: 30000
+- takeScreenshot: e2e_02_home_after_login
