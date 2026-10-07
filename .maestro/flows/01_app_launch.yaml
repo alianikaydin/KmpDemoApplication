@@ -10,7 +10,4 @@ appId: ${APP_ID}
     id: login_password_input
 - assertVisible:
     id: login_submit_button
-- assertVisible: "Login"
-- assertVisible: "Email"
-- assertVisible: "Password"
 - takeScreenshot: 01_login_screen

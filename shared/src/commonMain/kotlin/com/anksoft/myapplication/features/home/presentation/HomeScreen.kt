@@ -11,8 +11,13 @@ import cafe.adriel.voyager.core.screen.Screen
 import cafe.adriel.voyager.navigator.LocalNavigator
 import cafe.adriel.voyager.navigator.Navigator
 import cafe.adriel.voyager.navigator.currentOrThrow
-
 import com.anksoft.myapplication.features.settings.presentation.SettingsScreen
+import myapplication.shared.generated.resources.Res
+import myapplication.shared.generated.resources.home_go_to_settings
+import myapplication.shared.generated.resources.home_profile
+import myapplication.shared.generated.resources.home_title
+import myapplication.shared.generated.resources.home_welcome
+import org.jetbrains.compose.resources.stringResource
 
 class HomeScreen : Screen {
 
@@ -23,7 +28,14 @@ class HomeScreen : Screen {
 
         Scaffold(
             topBar = {
-                TopAppBar(title = { Text("Home", modifier = Modifier.testTag(HomeTestTags.TITLE)) })
+                TopAppBar(
+                    title = {
+                        Text(
+                            text = stringResource(Res.string.home_title),
+                            modifier = Modifier.testTag(HomeTestTags.TITLE)
+                        )
+                    }
+                )
             }
         ) { padding ->
             BoxWithConstraints(
@@ -63,7 +75,7 @@ class HomeScreen : Screen {
 @Composable
 fun HomeInfoSection() {
     Text(
-        text = "Welcome to the Dashboard!",
+        text = stringResource(Res.string.home_welcome),
         style = MaterialTheme.typography.headlineMedium
     )
 }
@@ -71,14 +83,20 @@ fun HomeInfoSection() {
 @Composable
 fun HomeActionSection(navigator: Navigator) {
     Column(horizontalAlignment = Alignment.CenterHorizontally) {
-        Button(onClick = { navigator.push(SettingsScreen()) }) {
-            Text("Go to Settings")
+        Button(
+            onClick = { navigator.push(SettingsScreen()) },
+            modifier = Modifier.testTag(HomeTestTags.SETTINGS_BUTTON)
+        ) {
+            Text(stringResource(Res.string.home_go_to_settings))
         }
         
         Spacer(modifier = Modifier.height(16.dp))
         
-        OutlinedButton(onClick = { navigator.push(SettingsScreen()) }) {
-            Text("Profile")
+        OutlinedButton(
+            onClick = { navigator.push(SettingsScreen()) },
+            modifier = Modifier.testTag(HomeTestTags.PROFILE_BUTTON)
+        ) {
+            Text(stringResource(Res.string.home_profile))
         }
     }
 }

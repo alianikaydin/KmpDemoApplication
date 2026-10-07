@@ -17,7 +17,11 @@ independent from `ci.yml`.
 
 Current flows: `01_app_launch` (Login screen is shown), `02_login_success`
 (demo user reaches Home), `03_login_wrong_password` (error is shown, user stays
-on Login). The app runs in demo mode (in-app mock backend), so the demo user is
+on Login), `04_session_persists_until_logout` (session survives a restart and
+ends on logout), `05_reinstall_drops_session` (a session left from a previous
+install is dropped), `06_settings_shows_environment` (Settings shows the
+environment and version), `07_language_switch` (in-app language change applies
+at once and the back stack is kept, AC-6). The app runs in demo mode (in-app mock backend), so the demo user is
 `demo@example.com` / `Demo1234` and no network is needed.
 
 ## End-to-end check against the real backend (Android)
@@ -49,9 +53,11 @@ with the old NSUserDefaults `createSecureSettings()` restored. Then
 1. Add `.maestro/flows/NN_name.yaml`, starting with
    `runFlow: ../subflows/launch_clean.yaml` so every flow begins from a clean state.
 2. Target elements with `id:` (a Compose `testTag`). Add new tag values to the
-   `*TestTags` objects (`LoginTestTags`, `HomeTestTags`) and use them in the
+   `*TestTags` objects (`LoginTestTags`, `HomeTestTags`, `SettingsTestTags`) and use them in the
    screen with `Modifier.testTag(...)`. Do not hard-code tag strings in Kotlin.
-3. Assert user-facing text with `assertVisible: "<text>"` where the text matters.
+3. Do not match or assert user-facing text; it changes with the app language. Use
+   `id:` for taps and assertions. The only exception is a flow that tests the
+   language itself (`07_language_switch`), which asserts the expected translation.
 4. Take a `takeScreenshot` at the end of the flow.
 
 ## Running locally

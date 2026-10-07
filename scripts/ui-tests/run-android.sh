@@ -55,6 +55,19 @@ diagnose() {
   adb shell screencap -p /sdcard/diag.png 2>/dev/null && adb pull /sdcard/diag.png "$OUT_DIR/diag.png" || true
   echo "--- logcat: crashes, ANRs, graphics errors, app tag"
   adb logcat -d 2>/dev/null | grep -E "FATAL EXCEPTION|AndroidRuntime|ANR in|Application Not Responding|EGL|GLES|am_crash|am_anr|Displayed|$APP_ID" | tail -n 80 || true
+  echo "--- app process log (last 80 lines, all tags)"
+  adb logcat -d --pid="$(adb shell pidof "$APP_ID" | tr -d '\r' | awk '{print $1}')" 2>/dev/null | tail -n 80 || true
+  echo "--- visible UI elements (uiautomator): resource-id / text"
+  adb shell uiautomator dump /sdcard/hierarchy.xml >/dev/null 2>&1 \
+    && adb shell cat /sdcard/hierarchy.xml 2>/dev/null \
+      | grep -oE '(resource-id|text|package)="[^"]+"' | head -n 60 || true
+  echo "--- maestro: commands and their status"
+  find "$OUT_DIR/maestro" "$HOME/.maestro/tests" -name 'commands-*.json' 2>/dev/null | tail -n 3 | while read -r f; do
+    echo "# $f"
+    grep -oE '"(tapOnElement|inputTextCommand|assertConditionCommand|extendedWaitUntil|launchAppCommand|runFlowCommand|scrollUntilVisible|waitForAnimationToEndCommand|takeScreenshotCommand|hideKeyboardCommand|[A-Za-z]+Command)"|"status" *: *"[A-Z]+"|"id" *: *"[a-z_]+"' "$f" | tr '\n' ' ' | fold -w 200
+    echo
+  done
+  find "$HOME/.maestro/tests" -name maestro.log 2>/dev/null | tail -n 1 | xargs -r tail -n 60 || true
   echo "::endgroup::"
 }
 

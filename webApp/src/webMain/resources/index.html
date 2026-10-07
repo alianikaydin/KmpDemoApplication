@@ -15,6 +15,40 @@
                               repeatCount="indefinite"/>
         </circle>
     </svg>
+    <!--
+      Language override (see docs/localization.md). Compose Resources read navigator.languages, so
+      the app language chosen in Settings is injected here. This must run before webApp.js.
+      The browser language is only read again on a page reload.
+    -->
+    <script type="application/javascript">
+        (function () {
+            var languagesDescriptor = Object.getOwnPropertyDescriptor(Navigator.prototype, "languages");
+            var languageDescriptor = Object.getOwnPropertyDescriptor(Navigator.prototype, "language");
+            if (!languagesDescriptor || !languageDescriptor) {
+                return;
+            }
+            var browserLanguage = languageDescriptor.get.call(navigator) || "en";
+
+            Object.defineProperty(Navigator.prototype, "languages", {
+                configurable: true,
+                get: function () {
+                    return window.__customLocale ? [window.__customLocale] : languagesDescriptor.get.call(this);
+                }
+            });
+            Object.defineProperty(Navigator.prototype, "language", {
+                configurable: true,
+                get: function () {
+                    return window.__customLocale ? window.__customLocale : languageDescriptor.get.call(this);
+                }
+            });
+
+            // An empty tag restores the browser language.
+            window.__setAppLocale = function (tag) {
+                window.__customLocale = tag ? tag : null;
+                document.documentElement.lang = tag ? tag : browserLanguage;
+            };
+        })();
+    </script>
     <script type="application/javascript" src="webApp.js"></script>
 </body>
 </html>

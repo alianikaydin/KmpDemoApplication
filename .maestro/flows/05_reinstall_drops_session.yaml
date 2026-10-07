@@ -12,16 +12,22 @@ appId: ${APP_ID}
     visible:
       id: home_title
     timeout: 20000
-- launchApp:
-    clearState: true
-    clearKeychain: false
-    stopApp: true
-- waitForAnimationToEnd:   # see subflows/launch_clean.yaml
-    timeout: 5000
-- extendedWaitUntil:
-    visible:
-      id: login_title
-    timeout: 60000
+# Clear and launch as separate steps, see subflows/launch_clean.yaml.
+- stopApp
+- clearState
+- waitForAnimationToEnd:
+    timeout: 3000
+- retry:
+    maxRetries: 2
+    commands:
+      - launchApp:
+          stopApp: true
+      - waitForAnimationToEnd:   # see subflows/launch_clean.yaml
+          timeout: 5000
+      - extendedWaitUntil:
+          visible:
+            id: login_title
+          timeout: 30000
 - assertNotVisible:
     id: home_title
 - takeScreenshot: 05_login_after_reinstall

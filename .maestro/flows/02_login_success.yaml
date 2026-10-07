@@ -11,5 +11,4 @@ appId: ${APP_ID}
     visible:
       id: home_title
     timeout: 20000
-- assertVisible: "Home"
 - takeScreenshot: 02_home

@@ -53,6 +53,8 @@ import com.anksoft.myapplication.core.presentation.asString
 import com.anksoft.myapplication.features.auth.presentation.signup.SignUpScreen
 import com.anksoft.myapplication.features.home.presentation.HomeScreen
 import myapplication.shared.generated.resources.Res
+import myapplication.shared.generated.resources.error_email_invalid
+import myapplication.shared.generated.resources.error_invalid_credentials
 import myapplication.shared.generated.resources.login_button
 import myapplication.shared.generated.resources.login_email_label
 import myapplication.shared.generated.resources.login_hide_password
@@ -251,8 +253,8 @@ private fun LoginContentErrorPreview() {
     LoginContent(
         state = LoginState(
             email = "not-an-email",
-            emailError = UiText.Dynamic("Enter a valid email address"),
-            formError = UiText.Dynamic("Email or password is incorrect")
+            emailError = UiText.Resource(Res.string.error_email_invalid),
+            formError = UiText.Resource(Res.string.error_invalid_credentials)
         ),
         onEvent = {},
         onSignUpClick = {}

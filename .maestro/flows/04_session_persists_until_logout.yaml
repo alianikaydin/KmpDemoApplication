@@ -22,8 +22,15 @@ appId: ${APP_ID}
       id: home_title
     timeout: 60000
 - takeScreenshot: 04_home_after_restart
-- tapOn: "Go to Settings"
-- tapOn: "Logout"
+- tapOn:
+    id: home_settings_button
+# Settings is taller than a small screen; the button may start below the fold.
+- scrollUntilVisible:
+    element:
+      id: settings_logout_button
+    direction: DOWN
+- tapOn:
+    id: settings_logout_button
 - extendedWaitUntil:
     visible:
       id: login_title
