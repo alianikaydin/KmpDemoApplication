@@ -1,4 +1,6 @@
 import org.jetbrains.kotlin.gradle.ExperimentalWasmDsl
+import java.io.StringReader
+import java.util.Properties
 
 plugins {
     alias(libs.plugins.kotlinMultiplatform)
@@ -71,9 +73,9 @@ abstract class GenerateWebBuildEnv : DefaultTask() {
 }
 
 // Version comes from the single source, <repo>/version.properties (also read by Android and iOS).
-val versionProps = java.util.Properties().apply {
+val versionProps = Properties().apply {
     load(
-        java.io.StringReader(
+        StringReader(
             providers.fileContents(rootProject.layout.projectDirectory.file("version.properties")).asText.get()
         )
     )
