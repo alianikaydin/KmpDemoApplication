@@ -1,6 +1,10 @@
 package com.anksoft.myapplication.core.di
 
 import com.anksoft.myapplication.core.config.AppConfig
+import com.anksoft.myapplication.core.logging.AppLogger
+import com.anksoft.myapplication.core.logging.LogTags
+import com.anksoft.myapplication.core.logging.info
+import com.anksoft.myapplication.core.logging.loggingModule
 import com.anksoft.myapplication.core.network.networkModule
 import org.koin.core.context.startKoin
 import org.koin.core.module.Module
@@ -20,6 +24,7 @@ fun initKoin(
     appDeclaration()
     modules(
         module { single { config } },
+        loggingModule,
         networkModule,
         storageModule,
         repositoryModule,
@@ -27,4 +32,9 @@ fun initKoin(
         viewModelModule
     )
     modules(platformModules)
+}.also { app ->
+    // Single startup line for every platform, including iOS.
+    app.koin.get<AppLogger>().info(LogTags.APP) {
+        "Started env=${config.environment} version=${config.versionName}"
+    }
 }
