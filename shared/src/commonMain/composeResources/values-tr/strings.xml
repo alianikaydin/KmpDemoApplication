@@ -1,0 +1,53 @@
+<resources>
+    <!-- Common -->
+    <string name="common_back">Geri</string>
+
+    <!-- Home -->
+    <string name="home_title">Ana Sayfa</string>
+    <string name="home_welcome">Panele hoş geldiniz!</string>
+    <string name="home_go_to_settings">Ayarlara git</string>
+    <string name="home_profile">Profil</string>
+
+    <!-- Settings -->
+    <string name="settings_title">Profil ve Ayarlar</string>
+    <string name="settings_logout">Çıkış yap</string>
+    <string name="settings_language">Dil</string>
+    <string name="language_system_default">Sistem varsayılanı</string>
+    <string name="settings_environment">Ortam: %1$s</string>
+    <string name="settings_version">Sürüm %1$s (%2$d)</string>
+
+    <!-- Login -->
+    <string name="login_title">Giriş</string>
+    <string name="login_email_label">E-posta</string>
+    <string name="login_password_label">Parola</string>
+    <string name="login_button">Giriş yap</string>
+    <string name="login_show_password">Parolayı göster</string>
+    <string name="login_hide_password">Parolayı gizle</string>
+    <string name="login_no_account_sign_up">Hesabınız yok mu? Kaydolun</string>
+    <string name="login_forgot_password">Parolanızı mı unuttunuz?</string>
+
+    <!-- Sign up -->
+    <string name="signup_title">Hesap oluştur</string>
+    <string name="signup_confirm_password_label">Parolayı onaylayın</string>
+    <string name="signup_button">Kaydol</string>
+    <string name="signup_have_account_login">Zaten hesabınız var mı? Giriş yapın</string>
+
+    <!-- Validation -->
+    <string name="error_email_required">E-posta gerekli</string>
+    <string name="error_email_invalid">Geçerli bir e-posta adresi girin</string>
+    <string name="error_password_required">Parola gerekli</string>
+    <string name="error_password_too_short">Parola en az 8 karakter olmalı</string>
+    <string name="error_password_no_digit">Parola en az bir rakam içermeli</string>
+    <string name="error_password_no_uppercase">Parola en az bir büyük harf içermeli</string>
+    <string name="error_passwords_do_not_match">Parolalar eşleşmiyor</string>
+
+    <!-- Auth / network errors -->
+    <string name="error_invalid_credentials">E-posta veya parola hatalı</string>
+    <string name="error_email_already_registered">Bu e-posta ile kayıtlı bir hesap zaten var</string>
+    <string name="error_no_internet">İnternet bağlantısı yok. Bağlantınızı kontrol edip tekrar deneyin.</string>
+    <string name="error_request_timeout">İstek çok uzun sürdü. Lütfen tekrar deneyin.</string>
+    <string name="error_too_many_requests">Çok fazla deneme yapıldı. Lütfen daha sonra tekrar deneyin.</string>
+    <string name="error_server">Bir şeyler ters gitti. Lütfen tekrar deneyin.</string>
+    <string name="error_unknown">Bir şeyler ters gitti. Lütfen tekrar deneyin.</string>
+    <string name="error_session_expired">Oturumunuzun süresi doldu. Lütfen tekrar giriş yapın.</string>
+</resources>
