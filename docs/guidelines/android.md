@@ -26,7 +26,7 @@ and the Compose API guidelines. Only the rules that matter for this repo.
 - [ ] `remember`/`rememberSaveable` for UI-only state; `derivedStateOf` for values derived from changing state.
 - [ ] Lambdas named `onXxx` in present tense (`onLoginClick`), not `onLoginClicked`.
 - [ ] Material 3 components and `MaterialTheme` colors/typography/shapes; no hard-coded colors or text sizes.
-- [ ] All user-facing text from `composeResources/values/strings.xml` (`stringResource`, `UiText`); keys in `snake_case` English.
+- [ ] All user-facing text from `composeResources/values/strings.xml` (`stringResource`, `UiText`); keys in `snake_case` English. Add the Turkish text to `values-tr/strings.xml` in the same change (CI fails on missing keys); see `docs/localization.md`.
 - [ ] Accessibility: `contentDescription` on meaningful icons/images (null for decorative), touch targets ≥ 48dp.
 - [ ] `@Preview` for new screens' `Content` composable with sample state.
 - [ ] No side effects in composition; use `LaunchedEffect` keyed on what triggers it.

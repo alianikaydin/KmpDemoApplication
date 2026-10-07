@@ -24,6 +24,9 @@ iOS work is the `iosApp/` host and the Kotlin API that Swift sees.
 - [ ] Every `expect` has an `actual` for android, ios, js and wasmJs.
 - [ ] Secrets (tokens) belong in the Keychain, never plain `NSUserDefaults`. Known gap: `SecureSettings.iosMain.kt` currently returns plain `Settings()` (NSUserDefaults); flag it rather than adding new secrets on top of it.
 
+## Language
+- [ ] The app language is chosen in the Compose Settings screen and written to the `AppleLanguages` user default on every launch. Do not add a second language setting in Swift. See `docs/localization.md`.
+
 ## UX (HIG)
 - [ ] Respect safe areas, Dynamic Type and dark mode.
 - [ ] Use platform-expected back/swipe behaviour; Voyager navigation must not break the iOS swipe-back gesture.
