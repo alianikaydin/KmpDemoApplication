@@ -8,6 +8,7 @@ import com.anksoft.kmpdemo.contract.auth.AuthResponseDto
 import com.anksoft.myapplication.core.config.TestAppConfigs
 import com.anksoft.myapplication.core.domain.DataError
 import com.anksoft.myapplication.core.domain.Result
+import com.anksoft.myapplication.core.logging.NoOpLogger
 import com.anksoft.myapplication.core.network.createHttpClient
 import com.anksoft.myapplication.core.network.safeCall
 import com.anksoft.myapplication.core.storage.SessionManager
@@ -25,7 +26,8 @@ class MockAuthServerTest {
     private val httpClient = createHttpClient(
         engine = createMockEngine(MockAuthServer()),
         config = TestAppConfigs.demo(),
-        sessionManager = sessionManager
+        sessionManager = sessionManager,
+        logger = NoOpLogger
     )
     private val remoteDataSource = AuthRemoteDataSource(httpClient)
     private val repository = AuthRepositoryImpl(remoteDataSource, sessionManager)
