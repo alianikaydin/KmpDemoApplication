@@ -1,0 +1,46 @@
+# localization AC-6: switching the language in Settings changes the open screen at once, and
+# the back stack survives (back returns to Home, which is also translated).
+# This is the only flow that asserts translated text on purpose, because it tests the language
+# itself. The element lookups still use ids.
+appId: ${APP_ID}
+---
+- runFlow: ../subflows/launch_clean.yaml
+- runFlow:
+    file: ../subflows/login_with.yaml
+    env:
+      EMAIL: demo@example.com
+      PASSWORD: Demo1234
+- extendedWaitUntil:
+    visible:
+      id: home_title
+    timeout: 20000
+- tapOn:
+    id: home_settings_button
+- extendedWaitUntil:
+    visible:
+      id: settings_language_tr
+    timeout: 20000
+- tapOn:
+    id: settings_language_tr
+- extendedWaitUntil:
+    visible: "Profil ve Ayarlar"
+    timeout: 10000
+- takeScreenshot: 07_settings_turkish
+# Back must return to Home (stack kept) and Home must already be Turkish.
+- tapOn:
+    id: settings_back_button
+- extendedWaitUntil:
+    visible: "Ana Sayfa"
+    timeout: 10000
+- tapOn:
+    id: home_settings_button
+- extendedWaitUntil:
+    visible:
+      id: settings_language_en
+    timeout: 20000
+- tapOn:
+    id: settings_language_en
+- extendedWaitUntil:
+    visible: "Profile & Settings"
+    timeout: 10000
+- takeScreenshot: 07_settings_english

@@ -3,6 +3,8 @@ package com.anksoft.myapplication.features.settings.presentation
 import cafe.adriel.voyager.core.model.StateScreenModel
 import cafe.adriel.voyager.core.model.screenModelScope
 import com.anksoft.myapplication.core.config.AppConfig
+import com.anksoft.myapplication.core.preferences.AppLanguage
+import com.anksoft.myapplication.core.preferences.AppPreferences
 import com.anksoft.myapplication.features.auth.domain.repository.AuthRepository
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
@@ -14,27 +16,41 @@ data class SettingsState(
     val userEmail: String = "mock@example.com",
     val environmentName: String,
     val versionName: String,
-    val versionCode: Int
+    val versionCode: Int,
+    val selectedLanguage: AppLanguage = AppLanguage.SYSTEM
 )
 
 sealed interface SettingsEvent {
     data object Logout : SettingsEvent
+    data class LanguageSelect(val language: AppLanguage) : SettingsEvent
 }
 
 class SettingsScreenModel(
     private val authRepository: AuthRepository,
-    appConfig: AppConfig
+    appConfig: AppConfig,
+    private val appPreferences: AppPreferences
 ) : StateScreenModel<SettingsState>(
     SettingsState(
         environmentName = appConfig.environment.name,
         versionName = appConfig.versionName,
-        versionCode = appConfig.versionCode
+        versionCode = appConfig.versionCode,
+        selectedLanguage = appPreferences.language.value
     )
 ) {
+
+    init {
+        // The preferences are the source of truth; the state only mirrors them.
+        screenModelScope.launch {
+            appPreferences.language.collect { language ->
+                mutableState.update { it.copy(selectedLanguage = language) }
+            }
+        }
+    }
 
     fun onEvent(event: SettingsEvent) {
         when (event) {
             SettingsEvent.Logout -> logout()
+            is SettingsEvent.LanguageSelect -> appPreferences.setLanguage(event.language)
         }
     }
 
