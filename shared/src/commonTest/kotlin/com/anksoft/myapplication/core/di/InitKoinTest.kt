@@ -16,6 +16,10 @@ import com.anksoft.myapplication.core.logging.LogWriter
 import com.anksoft.myapplication.core.logging.RecordingLogWriter
 import com.anksoft.myapplication.core.network.mock.MockAuthServer
 import com.anksoft.myapplication.features.auth.domain.repository.AuthRepository
+import com.anksoft.myapplication.core.preferences.AppLanguage
+import com.anksoft.myapplication.core.preferences.AppPreferences
+import com.anksoft.myapplication.core.preferences.LANGUAGE_KEY
+import com.anksoft.myapplication.core.storage.SessionManager
 import com.russhwolf.settings.MapSettings
 import com.russhwolf.settings.Settings
 import kotlinx.coroutines.test.runTest
@@ -31,6 +35,10 @@ class InitKoinTest {
     // Host tests have no Logcat, so the real console writer must never be resolved.
     private val recorder = RecordingLogWriter()
     private val consoleOverride = module { single<LogWriter>(named(CONSOLE_LOG_WRITER)) { recorder } }
+
+    // Host tests have no Android context, so the platform's preferences storage is replaced too.
+    private val preferencesStorage = MapSettings()
+    private val preferencesOverride = module { single<Settings>(AppPreferencesSettings) { preferencesStorage } }
 
     @AfterTest
     fun tearDown() {
@@ -89,5 +97,32 @@ class InitKoinTest {
         ).koin
 
         assertThat(koin.get<AppLogger>() === koin.get<AppLogger>()).isTrue()
+    }
+
+    // AC-9
+    @Test
+    fun preferencesUseTheirOwnStorageNotTheSessionStorage() {
+        val sessionStorage = MapSettings()
+        val koin = initKoin(
+            config = TestAppConfigs.demo(),
+            platformModules = listOf(consoleOverride, preferencesOverride, module { single<Settings> { sessionStorage } })
+        ).koin
+
+        koin.get<AppPreferences>().setLanguage(AppLanguage.TURKISH)
+        koin.get<SessionManager>().saveToken("access-123")
+
+        assertThat(preferencesStorage.keys).isEqualTo(setOf(LANGUAGE_KEY))
+        assertThat(sessionStorage.keys).isEqualTo(setOf(SessionManager.KEY_TOKEN))
+    }
+
+    // AC-7
+    @Test
+    fun preferencesAreOneSharedInstance() {
+        val koin = initKoin(
+            config = TestAppConfigs.demo(),
+            platformModules = listOf(consoleOverride, preferencesOverride)
+        ).koin
+
+        assertThat(koin.get<AppPreferences>() === koin.get<AppPreferences>()).isTrue()
     }
 }
