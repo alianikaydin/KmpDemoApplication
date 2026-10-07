@@ -6,6 +6,7 @@ import assertk.assertions.isInstanceOf
 import assertk.assertions.isNull
 import com.anksoft.myapplication.core.domain.DataError
 import com.anksoft.myapplication.core.domain.Result
+import com.anksoft.myapplication.core.logging.NoOpLogger
 import com.anksoft.myapplication.core.storage.SessionManager
 import com.anksoft.myapplication.features.auth.data.datasource.AuthRemoteDataSource
 import com.anksoft.myapplication.features.auth.data.repository.AuthRepositoryImpl
@@ -58,7 +59,7 @@ class AuthRepositoryImplTest {
             }
         }
         val sessionManager = SessionManager(MapSettings())
-        return AuthRepositoryImpl(AuthRemoteDataSource(client), sessionManager) to sessionManager
+        return AuthRepositoryImpl(AuthRemoteDataSource(client, NoOpLogger), sessionManager) to sessionManager
     }
 
     @Test

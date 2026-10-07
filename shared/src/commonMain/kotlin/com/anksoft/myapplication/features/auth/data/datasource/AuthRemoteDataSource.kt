@@ -6,6 +6,7 @@ import com.anksoft.kmpdemo.contract.auth.LoginRequestDto
 import com.anksoft.kmpdemo.contract.auth.RegisterRequestDto
 import com.anksoft.myapplication.core.domain.DataError
 import com.anksoft.myapplication.core.domain.Result
+import com.anksoft.myapplication.core.logging.AppLogger
 import com.anksoft.myapplication.core.network.safeCall
 import io.ktor.client.HttpClient
 import io.ktor.client.request.post
@@ -15,17 +16,20 @@ import io.ktor.client.request.setBody
  * Owns the HttpClient and the auth endpoint paths. Previously AuthRepositoryImpl
  * took an HttpClient and never used it; the client lives here now.
  */
-class AuthRemoteDataSource(private val httpClient: HttpClient) {
+class AuthRemoteDataSource(
+    private val httpClient: HttpClient,
+    private val logger: AppLogger
+) {
 
     suspend fun login(email: String, password: String): Result<AuthResponseDto, DataError.Remote> =
-        safeCall {
+        safeCall(logger, PATH_LOGIN) {
             httpClient.post(PATH_LOGIN) {
                 setBody(LoginRequestDto(email = email, password = password))
             }
         }
 
     suspend fun register(email: String, password: String): Result<AuthResponseDto, DataError.Remote> =
-        safeCall {
+        safeCall(logger, PATH_REGISTER) {
             httpClient.post(PATH_REGISTER) {
                 setBody(RegisterRequestDto(email = email, password = password))
             }

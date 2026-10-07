@@ -29,7 +29,7 @@ class MockAuthServerTest {
         sessionManager = sessionManager,
         logger = NoOpLogger
     )
-    private val remoteDataSource = AuthRemoteDataSource(httpClient)
+    private val remoteDataSource = AuthRemoteDataSource(httpClient, NoOpLogger)
     private val repository = AuthRepositoryImpl(remoteDataSource, sessionManager)
 
     private val demoUser = MockAuthServer.DEMO_USER
@@ -94,7 +94,7 @@ class MockAuthServerTest {
 
     @Test
     fun unknownPathReturnsUnknownError() = runTest {
-        val result = safeCall<AuthResponseDto> { httpClient.post("auth/unknown") }
+        val result = safeCall<AuthResponseDto>(NoOpLogger, "auth/unknown") { httpClient.post("auth/unknown") }
 
         assertThat(result).isEqualTo(Result.Failure(DataError.Remote.UNKNOWN))
     }
