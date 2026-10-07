@@ -1,0 +1,10 @@
+// Release configuration: fixed production backend, never demo mode.
+#include "Config.xcconfig"
+
+KMP_ENVIRONMENT = PROD
+KMP_DEMO_ALLOWED = NO
+BUNDLE_ID_SUFFIX =
+APP_DISPLAY_NAME = MyApplication
+KOTLIN_FRAMEWORK_BUILD_TYPE = release
+// Resets any Local.xcconfig override; prod always uses the URL built into the app.
+KMP_BACKEND_URL =

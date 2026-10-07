@@ -28,10 +28,3 @@ fun initKoin(
     )
     modules(platformModules)
 }
-
-/**
- * iOS entry point. Swift cannot see default arguments, so both parameters are explicit.
- * [backendUrl] null or blank means demo mode in debug builds.
- */
-fun doInitKoin(isDebug: Boolean, backendUrl: String?) =
-    initKoin(config = AppConfig.forBuild(isDebug, backendUrl))

@@ -6,6 +6,10 @@
 	<true/>
 	<key>KMPBackendURL</key>
 	<string>$(KMP_BACKEND_URL)</string>
+	<key>KMPDemoAllowed</key>
+	<string>$(KMP_DEMO_ALLOWED)</string>
+	<key>KMPEnvironment</key>
+	<string>$(KMP_ENVIRONMENT)</string>
 	<key>NSAppTransportSecurity</key>
 	<dict>
 		<key>NSAllowsLocalNetworking</key>

@@ -1,2 +1,3 @@
 // Copy to Local.xcconfig (git-ignored). "//" starts a comment in xcconfig, hence $().
+// Only the Debug (dev) configuration honours this; Stage and Release ignore it.
 KMP_BACKEND_URL = http:/$()/localhost:8081/api/v1/

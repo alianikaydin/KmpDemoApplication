@@ -56,12 +56,4 @@ class InitKoinTest {
 
         assertThat(koin.get<String>(named("platform"))).isEqualTo("from-platform")
     }
-
-    // AC-15
-    @Test
-    fun doInitKoinWithEmptyUrlInDebugUsesDemoConfig() {
-        val koin = doInitKoin(isDebug = true, backendUrl = "").koin
-
-        assertThat(koin.get<AppConfig>()).isEqualTo(AppConfig.Demo)
-    }
 }
