@@ -12,7 +12,8 @@ appId: ${APP_ID}
     visible:
       id: home_title
     timeout: 20000
-- tapOn: "Go to Settings"
+- tapOn:
+    id: home_settings_button
 - extendedWaitUntil:
     visible:
       id: settings_environment
@@ -20,7 +21,7 @@ appId: ${APP_ID}
 - assertVisible:
     id: settings_environment
     text: ".*DEV.*"
+# The label is localized, so only its presence is checked here.
 - assertVisible:
     id: settings_version
-    text: "Version .*"
 - takeScreenshot: 06_settings_environment

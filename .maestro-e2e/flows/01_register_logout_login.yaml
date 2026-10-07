@@ -23,8 +23,10 @@ appId: ${APP_ID}
       id: home_title
     timeout: 30000
 - takeScreenshot: e2e_01_home_after_register
-- tapOn: "Go to Settings"
-- tapOn: "Logout"
+- tapOn:
+    id: home_settings_button
+- tapOn:
+    id: settings_logout_button
 - extendedWaitUntil:
     visible:
       id: login_title

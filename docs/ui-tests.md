@@ -49,9 +49,11 @@ with the old NSUserDefaults `createSecureSettings()` restored. Then
 1. Add `.maestro/flows/NN_name.yaml`, starting with
    `runFlow: ../subflows/launch_clean.yaml` so every flow begins from a clean state.
 2. Target elements with `id:` (a Compose `testTag`). Add new tag values to the
-   `*TestTags` objects (`LoginTestTags`, `HomeTestTags`) and use them in the
+   `*TestTags` objects (`LoginTestTags`, `HomeTestTags`, `SettingsTestTags`) and use them in the
    screen with `Modifier.testTag(...)`. Do not hard-code tag strings in Kotlin.
-3. Assert user-facing text with `assertVisible: "<text>"` where the text matters.
+3. Do not match or assert user-facing text; it changes with the app language. Use
+   `id:` for taps and assertions. The only exception is a flow that tests the
+   language itself (`07_language_switch`), which asserts the expected translation.
 4. Take a `takeScreenshot` at the end of the flow.
 
 ## Running locally
