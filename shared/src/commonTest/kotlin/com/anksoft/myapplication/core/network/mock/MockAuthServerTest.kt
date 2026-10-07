@@ -5,7 +5,7 @@ import assertk.assertions.isEqualTo
 import assertk.assertions.isInstanceOf
 import assertk.assertions.isNotNull
 import com.anksoft.kmpdemo.contract.auth.AuthResponseDto
-import com.anksoft.myapplication.core.config.AppConfig
+import com.anksoft.myapplication.core.config.TestAppConfigs
 import com.anksoft.myapplication.core.domain.DataError
 import com.anksoft.myapplication.core.domain.Result
 import com.anksoft.myapplication.core.network.createHttpClient
@@ -24,7 +24,7 @@ class MockAuthServerTest {
     private val sessionManager = SessionManager(MapSettings())
     private val httpClient = createHttpClient(
         engine = createMockEngine(MockAuthServer()),
-        config = AppConfig.Demo,
+        config = TestAppConfigs.demo(),
         sessionManager = sessionManager
     )
     private val remoteDataSource = AuthRemoteDataSource(httpClient)

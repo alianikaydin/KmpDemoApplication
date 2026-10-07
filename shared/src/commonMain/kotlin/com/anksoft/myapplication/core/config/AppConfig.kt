@@ -14,11 +14,11 @@ package com.anksoft.myapplication.core.config
  * @property versionCode Monotonic build number, from the single version source.
  */
 data class AppConfig(
-    val environment: AppEnvironment = AppEnvironment.DEV,
-    val baseUrl: String = DEFAULT_BASE_URL,
-    val useMockBackend: Boolean = false,
-    val versionName: String = "0.0.0",
-    val versionCode: Int = 1
+    val environment: AppEnvironment,
+    val baseUrl: String,
+    val useMockBackend: Boolean,
+    val versionName: String,
+    val versionCode: Int
 ) {
     init {
         require(!useMockBackend || environment == AppEnvironment.DEV) {
@@ -29,31 +29,10 @@ data class AppConfig(
     }
 
     companion object {
-        // TODO replace with the real backend URL once one exists.
-        const val DEFAULT_BASE_URL = "https://api.example.com/"
         const val MOCK_BASE_URL = "https://mock.local/"
 
         const val STAGE_BASE_URL = "https://api-stage.example.com/" // PLACEHOLDER: replace with the real stage URL
         const val PROD_BASE_URL = "https://api.example.com/" // PLACEHOLDER: replace with the real prod URL
-
-        /** Demo mode: no backend needed, auth is served in-process. */
-        val Demo = AppConfig(baseUrl = MOCK_BASE_URL, useMockBackend = true)
-
-        /**
-         * Blank or null [backendUrl] selects [Demo]; otherwise requests go to that URL.
-         * A trailing slash is added when missing.
-         *
-         * @throws IllegalArgumentException if the URL does not start with http:// or https://.
-         */
-        fun fromBackendUrl(backendUrl: String?): AppConfig {
-            val url = backendUrl?.trim().orEmpty()
-            if (url.isEmpty()) return Demo
-            return AppConfig(baseUrl = normalizeUrl(url))
-        }
-
-        /** Debug builds honour [backendUrl]; release builds always use the default config. */
-        fun forBuild(isDebug: Boolean, backendUrl: String?): AppConfig =
-            if (isDebug) fromBackendUrl(backendUrl) else AppConfig()
 
         /**
          * Applies the environment rules:
