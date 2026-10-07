@@ -17,11 +17,11 @@ This is a Kotlin Multiplatform project targeting Android, iOS, Web.
 Use the run configurations provided by the run widget in your IDE's toolbar. You can also use these commands and options:
 
 - Android app: `./gradlew :androidApp:assembleDevDebug` (dev, stage and prod flavors: see [docs/environments.md](./docs/environments.md))
-- Logging: see [docs/logging.md](./docs/logging.md)
 - Web app:
   - Wasm target (faster, modern browsers): `./gradlew :webApp:wasmJsBrowserDevelopmentRun -PkmpDemo=true`
   - JS target (slower, supports older browsers): `./gradlew :webApp:jsBrowserDevelopmentRun -PkmpDemo=true`
 - iOS app: open the [/iosApp](./iosApp) directory in Xcode and run it from there.
+- Logging: see [docs/logging.md](./docs/logging.md)
 
 ### Running tests
 
