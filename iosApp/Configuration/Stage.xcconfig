@@ -1,0 +1,10 @@
+// Stage configuration: fixed stage backend, never demo mode.
+#include "Config.xcconfig"
+
+KMP_ENVIRONMENT = STAGE
+KMP_DEMO_ALLOWED = NO
+BUNDLE_ID_SUFFIX = .stage
+APP_DISPLAY_NAME = MyApplication Stage
+KOTLIN_FRAMEWORK_BUILD_TYPE = release
+// Resets any Local.xcconfig override; stage always uses the URL built into the app.
+KMP_BACKEND_URL =

@@ -25,7 +25,7 @@ on Login). The app runs in demo mode (in-app mock backend), so the demo user is
 The `android-e2e` job in the same workflow checks register -> logout -> login ->
 Home on the emulator against the real backend. It checks out
 `alianikaydin/KmpDemoBackend` into `backend/`, starts it with
-`scripts/server-up.sh`, builds the APK with
+`scripts/server-up.sh`, builds the dev-flavor APK (`assembleDevDebug`) with
 `-PkmpBackendUrl=http://10.0.2.2:8081/api/v1/` and runs
 `.maestro-e2e/` through `scripts/ui-tests/run-android-e2e.sh` (a unique user
 per run). It is separate from `.maestro/`, so the demo-mode suite is unchanged.
@@ -58,13 +58,13 @@ with the old NSUserDefaults `createSecureSettings()` restored. Then
 
 Install Maestro (`curl -fsSL https://get.maestro.mobile.dev | bash`), then:
 
-- Android: start an emulator, run `./gradlew :androidApp:assembleDebug`, then
+- Android: start an emulator, run `./gradlew :androidApp:assembleDevDebug`, then
   `bash scripts/ui-tests/run-android.sh` (override `APK` and `OUT_DIR` if needed).
 - iOS: build the app with Xcode for a simulator, boot it, then
   `SIM_UDID=<udid> APP_PATH=<path to MyApplication.app> bash scripts/ui-tests/run-ios.sh`.
 - Quick loop without the scripts:
-  `maestro test .maestro/ -e APP_ID=com.anksoft.myapplication` (Android) or
-  `-e APP_ID=com.anksoft.myapplication.MyApplication` (iOS).
+  `maestro test .maestro/ -e APP_ID=com.anksoft.myapplication.dev` (Android) or
+  `-e APP_ID=com.anksoft.myapplication.MyApplication.dev` (iOS).
 
 ## Results and artifacts
 

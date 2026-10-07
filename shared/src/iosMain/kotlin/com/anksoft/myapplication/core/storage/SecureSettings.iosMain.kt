@@ -12,7 +12,11 @@ import platform.Security.kSecAttrAccessible
 import platform.Security.kSecAttrAccessibleAfterFirstUnlockThisDeviceOnly
 import platform.Security.kSecAttrService
 
-/** Fixed rather than the bundle id, so a bundle id change does not drop the session. */
+/**
+ * Fixed rather than the bundle id, so renaming the app does not drop the session. Dev, stage and
+ * prod installs share this name but have different bundle ids, and the default keychain access
+ * group is derived from the bundle id, so their sessions stay separate.
+ */
 private const val KEYCHAIN_SERVICE = "com.anksoft.myapplication.session"
 
 @OptIn(

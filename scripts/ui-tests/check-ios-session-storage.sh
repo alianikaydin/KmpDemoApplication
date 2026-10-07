@@ -8,7 +8,7 @@
 set -euo pipefail
 
 OUT_DIR="${OUT_DIR:-ui-results/ios-storage}"
-APP_ID="com.anksoft.myapplication.MyApplication"
+APP_ID="com.anksoft.myapplication.MyApplication.dev"
 SESSION_KEYS=(auth_token refresh_token user_id user_email user_name)
 export OUT_DIR
 

@@ -6,6 +6,8 @@ import assertk.assertions.doesNotContain
 import assertk.assertions.isEqualTo
 import assertk.assertions.isFalse
 import com.anksoft.myapplication.core.config.AppConfig
+import com.anksoft.myapplication.core.config.AppEnvironment
+import com.anksoft.myapplication.core.config.TestAppConfigs
 import com.anksoft.myapplication.core.storage.SessionManager
 import com.russhwolf.settings.MapSettings
 import io.ktor.client.engine.mock.MockEngine
@@ -21,8 +23,12 @@ import kotlinx.coroutines.test.runTest
 class CreateHttpClientTest {
 
     @Test
-    fun defaultConfigHasMockBackendDisabled() {
-        assertThat(AppConfig().useMockBackend).isFalse()
+    fun prodConfigHasMockBackendDisabledAndUsesProdUrl() {
+        // AC-3
+        val config = AppConfig.create(AppEnvironment.PROD, null, false, versionName = "1.0", versionCode = 1)
+
+        assertThat(config.useMockBackend).isFalse()
+        assertThat(config.baseUrl).isEqualTo(AppConfig.PROD_BASE_URL)
     }
 
     @Test
@@ -34,7 +40,7 @@ class CreateHttpClientTest {
         }
         val client = createHttpClient(
             engine = engine,
-            config = AppConfig(baseUrl = "https://configured.test/api/"),
+            config = TestAppConfigs.remote("https://configured.test/api/"),
             sessionManager = SessionManager(MapSettings())
         )
 
@@ -51,7 +57,7 @@ class CreateHttpClientTest {
         }
         val client = createHttpClient(
             engine = MockEngine { respondOk() },
-            config = AppConfig(baseUrl = "https://configured.test/api/"),
+            config = TestAppConfigs.remote("https://configured.test/api/"),
             sessionManager = sessionManager,
             logger = object : Logger {
                 override fun log(message: String) {

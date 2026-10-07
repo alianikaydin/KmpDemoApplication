@@ -1,0 +1,26 @@
+# env-config AC-7: Settings shows the environment and the version.
+# The Maestro build is the dev flavor/configuration, so the environment is DEV.
+appId: ${APP_ID}
+---
+- runFlow: ../subflows/launch_clean.yaml
+- runFlow:
+    file: ../subflows/login_with.yaml
+    env:
+      EMAIL: demo@example.com
+      PASSWORD: Demo1234
+- extendedWaitUntil:
+    visible:
+      id: home_title
+    timeout: 20000
+- tapOn: "Go to Settings"
+- extendedWaitUntil:
+    visible:
+      id: settings_environment
+    timeout: 20000
+- assertVisible:
+    id: settings_environment
+    text: ".*DEV.*"
+- assertVisible:
+    id: settings_version
+    text: "Version .*"
+- takeScreenshot: 06_settings_environment

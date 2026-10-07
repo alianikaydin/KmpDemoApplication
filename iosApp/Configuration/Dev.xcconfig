@@ -1,0 +1,8 @@
+// Debug configuration: dev environment, may use the in-app demo backend.
+#include "Config.xcconfig"
+
+KMP_ENVIRONMENT = DEV
+KMP_DEMO_ALLOWED = YES
+BUNDLE_ID_SUFFIX = .dev
+APP_DISPLAY_NAME = MyApplication Dev
+KOTLIN_FRAMEWORK_BUILD_TYPE = debug

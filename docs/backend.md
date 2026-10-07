@@ -41,8 +41,10 @@ deletes the data). The local Docker setup allows the web origins
 
 ## Running the apps against the backend
 
-Without a backend URL, debug builds run in demo mode (in-app mock server, user
-`demo@example.com` / `Demo1234`). Release builds never use the mock. A missing
+Without a backend URL, the dev environment runs in demo mode on mobile (in-app
+mock server, user `demo@example.com` / `Demo1234`); on web demo mode needs
+`-PkmpDemo=true`. Stage and prod never use the mock or a custom URL. See
+`docs/environments.md`. A missing
 trailing `/` on the URL is added automatically.
 
 | Platform | Base URL | How to set it |
@@ -55,11 +57,11 @@ trailing `/` on the URL is added automatically.
 Android:
 
 ```
-./gradlew :androidApp:installDebug -PkmpBackendUrl=http://10.0.2.2:8081/api/v1/
+./gradlew :androidApp:installDevDebug -PkmpBackendUrl=http://10.0.2.2:8081/api/v1/
 ```
 
 iOS: copy `iosApp/Configuration/Local.xcconfig.example` to
-`iosApp/Configuration/Local.xcconfig` (git-ignored) and build in Xcode. In
+`iosApp/Configuration/Local.xcconfig` (git-ignored) and build the `iosApp` scheme (Debug, dev) in Xcode. In
 xcconfig files `//` starts a comment, so the example writes the URL as
 `http:/$()/localhost:8081/api/v1/`.
 
@@ -68,6 +70,8 @@ Web:
 ```
 ./gradlew :webApp:wasmJsBrowserDevelopmentRun -PkmpBackendUrl=http://localhost:8081/api/v1/
 ```
+
+Or, without a backend, `-PkmpDemo=true` instead of the URL.
 
 Open the page at `http://localhost:8080` (or `127.0.0.1:8080`); any other
 origin is blocked by the backend's CORS list.

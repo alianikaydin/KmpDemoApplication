@@ -8,8 +8,8 @@ altında. Koin (DI), Ktor (ağ), Voyager (navigasyon, ScreenModel) kullanılır.
 ## Komutlar
 
 - Unit testler: `./gradlew :shared:testAndroidHostTest` (CI bunu çalıştırır)
-- Android build: `./gradlew :androidApp:assembleDebug` (CI bunu çalıştırır)
-- Web: `./gradlew :webApp:wasmJsBrowserDevelopmentRun`
+- Android build: `./gradlew :androidApp:assembleDebug` (3 flavor; CI bunu çalıştırır). Tek ortam: `assembleDevDebug`
+- Web: `./gradlew :webApp:wasmJsBrowserDevelopmentRun -PkmpDemo=true` (ortamlar: `docs/environments.md`)
 - UI smoke testleri (Maestro, emülatör/simülatör): bkz. `docs/ui-tests.md`
 
 ## Scrum akışı
