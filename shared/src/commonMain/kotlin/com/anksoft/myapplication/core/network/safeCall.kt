@@ -2,6 +2,9 @@ package com.anksoft.myapplication.core.network
 
 import com.anksoft.myapplication.core.domain.DataError
 import com.anksoft.myapplication.core.domain.Result
+import com.anksoft.myapplication.core.logging.AppLogger
+import com.anksoft.myapplication.core.logging.LogSeverity
+import com.anksoft.myapplication.core.logging.LogTags
 import io.ktor.client.call.body
 import io.ktor.client.plugins.HttpRequestTimeoutException
 import io.ktor.client.statement.HttpResponse
@@ -15,19 +18,62 @@ import kotlin.coroutines.coroutineContext
  * Wraps a Ktor call so transport failures become typed [DataError.Remote] values.
  * Rethrows CancellationException via ensureActive so coroutine cancellation is
  * never swallowed and misreported as a network error.
+ *
+ * Every failure is logged once, here, through [logRemoteFailure]. [path] is the endpoint
+ * constant (never a URL with a query); bodies and exception messages are never logged.
  */
-suspend inline fun <reified T> safeCall(execute: () -> HttpResponse): Result<T, DataError.Remote> {
+suspend inline fun <reified T> safeCall(
+    logger: AppLogger,
+    path: String,
+    execute: () -> HttpResponse
+): Result<T, DataError.Remote> {
     val response = try {
         execute()
-    } catch (_: UnresolvedAddressException) {
+    } catch (e: UnresolvedAddressException) {
+        logRemoteFailure(logger, path, DataError.Remote.NO_INTERNET, status = null, cause = e)
         return Result.Failure(DataError.Remote.NO_INTERNET)
-    } catch (_: HttpRequestTimeoutException) {
+    } catch (e: HttpRequestTimeoutException) {
+        logRemoteFailure(logger, path, DataError.Remote.REQUEST_TIMEOUT, status = null, cause = e)
         return Result.Failure(DataError.Remote.REQUEST_TIMEOUT)
     } catch (e: Exception) {
         coroutineContext.ensureActive()
+        logRemoteFailure(logger, path, DataError.Remote.UNKNOWN, status = null, cause = e)
         return Result.Failure(DataError.Remote.UNKNOWN)
     }
-    return response.toResult()
+    val result = response.toResult<T>()
+    if (result is Result.Failure) {
+        logRemoteFailure(logger, path, result.error, status = response.status.value, cause = null)
+    }
+    return result
+}
+
+/**
+ * The single place where remote failures are logged. Only the error type, path, status code
+ * and the throwable's class name are recorded.
+ */
+@PublishedApi
+internal fun logRemoteFailure(
+    logger: AppLogger,
+    path: String,
+    error: DataError.Remote,
+    status: Int?,
+    cause: Throwable?
+) {
+    logger.log(error.logSeverity(), LogTags.NETWORK, cause) {
+        "Remote failure error=$error path=$path status=${status ?: "-"}"
+    }
+}
+
+/** Expected, user-recoverable failures are warnings; everything else is an error. */
+internal fun DataError.Remote.logSeverity(): LogSeverity = when (this) {
+    DataError.Remote.NO_INTERNET,
+    DataError.Remote.REQUEST_TIMEOUT,
+    DataError.Remote.UNAUTHORIZED,
+    DataError.Remote.CONFLICT,
+    DataError.Remote.TOO_MANY_REQUESTS -> LogSeverity.WARN
+    DataError.Remote.SERVER_ERROR,
+    DataError.Remote.SERIALIZATION,
+    DataError.Remote.UNKNOWN -> LogSeverity.ERROR
 }
 
 suspend inline fun <reified T> HttpResponse.toResult(): Result<T, DataError.Remote> =

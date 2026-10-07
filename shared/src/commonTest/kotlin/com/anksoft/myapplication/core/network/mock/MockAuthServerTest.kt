@@ -8,6 +8,7 @@ import com.anksoft.kmpdemo.contract.auth.AuthResponseDto
 import com.anksoft.myapplication.core.config.TestAppConfigs
 import com.anksoft.myapplication.core.domain.DataError
 import com.anksoft.myapplication.core.domain.Result
+import com.anksoft.myapplication.core.logging.NoOpLogger
 import com.anksoft.myapplication.core.network.createHttpClient
 import com.anksoft.myapplication.core.network.safeCall
 import com.anksoft.myapplication.core.storage.SessionManager
@@ -25,10 +26,11 @@ class MockAuthServerTest {
     private val httpClient = createHttpClient(
         engine = createMockEngine(MockAuthServer()),
         config = TestAppConfigs.demo(),
-        sessionManager = sessionManager
+        sessionManager = sessionManager,
+        logger = NoOpLogger
     )
-    private val remoteDataSource = AuthRemoteDataSource(httpClient)
-    private val repository = AuthRepositoryImpl(remoteDataSource, sessionManager)
+    private val remoteDataSource = AuthRemoteDataSource(httpClient, NoOpLogger)
+    private val repository = AuthRepositoryImpl(remoteDataSource, sessionManager, NoOpLogger)
 
     private val demoUser = MockAuthServer.DEMO_USER
 
@@ -92,7 +94,7 @@ class MockAuthServerTest {
 
     @Test
     fun unknownPathReturnsUnknownError() = runTest {
-        val result = safeCall<AuthResponseDto> { httpClient.post("auth/unknown") }
+        val result = safeCall<AuthResponseDto>(NoOpLogger, "auth/unknown") { httpClient.post("auth/unknown") }
 
         assertThat(result).isEqualTo(Result.Failure(DataError.Remote.UNKNOWN))
     }

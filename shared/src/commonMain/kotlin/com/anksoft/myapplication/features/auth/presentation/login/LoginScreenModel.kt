@@ -5,6 +5,9 @@ import cafe.adriel.voyager.core.model.screenModelScope
 import com.anksoft.myapplication.core.domain.DataError
 import com.anksoft.myapplication.core.domain.onFailure
 import com.anksoft.myapplication.core.domain.onSuccess
+import com.anksoft.myapplication.core.logging.AppLogger
+import com.anksoft.myapplication.core.logging.LogTags
+import com.anksoft.myapplication.core.logging.debug
 import com.anksoft.myapplication.core.presentation.UiText
 import com.anksoft.myapplication.core.presentation.toUiText
 import com.anksoft.myapplication.features.auth.domain.UserDataValidator
@@ -41,7 +44,8 @@ sealed interface LoginEvent {
 
 class LoginScreenModel(
     private val login: LoginUseCase,
-    private val validator: UserDataValidator
+    private val validator: UserDataValidator,
+    private val logger: AppLogger
 ) : StateScreenModel<LoginState>(LoginState()) {
 
     fun onEvent(event: LoginEvent) {
@@ -88,6 +92,8 @@ class LoginScreenModel(
         }
 
         if (emailError != null || passwordError != null) {
+            // Never log the field values.
+            logger.debug(LogTags.AUTH) { "login blocked by validation" }
             mutableState.update {
                 it.copy(emailError = emailError, passwordError = passwordError, formError = null)
             }

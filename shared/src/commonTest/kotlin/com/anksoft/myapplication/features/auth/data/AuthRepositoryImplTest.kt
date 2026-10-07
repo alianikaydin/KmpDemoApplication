@@ -1,11 +1,18 @@
 package com.anksoft.myapplication.features.auth.data
 
 import assertk.assertThat
+import assertk.assertions.contains
+import assertk.assertions.doesNotContain
 import assertk.assertions.isEqualTo
 import assertk.assertions.isInstanceOf
 import assertk.assertions.isNull
 import com.anksoft.myapplication.core.domain.DataError
 import com.anksoft.myapplication.core.domain.Result
+import com.anksoft.myapplication.core.logging.AppLogger
+import com.anksoft.myapplication.core.logging.LogSeverity
+import com.anksoft.myapplication.core.logging.LogTags
+import com.anksoft.myapplication.core.logging.NoOpLogger
+import com.anksoft.myapplication.core.logging.recordingLogger
 import com.anksoft.myapplication.core.storage.SessionManager
 import com.anksoft.myapplication.features.auth.data.datasource.AuthRemoteDataSource
 import com.anksoft.myapplication.features.auth.data.repository.AuthRepositoryImpl
@@ -39,7 +46,8 @@ class AuthRepositoryImplTest {
 
     private fun repositoryReturning(
         status: HttpStatusCode,
-        body: String
+        body: String,
+        logger: AppLogger = NoOpLogger
     ): Pair<AuthRepositoryImpl, SessionManager> {
         val engine = MockEngine {
             respond(
@@ -58,7 +66,7 @@ class AuthRepositoryImplTest {
             }
         }
         val sessionManager = SessionManager(MapSettings())
-        return AuthRepositoryImpl(AuthRemoteDataSource(client), sessionManager) to sessionManager
+        return AuthRepositoryImpl(AuthRemoteDataSource(client, logger), sessionManager, logger) to sessionManager
     }
 
     @Test
@@ -167,5 +175,48 @@ class AuthRepositoryImplTest {
         val (repository, _) = repositoryReturning(HttpStatusCode.OK, successBody)
 
         assertThat(repository.getCurrentUser()).isNull()
+    }
+
+    // AC-1
+    @Test
+    fun successfulLoginLogsInfoWithoutEmailOrTokens() = runTest {
+        val (logger, writer) = recordingLogger()
+        val (repository, _) = repositoryReturning(HttpStatusCode.OK, successBody, logger)
+
+        repository.login("user@example.com", "Password1")
+
+        val entry = writer.entries.single { it.tag == LogTags.AUTH }
+        assertThat(entry.severity).isEqualTo(LogSeverity.INFO)
+        assertThat(entry.message).contains("login succeeded")
+        val all = writer.entries.joinToString { it.message }
+        assertThat(all).doesNotContain("user@example.com")
+        assertThat(all).doesNotContain("access-123")
+        assertThat(all).doesNotContain("u1")
+    }
+
+    // AC-1
+    @Test
+    fun failedLoginLogsWarningWithErrorTypeOnly() = runTest {
+        val (logger, writer) = recordingLogger()
+        val (repository, _) = repositoryReturning(HttpStatusCode.Unauthorized, "{}", logger)
+
+        repository.login("user@example.com", "wrong")
+
+        val entry = writer.entries.single { it.tag == LogTags.AUTH }
+        assertThat(entry.severity).isEqualTo(LogSeverity.WARN)
+        assertThat(entry.message).contains("login failed error=UNAUTHORIZED")
+        assertThat(writer.entries.joinToString { it.message }).doesNotContain("user@example.com")
+    }
+
+    // AC-1
+    @Test
+    fun registerOutcomeIsLoggedUnderItsOwnAction() = runTest {
+        val (logger, writer) = recordingLogger()
+        val (repository, _) = repositoryReturning(HttpStatusCode.Conflict, "{}", logger)
+
+        repository.register("taken@example.com", "Password1")
+
+        assertThat(writer.entries.single { it.tag == LogTags.AUTH }.message)
+            .contains("register failed error=CONFLICT")
     }
 }

@@ -96,6 +96,9 @@ kotlin {
             // Contract shared with the backend
             implementation(libs.kmpdemo.contract)
 
+            // Console log backend (platform LogWriter) behind core/logging
+            implementation(libs.kermit)
+
             // Kotlinx
             implementation(libs.kotlinx.serialization.json)
             implementation(libs.kotlinx.coroutines.core)

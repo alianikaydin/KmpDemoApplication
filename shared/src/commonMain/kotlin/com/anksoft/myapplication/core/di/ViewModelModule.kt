@@ -6,7 +6,7 @@ import com.anksoft.myapplication.features.settings.presentation.SettingsScreenMo
 import org.koin.dsl.module
 
 val viewModelModule = module {
-    factory { LoginScreenModel(get(), get()) }
+    factory { LoginScreenModel(get(), get(), get()) }
     factory { SignUpScreenModel(get(), get()) }
     factory { SettingsScreenModel(get(), get()) }
 }

@@ -6,6 +6,6 @@ import com.anksoft.myapplication.features.auth.domain.repository.AuthRepository
 import org.koin.dsl.module
 
 val repositoryModule = module {
-    single { AuthRemoteDataSource(get()) }
-    single<AuthRepository> { AuthRepositoryImpl(get(), get()) }
+    single { AuthRemoteDataSource(get(), get()) }
+    single<AuthRepository> { AuthRepositoryImpl(get(), get(), get()) }
 }
