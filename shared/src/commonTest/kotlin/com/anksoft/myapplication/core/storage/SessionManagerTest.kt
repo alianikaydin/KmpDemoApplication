@@ -4,6 +4,10 @@ import assertk.assertThat
 import assertk.assertions.isEmpty
 import assertk.assertions.isEqualTo
 import assertk.assertions.isNull
+import com.anksoft.myapplication.core.logging.NoOpLogger
+import com.anksoft.myapplication.core.preferences.AppLanguage
+import com.anksoft.myapplication.core.preferences.LANGUAGE_KEY
+import com.anksoft.myapplication.core.preferences.SettingsAppPreferences
 import com.russhwolf.settings.MapSettings
 import kotlin.test.Test
 
@@ -47,6 +51,22 @@ class SessionManagerTest {
         sessionManager.clear()
 
         assertThat(settings.keys).isEqualTo(setOf(SessionManager.KEY_TOKEN))
+    }
+
+    // AC-9
+    @Test
+    fun clearKeepsTheLanguagePreferenceEvenWhenBothShareOneStorage() {
+        // Worst case: on web the session and the preferences both live in localStorage.
+        val shared = MapSettings()
+        val sessionManager = SessionManager(shared).apply { saveAll() }
+        SettingsAppPreferences(shared, NoOpLogger).setLanguage(AppLanguage.TURKISH)
+
+        sessionManager.clear()
+
+        assertThat(sessionManager.getToken()).isNull()
+        assertThat(shared.keys).isEqualTo(setOf(LANGUAGE_KEY))
+        assertThat(SettingsAppPreferences(shared, NoOpLogger).language.value)
+            .isEqualTo(AppLanguage.TURKISH)
     }
 
     private fun SessionManager.saveAll() {
