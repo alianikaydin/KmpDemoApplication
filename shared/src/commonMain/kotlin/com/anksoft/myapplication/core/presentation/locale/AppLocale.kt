@@ -11,10 +11,10 @@ import com.anksoft.myapplication.core.preferences.AppLanguage
  * device language again when [tag] is null. Each platform reads its language from a different
  * place, so each platform has its own actual:
  * - Android: the `LocalConfiguration` (its locale is replaced, the system one is re-read every time).
- * - iOS: the `AppleLanguages` user default, written from [AppPreferences] on every composition.
+ * - iOS: the `AppleLanguages` user default, written from [com.anksoft.myapplication.core.preferences.AppPreferences] on every composition.
  * - Web: `window.__setAppLocale`, defined by the shim in `index.html`, which overrides `navigator.languages`.
  *
- * [AppPreferences] stays the only source of truth; the platform values only mirror it.
+ * [com.anksoft.myapplication.core.preferences.AppPreferences] stays the only source of truth; the platform values only mirror it.
  */
 @Composable
 expect fun appLocaleProvides(tag: String?): ProvidedValue<*>

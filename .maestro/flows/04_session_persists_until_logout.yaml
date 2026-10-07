@@ -24,6 +24,11 @@ appId: ${APP_ID}
 - takeScreenshot: 04_home_after_restart
 - tapOn:
     id: home_settings_button
+# Settings is taller than a small screen; the button may start below the fold.
+- scrollUntilVisible:
+    element:
+      id: settings_logout_button
+    direction: DOWN
 - tapOn:
     id: settings_logout_button
 - extendedWaitUntil:

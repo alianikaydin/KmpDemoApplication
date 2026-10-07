@@ -15,7 +15,7 @@ import xml.etree.ElementTree as ET
 from pathlib import Path
 
 # %s, %1$s, %2$d, %.2f ... but not the literal "%%".
-FORMAT_ARG = re.compile(r"(?<!%)%(\d+\$)?[-#+ 0,(]*\d*(?:\.\d+)?[a-zA-Z]")
+FORMAT_ARG = re.compile(r"(?<!%)%(\d+\$)?[-#+0,(]*\d*(?:\.\d+)?[a-zA-Z]")
 
 
 def read(path):

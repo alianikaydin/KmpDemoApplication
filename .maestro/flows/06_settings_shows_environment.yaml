@@ -21,7 +21,8 @@ appId: ${APP_ID}
 - assertVisible:
     id: settings_environment
     text: ".*DEV.*"
-# The label is localized, so only its presence is checked here.
+# The label is localized; "<label> <name> (<code>)" is matched without the label.
 - assertVisible:
     id: settings_version
+    text: ".* \\(\\d+\\)"
 - takeScreenshot: 06_settings_environment
