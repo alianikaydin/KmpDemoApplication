@@ -51,6 +51,11 @@ Kermit. To add a destination, such as crash reporting, register another writer:
 single<LogWriter>(named("crash")) { CrashReportingWriter() }
 ```
 
+The writer list is captured once, when `AppLogger` is created (at the start of `initKoin`).
+A writer must therefore be registered in the modules passed to `initKoin` (including
+`platformModules`); one added later with `loadKoinModules` is never called. A writer that
+throws is skipped and does not affect the caller or the other writers.
+
 Writers get an already redacted `LogEntry`. To turn logging off, override the logger:
 `single<AppLogger> { NoOpLogger }`.
 
@@ -60,6 +65,8 @@ on the host). Use `recordingLogger()` from the test sources, or override
 
 ## CI check
 
-`scripts/ci/check-no-raw-logging.sh` fails the build when `println`, `Log.d`, `NSLog`,
-`console.log` or `printStackTrace` appear outside `core/logging`. It runs from
+`scripts/ci/check-no-raw-logging.sh` fails the build when `println`, `Log.*` (including
+`Log.wtf`), `System.out`/`System.err` printing, `NSLog`, `os_log`, `debugPrint`, `console.*`,
+`printStackTrace` or a direct Kermit import appear outside `core/logging`. A `git grep` error
+also fails the check. It runs from
 `scripts/ci/static-checks.sh`, which runs every `scripts/ci/check-*.sh`.

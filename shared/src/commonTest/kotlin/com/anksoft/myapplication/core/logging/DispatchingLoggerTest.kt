@@ -7,7 +7,9 @@ import assertk.assertions.isEmpty
 import assertk.assertions.isEqualTo
 import assertk.assertions.isFalse
 import assertk.assertions.isNull
+import kotlin.coroutines.cancellation.CancellationException
 import kotlin.test.Test
+import kotlin.test.assertFailsWith
 
 class DispatchingLoggerTest {
 
@@ -37,6 +39,33 @@ class DispatchingLoggerTest {
 
         assertThat(first.entries).hasSize(1)
         assertThat(second.entries).isEqualTo(first.entries)
+    }
+
+    @Test
+    fun throwingWriterDoesNotBreakCallerOrOtherWriters() {
+        val recording = RecordingLogWriter()
+        val broken = object : LogWriter {
+            override fun write(entry: LogEntry) {
+                throw IllegalStateException("boom")
+            }
+        }
+        val logger = DispatchingLogger(LogSeverity.DEBUG, listOf(broken, recording))
+
+        logger.error("T") { "still delivered" }
+
+        assertThat(recording.entries.single().message).isEqualTo("still delivered")
+    }
+
+    @Test
+    fun writerCancellationIsPropagated() {
+        val cancelling = object : LogWriter {
+            override fun write(entry: LogEntry) {
+                throw CancellationException("cancelled")
+            }
+        }
+        val logger = DispatchingLogger(LogSeverity.DEBUG, listOf(cancelling))
+
+        assertFailsWith<CancellationException> { logger.error("T") { "x" } }
     }
 
     @Test

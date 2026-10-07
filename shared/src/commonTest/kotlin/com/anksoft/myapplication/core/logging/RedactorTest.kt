@@ -66,6 +66,32 @@ class RedactorTest {
         assertThat(result).isEqualTo("GET /auth/me?token=***&x=1")
     }
 
+    // AC-4
+    @Test
+    fun prefixedTokenKeysAreMasked() {
+        val result = Redactor.redact("id_token=a1 authToken: b2 sessionToken=c3")
+
+        assertThat(result).isEqualTo("id_token=*** authToken: *** sessionToken=***")
+    }
+
+    // AC-4
+    @Test
+    fun apiKeyIsMasked() {
+        val result = Redactor.redact("api_key=k1 apiKey=k2 x-api-key: k3")
+
+        assertThat(result).isEqualTo("api_key=*** apiKey=*** x-api-key: ***")
+    }
+
+    // AC-4
+    @Test
+    fun quotedValueWithSpacesIsMaskedCompletely() {
+        val result = Redactor.redact("""{"password":"iki kelime","other":"ok"}""")
+
+        assertThat(result).doesNotContain("iki")
+        assertThat(result).doesNotContain("kelime")
+        assertThat(result).isEqualTo("""{"password":"***","other":"ok"}""")
+    }
+
     @Test
     fun ordinaryTextIsLeftUntouched() {
         val text = "Started env=DEV version=1.0 path=auth/login status=500"

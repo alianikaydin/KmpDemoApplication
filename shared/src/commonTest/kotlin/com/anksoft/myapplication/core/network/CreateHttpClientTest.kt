@@ -125,6 +125,21 @@ class CreateHttpClientTest {
 
     // AC-5
     @Test
+    fun lowerCaseSetCookieHeaderIsMasked() = runTest {
+        val (logger, writer) = recordingLogger()
+        val engine = MockEngine {
+            respond("", headers = headersOf("set-cookie", "sid=abc123; HttpOnly"))
+        }
+
+        clientFor(AppEnvironment.DEV, logger, engine = engine).get("auth/ping")
+
+        val log = writer.entries.joinToString("\n") { it.message }
+        assertThat(log).doesNotContain("abc123")
+        assertThat(log).contains("set-cookie: ***")
+    }
+
+    // AC-5
+    @Test
     fun prodAndStageLogNoHttpTraffic() = runTest {
         listOf(AppEnvironment.PROD, AppEnvironment.STAGE).forEach { environment ->
             val (logger, writer) = recordingLogger()

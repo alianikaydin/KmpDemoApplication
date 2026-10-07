@@ -9,7 +9,9 @@ const val CONSOLE_LOG_WRITER = "console"
 
 /**
  * Binds the app logger. Every [LogWriter] registered in Koin (console by default, crash
- * reporting later) receives each entry that passes the environment's minimum severity.
+ * reporting later) receives each entry that passes the environment's minimum severity. The
+ * writer list is captured once when [AppLogger] is created, so writers must be registered in
+ * the modules passed to `initKoin`.
  */
 val loggingModule = module {
     single<LogWriter>(named(CONSOLE_LOG_WRITER)) { KermitConsoleWriter() }

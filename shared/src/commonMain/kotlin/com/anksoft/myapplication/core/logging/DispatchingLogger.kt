@@ -1,8 +1,11 @@
 package com.anksoft.myapplication.core.logging
 
+import kotlin.coroutines.cancellation.CancellationException
+
 /**
  * Default [AppLogger]: drops entries below [minSeverity], builds the message lazily, redacts it
- * and hands the same [LogEntry] to every writer.
+ * and hands the same [LogEntry] to every writer. A writer that throws is skipped; the others
+ * still receive the entry.
  */
 class DispatchingLogger(
     private val minSeverity: LogSeverity,
@@ -22,6 +25,14 @@ class DispatchingLogger(
             message = Redactor.redact(message()),
             throwableName = throwable?.let { it::class.simpleName ?: "Throwable" }
         )
-        writers.forEach { it.write(entry) }
+        // A broken writer (e.g. crash reporting) must not break the caller: safeCall logs from
+        // inside its catch blocks. Cancellation is still propagated.
+        writers.forEach { writer ->
+            try {
+                writer.write(entry)
+            } catch (e: Exception) {
+                if (e is CancellationException) throw e
+            }
+        }
     }
 }

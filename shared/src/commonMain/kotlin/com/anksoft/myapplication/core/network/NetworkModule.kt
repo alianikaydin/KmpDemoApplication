@@ -83,11 +83,8 @@ fun createHttpClient(
             this.logger = httpLogger
             level = config.environment.httpLogLevel()
             // Never log credentials or cookies.
-            sanitizeHeader { header ->
-                header == HttpHeaders.Authorization ||
-                    header == HttpHeaders.SetCookie ||
-                    header == HttpHeaders.Cookie
-            }
+            // Header names are matched case-insensitively: HTTP/2 servers send them lower-cased.
+            sanitizeHeader { header -> SENSITIVE_HEADERS.any { it.equals(header, ignoreCase = true) } }
         }
         defaultRequest {
             url(config.baseUrl)
@@ -96,6 +93,9 @@ fun createHttpClient(
     }
     return if (engine == null) HttpClient(block) else HttpClient(engine, block)
 }
+
+/** Headers whose values must never reach a log line. */
+private val SENSITIVE_HEADERS = listOf(HttpHeaders.Authorization, HttpHeaders.SetCookie, HttpHeaders.Cookie)
 
 /** Forwards Ktor's HTTP log lines to the app logger. */
 internal class KtorLoggerBridge(private val logger: AppLogger) : KtorLogger {
