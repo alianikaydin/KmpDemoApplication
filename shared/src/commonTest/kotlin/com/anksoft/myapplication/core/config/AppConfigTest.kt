@@ -96,6 +96,7 @@ class AppConfigTest {
         }
     }
 
+    // AC-1
     @Test
     fun createRejectsNonHttpUrlInDev() {
         assertFailsWith<IllegalArgumentException> {

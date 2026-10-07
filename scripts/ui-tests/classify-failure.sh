@@ -3,13 +3,17 @@
 # based on the stage marker written by the other scripts. Usage: classify-failure.sh <platform>
 set -euo pipefail
 
-platform="${1:?usage: classify-failure.sh <android|ios>}"
+platform="${1:?usage: classify-failure.sh <android|android-e2e|ios>}"
+case "$platform" in
+  android-e2e) artifact="android-e2e-results" ;;
+  *) artifact="${platform}-ui-results" ;;
+esac
 stage="$(cat "ui-results/$platform/stage" 2>/dev/null || echo setup)"
 
 case "$stage" in
   test)
     title="UI test failure"
-    msg="Maestro flow failed on $platform, see report.xml and screenshots in the ${platform}-ui-results artifact"
+    msg="Maestro flow failed on $platform, see report.xml and screenshots in the ${artifact} artifact"
     ;;
   build)
     title="Infrastructure failure"

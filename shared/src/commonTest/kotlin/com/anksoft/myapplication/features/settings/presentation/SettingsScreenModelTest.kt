@@ -59,6 +59,7 @@ class SettingsScreenModelTest {
         assertThat(createModel(AppEnvironment.PROD).state.value.environmentName).isEqualTo("PROD")
     }
 
+    // AC-7
     @Test
     fun logoutEventLogsOutAndMarksStateLoggedOut() = runTest {
         val model = createModel()

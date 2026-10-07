@@ -22,7 +22,7 @@ val versionProps = Properties().apply {
         )
     )
 }
-val appVersionName: String = requireNotNull(versionProps.getProperty("VERSION_NAME")?.trim()) {
+val appVersionName: String = requireNotNull(versionProps.getProperty("VERSION_NAME")?.trim()?.takeIf { it.isNotEmpty() }) {
     "VERSION_NAME missing in version.properties"
 }
 val appVersionCode: Int = run {

@@ -80,7 +80,7 @@ kotlin {
             implementation(libs.ktor.serialization.kotlinx.json)
             implementation(libs.ktor.client.logging)
             implementation(libs.ktor.client.auth)
-            // Serves demo mode (AppConfig.Demo) without a backend.
+            // Serves the dev demo mode (AppConfig.create with demoAllowed) without a backend.
             implementation(libs.ktor.client.mock)
             
             // Multiplatform Settings
