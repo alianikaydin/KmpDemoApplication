@@ -5,7 +5,7 @@
 set -euo pipefail
 
 OUT_DIR="${OUT_DIR:-ui-results/ios}"
-APP_ID="com.anksoft.myapplication.MyApplication"
+APP_ID="com.anksoft.myapplication.MyApplication.dev"
 export OUT_DIR
 
 # shellcheck source=scripts/ui-tests/common.sh

@@ -7,8 +7,8 @@
 set -euo pipefail
 
 OUT_DIR="${OUT_DIR:-ui-results/android}"
-APK="${APK:-androidApp/build/outputs/apk/debug/androidApp-debug.apk}"
-APP_ID="com.anksoft.myapplication"
+APK="${APK:-androidApp/build/outputs/apk/dev/debug/androidApp-dev-debug.apk}"
+APP_ID="com.anksoft.myapplication.dev"
 export OUT_DIR
 
 # shellcheck source=scripts/ui-tests/common.sh

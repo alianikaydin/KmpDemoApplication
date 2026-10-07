@@ -48,7 +48,7 @@ jobs:
         run: |
           mkdir -p "$OUT_DIR"
           echo build > "$OUT_DIR/stage"
-          ./gradlew :androidApp:assembleDebug --stacktrace
+          ./gradlew :androidApp:assembleDevDebug --stacktrace
 
       - name: Enable KVM
         run: |
@@ -90,7 +90,7 @@ jobs:
       - name: Run Maestro flows on the emulator
         uses: reactivecircus/android-emulator-runner@v2
         env:
-          APK: androidApp/build/outputs/apk/debug/androidApp-debug.apk
+          APK: androidApp/build/outputs/apk/dev/debug/androidApp-dev-debug.apk
         with:
           api-level: 34
           target: google_apis
@@ -163,6 +163,27 @@ jobs:
             -derivedDataPath build/ios \
             CODE_SIGN_IDENTITY=- CODE_SIGN_STYLE=Manual DEVELOPMENT_TEAM= \
             build 2>&1 | tee "$OUT_DIR/xcodebuild.log"
+
+      # Compile-only check of the stage and prod configurations (unsigned, simulator).
+      # No Maestro here; it guards the pbxproj, the xcconfig files and the Kotlin framework
+      # build type of the non-Debug configurations.
+      - name: Build iOS stage and prod configurations
+        run: |
+          set -o pipefail
+          for entry in "iosApp-Stage:Stage" "iosApp-Prod:Release"; do
+            scheme="${entry%%:*}"
+            configuration="${entry##*:}"
+            echo "Building $scheme ($configuration)"
+            xcodebuild \
+              -project iosApp/iosApp.xcodeproj \
+              -scheme "$scheme" \
+              -configuration "$configuration" \
+              -sdk iphonesimulator \
+              -destination 'generic/platform=iOS Simulator' \
+              -derivedDataPath "build/ios-$scheme" \
+              CODE_SIGN_IDENTITY=- CODE_SIGN_STYLE=Manual DEVELOPMENT_TEAM= \
+              build 2>&1 | tee "$OUT_DIR/xcodebuild-$scheme.log"
+          done
 
       - name: Boot iOS simulator
         run: bash scripts/ui-tests/boot-ios-simulator.sh
