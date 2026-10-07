@@ -20,9 +20,9 @@ import io.ktor.client.engine.mock.respond
 import io.ktor.client.plugins.contentnegotiation.ContentNegotiation
 import io.ktor.client.plugins.defaultRequest
 import io.ktor.client.request.HttpRequestData
+import io.ktor.client.request.HttpResponseData
 import io.ktor.client.request.get
 import io.ktor.client.request.post
-import io.ktor.client.statement.HttpResponse
 import io.ktor.http.ContentType
 import io.ktor.http.HttpHeaders
 import io.ktor.http.HttpStatusCode
@@ -40,7 +40,7 @@ class SafeCallLoggingTest {
 
     private val path = "auth/login"
 
-    private fun client(handler: suspend MockRequestHandleScope.(HttpRequestData) -> HttpResponse) =
+    private fun client(handler: suspend MockRequestHandleScope.(HttpRequestData) -> HttpResponseData) =
         HttpClient(MockEngine(handler)) {
             install(ContentNegotiation) { json(Json { ignoreUnknownKeys = true }) }
             defaultRequest { url("https://test.local/") }
