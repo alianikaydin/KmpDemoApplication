@@ -2,18 +2,29 @@
 # Requires the APP_ID env var (passed with `maestro test -e APP_ID=...`).
 appId: ${APP_ID}
 ---
-- launchApp:
-    clearState: true
-    # No clearKeychain: resetting the simulator Keychain while it holds this app's
-    # items stops the app on iOS. The app itself drops a session left in the
-    # Keychain once its data is cleared (see flow 05).
-    stopApp: true
-# Maestro's iOS driver can answer the first view-hierarchy request right after
-# a launch with "Application is not running" and fail the flow as a crash.
-# This wait compares screenshots only, so it lets the launch finish first.
+# Clear first and launch afterwards, as two steps. Combined in one launchApp, the emulator
+# could kill the freshly started process: clearing force-stops the app, and the removal of
+# the old task (still closing) then killed the new process of the same uid ("Killing ...:
+# remove task", "Process failed to attach"). The app stayed gone until the assert timed out.
+- stopApp
+# No clearKeychain: resetting the simulator Keychain while it holds this app's
+# items stops the app on iOS. The app itself drops a session left in the
+# Keychain once its data is cleared (see flow 05).
+- clearState
 - waitForAnimationToEnd:
-    timeout: 5000
-- extendedWaitUntil:
-    visible:
-      id: login_title
-    timeout: 60000   # first launch on an emulator is slow
+    timeout: 3000
+# A launch that gets killed is launched again; the Login assert below is unchanged.
+- retry:
+    maxRetries: 2
+    commands:
+      - launchApp:
+          stopApp: true
+      # Maestro's iOS driver can answer the first view-hierarchy request right after
+      # a launch with "Application is not running" and fail the flow as a crash.
+      # This wait compares screenshots only, so it lets the launch finish first.
+      - waitForAnimationToEnd:
+          timeout: 5000
+      - extendedWaitUntil:
+          visible:
+            id: login_title
+          timeout: 30000   # first launch on an emulator is slow
