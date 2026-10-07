@@ -30,7 +30,7 @@ class MockAuthServerTest {
         logger = NoOpLogger
     )
     private val remoteDataSource = AuthRemoteDataSource(httpClient, NoOpLogger)
-    private val repository = AuthRepositoryImpl(remoteDataSource, sessionManager)
+    private val repository = AuthRepositoryImpl(remoteDataSource, sessionManager, NoOpLogger)
 
     private val demoUser = MockAuthServer.DEMO_USER
 

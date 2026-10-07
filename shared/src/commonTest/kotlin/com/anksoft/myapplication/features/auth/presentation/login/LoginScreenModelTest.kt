@@ -10,6 +10,10 @@ import assertk.assertions.isNull
 import assertk.assertions.isTrue
 import com.anksoft.myapplication.core.domain.DataError
 import com.anksoft.myapplication.core.domain.Result
+import com.anksoft.myapplication.core.logging.LogSeverity
+import com.anksoft.myapplication.core.logging.LogTags
+import com.anksoft.myapplication.core.logging.RecordingLogWriter
+import com.anksoft.myapplication.core.logging.recordingLogger
 import com.anksoft.myapplication.core.presentation.UiText
 import com.anksoft.myapplication.features.auth.FakeAuthRepository
 import com.anksoft.myapplication.features.auth.domain.UserDataValidator
@@ -34,13 +38,16 @@ class LoginScreenModelTest {
 
     private lateinit var repository: FakeAuthRepository
     private lateinit var model: LoginScreenModel
+    private lateinit var logWriter: RecordingLogWriter
 
     @BeforeTest
     fun setUp() {
         // screenModelScope is Main-dispatched, so Main must be replaced.
         Dispatchers.setMain(UnconfinedTestDispatcher())
         repository = FakeAuthRepository()
-        model = LoginScreenModel(LoginUseCase(repository), UserDataValidator())
+        val (logger, writer) = recordingLogger()
+        logWriter = writer
+        model = LoginScreenModel(LoginUseCase(repository), UserDataValidator(), logger)
     }
 
     @AfterTest
@@ -189,5 +196,19 @@ class LoginScreenModelTest {
 
         model.onEvent(LoginEvent.PasswordChanged("Password1"))
         assertThat(model.state.value.formError).isNull()
+    }
+
+    // AC-1
+    @Test
+    fun validationRejectionIsLoggedWithoutFieldValues() = runTest {
+        model.onEvent(LoginEvent.EmailChanged("not-an-email"))
+        model.onEvent(LoginEvent.PasswordChanged("Password1"))
+
+        model.onEvent(LoginEvent.LoginClicked)
+
+        val entry = logWriter.entries.single()
+        assertThat(entry.tag).isEqualTo(LogTags.AUTH)
+        assertThat(entry.severity).isEqualTo(LogSeverity.DEBUG)
+        assertThat(entry.message).isEqualTo("login blocked by validation")
     }
 }
