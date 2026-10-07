@@ -19,7 +19,10 @@ import cafe.adriel.voyager.navigator.LocalNavigator
 import cafe.adriel.voyager.navigator.currentOrThrow
 import com.anksoft.myapplication.features.auth.presentation.login.LoginScreen
 import myapplication.shared.generated.resources.Res
+import myapplication.shared.generated.resources.common_back
 import myapplication.shared.generated.resources.settings_environment
+import myapplication.shared.generated.resources.settings_logout
+import myapplication.shared.generated.resources.settings_title
 import myapplication.shared.generated.resources.settings_version
 import org.jetbrains.compose.resources.stringResource
 
@@ -41,10 +44,16 @@ class SettingsScreen : Screen {
         Scaffold(
             topBar = {
                 TopAppBar(
-                    title = { Text("Profile & Settings") },
+                    title = { Text(stringResource(Res.string.settings_title)) },
                     navigationIcon = {
-                        IconButton(onClick = { navigator.pop() }) {
-                            Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Back")
+                        IconButton(
+                            onClick = { navigator.pop() },
+                            modifier = Modifier.testTag(SettingsTestTags.BACK_BUTTON)
+                        ) {
+                            Icon(
+                                Icons.AutoMirrored.Filled.ArrowBack,
+                                contentDescription = stringResource(Res.string.common_back)
+                            )
                         }
                     }
                 )
@@ -98,7 +107,9 @@ class SettingsScreen : Screen {
                 
                 Button(
                     onClick = { screenModel.onEvent(SettingsEvent.Logout) },
-                    modifier = Modifier.fillMaxWidth(),
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .testTag(SettingsTestTags.LOGOUT_BUTTON),
                     colors = ButtonDefaults.buttonColors(
                         containerColor = MaterialTheme.colorScheme.error
                     ),
@@ -110,7 +121,7 @@ class SettingsScreen : Screen {
                             color = MaterialTheme.colorScheme.onError
                         )
                     } else {
-                        Text("Logout")
+                        Text(stringResource(Res.string.settings_logout))
                     }
                 }
             }

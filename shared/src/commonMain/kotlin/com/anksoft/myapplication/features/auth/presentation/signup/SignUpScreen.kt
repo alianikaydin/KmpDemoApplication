@@ -25,6 +25,7 @@ import cafe.adriel.voyager.navigator.currentOrThrow
 import com.anksoft.myapplication.core.presentation.asString
 import com.anksoft.myapplication.features.home.presentation.HomeScreen
 import myapplication.shared.generated.resources.Res
+import myapplication.shared.generated.resources.common_back
 import myapplication.shared.generated.resources.login_email_label
 import myapplication.shared.generated.resources.login_password_label
 import myapplication.shared.generated.resources.signup_button
@@ -67,7 +68,7 @@ fun SignUpContent(
                 title = { Text(stringResource(Res.string.signup_title)) },
                 navigationIcon = {
                     IconButton(onClick = onBackClick) {
-                        Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Back")
+                        Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = stringResource(Res.string.common_back))
                     }
                 }
             )
