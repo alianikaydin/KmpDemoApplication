@@ -40,6 +40,7 @@ val networkModule = module {
             logger = get()
         )
     }
+    single<AuthTokenCache> { KtorAuthTokenCache(get()) }
 }
 
 /**

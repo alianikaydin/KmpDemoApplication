@@ -10,6 +10,7 @@ import com.anksoft.myapplication.core.logging.AppLogger
 import com.anksoft.myapplication.core.logging.LogTags
 import com.anksoft.myapplication.core.logging.info
 import com.anksoft.myapplication.core.logging.warn
+import com.anksoft.myapplication.core.network.AuthTokenCache
 import com.anksoft.myapplication.core.storage.SessionManager
 import com.anksoft.myapplication.features.auth.data.datasource.AuthRemoteDataSource
 import com.anksoft.myapplication.features.auth.data.mapper.toUser
@@ -19,6 +20,7 @@ import com.anksoft.myapplication.features.auth.domain.repository.AuthRepository
 class AuthRepositoryImpl(
     private val remoteDataSource: AuthRemoteDataSource,
     private val sessionManager: SessionManager,
+    private val tokenCache: AuthTokenCache,
     private val logger: AppLogger
 ) : AuthRepository {
 
@@ -30,6 +32,7 @@ class AuthRepositoryImpl(
 
     override suspend fun logout() {
         sessionManager.clear()
+        tokenCache.clear()
     }
 
     override suspend fun getCurrentUser(): User? {
@@ -48,6 +51,8 @@ class AuthRepositoryImpl(
      * next launch. The password is never stored (AC-1.8).
      */
     private fun AuthResponseDto.persistSession(): User {
+        // Drop the previous account's cached bearer token before the new one is stored.
+        tokenCache.clear()
         sessionManager.saveToken(accessToken)
         refreshToken?.let(sessionManager::saveRefreshToken)
         val domainUser = user.toUser()
