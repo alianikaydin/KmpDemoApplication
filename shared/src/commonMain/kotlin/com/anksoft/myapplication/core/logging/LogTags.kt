@@ -6,4 +6,5 @@ object LogTags {
     const val NETWORK = "Network"
     const val HTTP = "Http"
     const val AUTH = "Auth"
+    const val SESSION = "Session"
 }

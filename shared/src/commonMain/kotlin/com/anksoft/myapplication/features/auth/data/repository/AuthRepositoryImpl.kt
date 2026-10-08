@@ -11,6 +11,8 @@ import com.anksoft.myapplication.core.logging.LogTags
 import com.anksoft.myapplication.core.logging.info
 import com.anksoft.myapplication.core.logging.warn
 import com.anksoft.myapplication.core.network.AuthTokenCache
+import com.anksoft.myapplication.core.session.SessionObserver
+import com.anksoft.myapplication.core.session.SignOutReason
 import com.anksoft.myapplication.core.storage.SessionManager
 import com.anksoft.myapplication.features.auth.data.datasource.AuthRemoteDataSource
 import com.anksoft.myapplication.features.auth.data.mapper.toUser
@@ -21,6 +23,7 @@ class AuthRepositoryImpl(
     private val remoteDataSource: AuthRemoteDataSource,
     private val sessionManager: SessionManager,
     private val tokenCache: AuthTokenCache,
+    private val sessionObservers: List<SessionObserver>,
     private val logger: AppLogger
 ) : AuthRepository {
 
@@ -33,6 +36,7 @@ class AuthRepositoryImpl(
     override suspend fun logout() {
         sessionManager.clear()
         tokenCache.clear()
+        sessionObservers.forEach { it.onSignedOut(SignOutReason.USER_LOGOUT) }
     }
 
     override suspend fun getCurrentUser(): User? {
@@ -59,6 +63,8 @@ class AuthRepositoryImpl(
         sessionManager.saveUserId(domainUser.id)
         sessionManager.saveUserEmail(domainUser.email)
         domainUser.name?.let(sessionManager::saveUserName)
+        // Observers run last, so they see the stored session.
+        sessionObservers.forEach { it.onSignedIn() }
         return domainUser
     }
 }

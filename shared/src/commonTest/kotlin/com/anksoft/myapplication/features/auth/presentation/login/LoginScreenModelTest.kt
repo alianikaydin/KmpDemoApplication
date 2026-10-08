@@ -10,14 +10,18 @@ import assertk.assertions.isNull
 import assertk.assertions.isTrue
 import com.anksoft.myapplication.core.domain.DataError
 import com.anksoft.myapplication.core.domain.Result
+import com.anksoft.myapplication.core.logging.AppLogger
 import com.anksoft.myapplication.core.logging.LogSeverity
 import com.anksoft.myapplication.core.logging.LogTags
 import com.anksoft.myapplication.core.logging.RecordingLogWriter
 import com.anksoft.myapplication.core.logging.recordingLogger
 import com.anksoft.myapplication.core.presentation.UiText
+import com.anksoft.myapplication.core.session.SessionExpiry
+import com.anksoft.myapplication.core.storage.SessionManager
 import com.anksoft.myapplication.features.auth.FakeAuthRepository
 import com.anksoft.myapplication.features.auth.domain.UserDataValidator
 import com.anksoft.myapplication.features.auth.domain.usecase.LoginUseCase
+import com.russhwolf.settings.MapSettings
 import kotlinx.coroutines.CompletableDeferred
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.test.UnconfinedTestDispatcher
@@ -30,6 +34,7 @@ import myapplication.shared.generated.resources.error_email_required
 import myapplication.shared.generated.resources.error_invalid_credentials
 import myapplication.shared.generated.resources.error_no_internet
 import myapplication.shared.generated.resources.error_password_required
+import myapplication.shared.generated.resources.error_session_expired
 import kotlin.test.AfterTest
 import kotlin.test.BeforeTest
 import kotlin.test.Test
@@ -38,17 +43,30 @@ class LoginScreenModelTest {
 
     private lateinit var repository: FakeAuthRepository
     private lateinit var model: LoginScreenModel
+    private lateinit var logger: AppLogger
     private lateinit var logWriter: RecordingLogWriter
+    private lateinit var sessionManager: SessionManager
+    private lateinit var sessionExpiry: SessionExpiry
 
     @BeforeTest
     fun setUp() {
         // screenModelScope is Main-dispatched, so Main must be replaced.
         Dispatchers.setMain(UnconfinedTestDispatcher())
         repository = FakeAuthRepository()
-        val (logger, writer) = recordingLogger()
+        val (testLogger, writer) = recordingLogger()
+        logger = testLogger
         logWriter = writer
-        model = LoginScreenModel(LoginUseCase(repository), UserDataValidator(), logger)
+        sessionManager = SessionManager(MapSettings())
+        sessionExpiry = SessionExpiry(sessionManager, lazy { emptyList() })
+        model = newModel()
     }
+
+    private fun newModel() = LoginScreenModel(
+        LoginUseCase(repository),
+        UserDataValidator(),
+        logger,
+        sessionExpiry
+    )
 
     @AfterTest
     fun tearDown() {
@@ -210,5 +228,44 @@ class LoginScreenModelTest {
         assertThat(entry.tag).isEqualTo(LogTags.AUTH)
         assertThat(entry.severity).isEqualTo(LogSeverity.DEBUG)
         assertThat(entry.message).isEqualTo("login blocked by validation")
+    }
+
+    // AC-28
+    @Test
+    fun loginOpenedAfterTheSessionExpiredExplainsWhy() = runTest {
+        sessionManager.saveToken("access")
+        sessionExpiry.expire()
+
+        val state = newModel().state.value
+
+        assertThat(state.formError).isEqualTo(UiText.Resource(Res.string.error_session_expired))
+    }
+
+    // AC-28
+    @Test
+    fun expiredNoticeIsShownOnlyOnTheFirstLoginScreen() = runTest {
+        sessionManager.saveToken("access")
+        sessionExpiry.expire()
+        newModel()
+
+        assertThat(newModel().state.value.formError).isNull()
+    }
+
+    // AC-28
+    @Test
+    fun loginWithoutAnExpiredSessionStartsWithoutAFormError() = runTest {
+        assertThat(model.state.value.formError).isNull()
+    }
+
+    // AC-28
+    @Test
+    fun typingClearsTheExpiredNotice() = runTest {
+        sessionManager.saveToken("access")
+        sessionExpiry.expire()
+        val expiredModel = newModel()
+
+        expiredModel.onEvent(LoginEvent.EmailChanged("user@example.com"))
+
+        assertThat(expiredModel.state.value.formError).isNull()
     }
 }

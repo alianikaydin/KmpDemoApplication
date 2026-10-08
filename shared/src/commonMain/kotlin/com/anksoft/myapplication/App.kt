@@ -2,6 +2,7 @@ package com.anksoft.myapplication
 
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.remember
@@ -11,6 +12,7 @@ import cafe.adriel.voyager.transitions.SlideTransition
 import com.anksoft.myapplication.core.preferences.AppPreferences
 import com.anksoft.myapplication.core.presentation.locale.LocaleKeyedContent
 import com.anksoft.myapplication.core.presentation.locale.ProvideAppLocale
+import com.anksoft.myapplication.core.session.SessionExpiry
 import com.anksoft.myapplication.core.storage.SessionManager
 import com.anksoft.myapplication.features.auth.presentation.login.LoginScreen
 import com.anksoft.myapplication.features.home.presentation.HomeScreen
@@ -20,6 +22,7 @@ import org.koin.compose.koinInject
 @Preview
 fun App() {
     val sessionManager = koinInject<SessionManager>()
+    val sessionExpiry = koinInject<SessionExpiry>()
     val appPreferences = koinInject<AppPreferences>()
     val language by appPreferences.language.collectAsState()
     // Remembered once: App recomposes when the language changes and must not hand the
@@ -31,6 +34,10 @@ fun App() {
     ProvideAppLocale(language) {
         MaterialTheme {
             Navigator(initialScreen) { navigator ->
+                // An expired session leaves no screen worth keeping: back to Login, no way back.
+                LaunchedEffect(navigator) {
+                    sessionExpiry.events.collect { navigator.replaceAll(LoginScreen()) }
+                }
                 SlideTransition(navigator) { screen ->
                     // The key wraps the screen content only, never the Navigator, so the back
                     // stack survives a language change (AC-6).

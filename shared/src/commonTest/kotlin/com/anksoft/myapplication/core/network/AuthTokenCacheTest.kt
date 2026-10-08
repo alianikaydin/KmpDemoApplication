@@ -42,6 +42,7 @@ class AuthTokenCacheTest {
         AuthRemoteDataSource(client, NoOpLogger),
         sessionManager,
         KtorAuthTokenCache(client),
+        emptyList(),
         NoOpLogger
     )
 

@@ -1,7 +1,9 @@
 package com.anksoft.myapplication.core.network.mock
 
+import com.anksoft.kmpdemo.contract.auth.AuthPaths
 import com.anksoft.kmpdemo.contract.auth.AuthResponseDto
 import com.anksoft.kmpdemo.contract.auth.LoginRequestDto
+import com.anksoft.kmpdemo.contract.auth.RefreshTokenRequestDto
 import com.anksoft.kmpdemo.contract.auth.RegisterRequestDto
 import com.anksoft.kmpdemo.contract.auth.UserDto
 import com.anksoft.myapplication.core.network.appJson
@@ -33,7 +35,12 @@ data class SeedUser(
  * error mapping) is exercised unchanged.
  *
  * Users live only in memory and are lost when the app process ends.
- * Routing is by path, so new endpoints (e.g. auth/refresh) are one more branch.
+ * Routing is by path, so a new endpoint is one more branch.
+ *
+ * Tokens are plain strings that name their user, so a refresh token can be validated after a
+ * process restart. A refresh token works once; sending it again is answered with 401 like the
+ * real backend does for a reused token. Every 401 carries `WWW-Authenticate: Bearer`, which the
+ * client's auth plugin needs to start a refresh.
  */
 class MockAuthServer(seedUsers: List<SeedUser> = listOf(DEMO_USER)) {
 
@@ -43,6 +50,7 @@ class MockAuthServer(seedUsers: List<SeedUser> = listOf(DEMO_USER)) {
     private val accounts = mutableMapOf<String, Account>()
     private var nextId = 1
     private var nextTokenSerial = 1
+    private val usedRefreshTokens = mutableSetOf<String>()
 
     init {
         seedUsers.forEach { seed ->
@@ -57,6 +65,7 @@ class MockAuthServer(seedUsers: List<SeedUser> = listOf(DEMO_USER)) {
         return when (path) {
             AuthRemoteDataSource.PATH_LOGIN -> login(scope, request)
             AuthRemoteDataSource.PATH_REGISTER -> register(scope, request)
+            AuthPaths.REFRESH -> refresh(scope, request)
             else -> scope.respondStatus(HttpStatusCode.NotFound)
         }
     }
@@ -67,8 +76,26 @@ class MockAuthServer(seedUsers: List<SeedUser> = listOf(DEMO_USER)) {
         val response = mutex.withLock {
             val account = accounts[body.email.normalized()]
             if (account == null || account.password != body.password) null else issueTokens(account.user)
-        } ?: return scope.respondStatus(HttpStatusCode.Unauthorized)
+        } ?: return scope.respondUnauthorized()
         return scope.respondJson(response)
+    }
+
+    private suspend fun refresh(scope: MockRequestHandleScope, request: HttpRequestData): HttpResponseData {
+        val body = request.decodeBody<RefreshTokenRequestDto>()
+            ?: return scope.respondStatus(HttpStatusCode.BadRequest)
+        val response = mutex.withLock {
+            val user = userForRefreshToken(body.refreshToken)
+            // add() is false for a token that was already used.
+            if (user == null || !usedRefreshTokens.add(body.refreshToken)) null else issueTokens(user)
+        } ?: return scope.respondUnauthorized()
+        return scope.respondJson(response)
+    }
+
+    /** Refresh tokens look like `mock-refresh-<userId>-<serial>`; unknown users and formats are rejected. */
+    private fun userForRefreshToken(token: String): UserDto? {
+        if (!token.startsWith(REFRESH_TOKEN_PREFIX)) return null
+        val userId = token.removePrefix(REFRESH_TOKEN_PREFIX).substringBeforeLast('-', missingDelimiterValue = "")
+        return accounts.values.firstOrNull { it.user.id == userId }?.user
     }
 
     private suspend fun register(scope: MockRequestHandleScope, request: HttpRequestData): HttpResponseData {
@@ -91,7 +118,7 @@ class MockAuthServer(seedUsers: List<SeedUser> = listOf(DEMO_USER)) {
         val serial = nextTokenSerial++
         return AuthResponseDto(
             accessToken = "mock-access-${user.id}-$serial",
-            refreshToken = "mock-refresh-${user.id}-$serial",
+            refreshToken = "$REFRESH_TOKEN_PREFIX${user.id}-$serial",
             user = user
         )
     }
@@ -115,10 +142,19 @@ class MockAuthServer(seedUsers: List<SeedUser> = listOf(DEMO_USER)) {
             headers = headersOf(HttpHeaders.ContentType, ContentType.Application.Json.toString())
         )
 
+    private fun MockRequestHandleScope.respondUnauthorized(): HttpResponseData =
+        respond(
+            content = "",
+            status = HttpStatusCode.Unauthorized,
+            headers = headersOf(HttpHeaders.WWWAuthenticate, "Bearer")
+        )
+
     private fun MockRequestHandleScope.respondStatus(status: HttpStatusCode): HttpResponseData =
         respond(content = "", status = status)
 
     companion object {
+        private const val REFRESH_TOKEN_PREFIX = "mock-refresh-"
+
         val DEMO_USER = SeedUser(email = "demo@example.com", password = "Demo1234", name = "Demo User")
     }
 }

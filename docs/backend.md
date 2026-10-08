@@ -87,3 +87,24 @@ iOS physical device: the phone can reach the Mac as `http://<mac-name>.local:808
 (set it in `Local.xcconfig`). The backend's `compose.yaml` binds the port to
 `127.0.0.1` only, so its port binding must be changed to allow LAN access
 first. Android physical devices should use `adb reverse` as above.
+
+## Sessions and token refresh
+
+The access token is short-lived. When a protected request gets `401`, the client
+sends the stored refresh token to `auth/refresh` once, saves the new token pair
+and repeats the request. Several requests failing together share one refresh,
+because a refresh token may be used only once.
+
+- A `401` from `auth/login`, `auth/register` or `auth/refresh` never starts a
+  refresh (wrong password, rejected refresh token).
+- If `auth/refresh` answers `401` (revoked, expired or reused token), the
+  session is cleared, the app returns to Login and shows "Your session
+  expired". Network errors and `5xx` keep the session.
+- The backend must send `WWW-Authenticate: Bearer` on its `401` answers; the
+  client's auth plugin starts a refresh only when it sees that header.
+- Logging in, registering and logging out clear the client's cached bearer
+  token, so a request after an account switch never carries the old account's
+  token.
+
+The demo mock server follows the same rules: `auth/refresh` accepts each refresh
+token once, and every `401` carries `WWW-Authenticate: Bearer`.

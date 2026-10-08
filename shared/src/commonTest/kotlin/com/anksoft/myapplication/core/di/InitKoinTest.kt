@@ -18,6 +18,10 @@ import com.anksoft.myapplication.core.network.mock.MockAuthServer
 import com.anksoft.myapplication.features.auth.domain.repository.AuthRepository
 import com.anksoft.myapplication.core.preferences.AppLanguage
 import com.anksoft.myapplication.core.preferences.AppPreferences
+import com.anksoft.myapplication.core.session.FakeSessionObserver
+import com.anksoft.myapplication.core.session.SessionExpiry
+import com.anksoft.myapplication.core.session.SessionObserver
+import com.anksoft.myapplication.core.session.SignOutReason
 import com.anksoft.myapplication.core.preferences.LANGUAGE_KEY
 import com.anksoft.myapplication.core.storage.SessionManager
 import com.russhwolf.settings.MapSettings
@@ -124,5 +128,43 @@ class InitKoinTest {
         ).koin
 
         assertThat(koin.get<AppPreferences>() === koin.get<AppPreferences>()).isTrue()
+    }
+
+    // AC-28
+    @Test
+    fun sessionObserversRegisteredInKoinHearAboutSignInAndExpiry() = runTest {
+        val observer = FakeSessionObserver()
+        val koin = initKoin(
+            config = TestAppConfigs.demo(),
+            platformModules = listOf(
+                consoleOverride,
+                module {
+                    single<Settings> { MapSettings() }
+                    single<SessionObserver> { observer }
+                }
+            )
+        ).koin
+
+        val demoUser = MockAuthServer.DEMO_USER
+        koin.get<AuthRepository>().login(demoUser.email, demoUser.password)
+        koin.get<SessionExpiry>().expire()
+
+        assertThat(observer.events).isEqualTo(
+            listOf(
+                FakeSessionObserver.Event.SignedIn,
+                FakeSessionObserver.Event.SignedOut(SignOutReason.EXPIRED)
+            )
+        )
+    }
+
+    // AC-28
+    @Test
+    fun sessionExpiryIsOneSharedInstance() {
+        val koin = initKoin(
+            config = TestAppConfigs.demo(),
+            platformModules = listOf(consoleOverride, module { single<Settings> { MapSettings() } })
+        ).koin
+
+        assertThat(koin.get<SessionExpiry>() === koin.get<SessionExpiry>()).isTrue()
     }
 }
