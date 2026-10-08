@@ -38,15 +38,30 @@ jobs:
       - name: Build Android app
         run: ./gradlew :androidApp:assembleDebug --stacktrace
 
-      - name: Build web app
-        run: ./gradlew :webApp:wasmJsBrowserDistribution :webApp:jsBrowserDistribution -PkmpEnv=prod --stacktrace
-
       - name: Upload test reports
         if: failure()
         uses: actions/upload-artifact@v4
         with:
           name: test-reports
           path: shared/build/reports/tests/
+
+  # Runs in parallel with build-and-test: the production web distribution takes
+  # far longer than everything else in CI, so it must not delay that feedback.
+  web-build:
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: 21
+
+      - uses: gradle/actions/setup-gradle@v4
+
+      - name: Build web app
+        run: ./gradlew :webApp:wasmJsBrowserDistribution :webApp:jsBrowserDistribution -PkmpEnv=prod --stacktrace
 
   ios-test:
     runs-on: macos-latest
