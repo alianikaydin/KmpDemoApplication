@@ -28,6 +28,7 @@ import io.ktor.client.request.setBody
 import io.ktor.client.statement.HttpResponse
 import io.ktor.http.HttpHeaders
 import io.ktor.http.HttpStatusCode
+import kotlin.test.AfterTest
 import kotlin.test.Test
 import kotlinx.coroutines.test.runTest
 
@@ -44,6 +45,11 @@ class MockAuthServerTest {
     private val repository = AuthRepositoryImpl(remoteDataSource, sessionManager, KtorAuthTokenCache(httpClient), emptyList(), NoOpLogger)
 
     private val demoUser = MockAuthServer.DEMO_USER
+
+    @AfterTest
+    fun tearDown() {
+        httpClient.close()
+    }
 
     @Test
     fun demoUserLoginSucceedsAndPersistsSession() = runTest {
@@ -174,9 +180,13 @@ class MockAuthServerTest {
             logger = NoOpLogger
         )
 
-        val response = refresh(requireNotNull(login.refreshToken), restartedClient)
+        try {
+            val response = refresh(requireNotNull(login.refreshToken), restartedClient)
 
-        assertThat(response.status).isEqualTo(HttpStatusCode.OK)
+            assertThat(response.status).isEqualTo(HttpStatusCode.OK)
+        } finally {
+            restartedClient.close()
+        }
     }
 
     // AC-28

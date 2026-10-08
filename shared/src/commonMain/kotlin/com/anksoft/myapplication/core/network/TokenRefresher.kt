@@ -12,8 +12,10 @@ import com.anksoft.myapplication.core.logging.warn
 import com.anksoft.myapplication.core.storage.SessionManager
 import io.ktor.client.plugins.auth.providers.BearerTokens
 import io.ktor.client.statement.HttpResponse
+import kotlinx.coroutines.NonCancellable
 import kotlinx.coroutines.sync.Mutex
 import kotlinx.coroutines.sync.withLock
+import kotlinx.coroutines.withContext
 
 /**
  * Exchanges the stored refresh token for a new token pair, at most one network call at a time.
@@ -23,6 +25,9 @@ import kotlinx.coroutines.sync.withLock
  * again. That is decided here, under [mutex], and does not rely on the HTTP client's own
  * single-flight behaviour.
  *
+ * The network call, the storing of the new tokens and the expiry run non-cancellable: a caller that
+ * leaves while the request is in flight must not leave the consumed refresh token in the store.
+ *
  * Tokens, e-mail addresses and user ids are never logged.
  */
 internal class TokenRefresher(
@@ -31,6 +36,12 @@ internal class TokenRefresher(
     private val onSessionExpired: () -> Unit
 ) {
     private val mutex = Mutex()
+
+    // Access tokens of the current session that this refresher replaced or issued, and the refresh
+    // token that session lineage currently ends in. A failed request whose access token is not in
+    // the set belongs to another session (an account switch) and is never retried. Guarded by [mutex].
+    private val knownAccessTokens = mutableSetOf<String>()
+    private var lineageRefreshToken: String? = null
 
     /**
      * @param staleRefreshToken the refresh token the failed request's tokens carried.
@@ -56,14 +67,36 @@ internal class TokenRefresher(
             logger.debug(LogTags.SESSION) { "refresh skipped: no stored refresh token" }
             return null
         }
-        val alreadyRefreshed = staleRefreshToken != storedRefresh ||
-            (failedAccessToken != null && failedAccessToken != storedAccess)
-        if (alreadyRefreshed) {
-            // Another call rotated the tokens while this one waited: use them, send nothing.
-            logger.debug(LogTags.SESSION) { "refresh skipped: tokens were already refreshed" }
-            return BearerTokens(storedAccess, storedRefresh)
+        if (lineageRefreshToken != null && lineageRefreshToken != storedRefresh) {
+            // Someone signed in again since the last refresh: the old lineage is gone.
+            knownAccessTokens.clear()
+            lineageRefreshToken = null
         }
+        if (failedAccessToken != null && failedAccessToken != storedAccess) {
+            if (failedAccessToken !in knownAccessTokens) {
+                // The request was sent under a different session; retrying would use this one's token.
+                logger.debug(LogTags.SESSION) { "refresh skipped: request belongs to another session" }
+                return null
+            }
+            return alreadyRefreshed(storedAccess, storedRefresh)
+        }
+        if (staleRefreshToken != storedRefresh) return alreadyRefreshed(storedAccess, storedRefresh)
 
+        // A caller that leaves now must not abandon a refresh token the server may already have consumed.
+        return withContext(NonCancellable) { exchange(storedAccess, storedRefresh, call) }
+    }
+
+    /** Another call rotated the tokens while this one waited: use them, send nothing. */
+    private fun alreadyRefreshed(storedAccess: String, storedRefresh: String): BearerTokens {
+        logger.debug(LogTags.SESSION) { "refresh skipped: tokens were already refreshed" }
+        return BearerTokens(storedAccess, storedRefresh)
+    }
+
+    private suspend fun exchange(
+        storedAccess: String,
+        storedRefresh: String,
+        call: suspend (refreshToken: String) -> HttpResponse
+    ): BearerTokens? {
         val result = safeCall<AuthResponseDto>(logger, AuthPaths.REFRESH) { call(storedRefresh) }
         if (sessionManager.getRefreshToken() != storedRefresh) {
             // The user logged out or in while the request was in flight; do not touch the new state.
@@ -77,6 +110,9 @@ internal class TokenRefresher(
                 val newRefresh = response.refreshToken ?: storedRefresh
                 sessionManager.saveToken(response.accessToken)
                 sessionManager.saveRefreshToken(newRefresh)
+                knownAccessTokens += storedAccess
+                knownAccessTokens += response.accessToken
+                lineageRefreshToken = newRefresh
                 logger.info(LogTags.SESSION) { "refresh succeeded" }
                 BearerTokens(response.accessToken, newRefresh)
             }
@@ -86,6 +122,8 @@ internal class TokenRefresher(
                 if (result.error == DataError.Remote.UNAUTHORIZED) {
                     // Revoked, expired or reused: this session can never be refreshed again.
                     logger.warn(LogTags.SESSION) { "refresh rejected: session expired" }
+                    knownAccessTokens.clear()
+                    lineageRefreshToken = null
                     onSessionExpired()
                 }
                 // Network errors, timeouts and 5xx keep the session so a retry can succeed later.

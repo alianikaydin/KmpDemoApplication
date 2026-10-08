@@ -100,8 +100,13 @@ because a refresh token may be used only once.
 - If `auth/refresh` answers `401` (revoked, expired or reused token), the
   session is cleared, the app returns to Login and shows "Your session
   expired". Network errors and `5xx` keep the session.
-- The backend must send `WWW-Authenticate: Bearer` on its `401` answers; the
-  client's auth plugin starts a refresh only when it sees that header.
+- The backend sends `WWW-Authenticate: Bearer` on the `401` of protected
+  endpoints. The client has a single bearer provider, so a refresh does not
+  depend on the header; it would be needed if a second auth provider were added.
+- The refresh runs to the end even if the screen that triggered it is closed,
+  so a consumed refresh token is never left in the store. If a refresh times
+  out or its answer is lost after the server processed it, the next refresh
+  sends a used token and ends the session (the user signs in again).
 - Logging in, registering and logging out clear the client's cached bearer
   token, so a request after an account switch never carries the old account's
   token.

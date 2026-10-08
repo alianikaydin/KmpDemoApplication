@@ -32,11 +32,14 @@ import io.ktor.http.HttpHeaders
 import io.ktor.http.HttpStatusCode
 import io.ktor.http.headersOf
 import io.ktor.serialization.kotlinx.json.json
+import kotlinx.coroutines.CompletableDeferred
 import kotlinx.coroutines.async
 import kotlinx.coroutines.awaitAll
+import kotlinx.coroutines.launch
 import kotlinx.coroutines.sync.Mutex
 import kotlinx.coroutines.sync.withLock
 import kotlinx.coroutines.test.runTest
+import kotlin.test.AfterTest
 import kotlin.test.Test
 
 /**
@@ -57,6 +60,11 @@ class TokenRefresherTest {
     private fun onExpired() {
         expiredCount++
         expiry.expire()
+    }
+
+    @AfterTest
+    fun tearDown() {
+        client.close()
     }
 
     // region TokenRefresher on its own
@@ -108,16 +116,55 @@ class TokenRefresherTest {
 
     // AC-28
     @Test
-    fun requestSentWithAnOutdatedAccessTokenReusesTheStoredTokens() = runTest {
+    fun requestSentWithATokenThisSessionReplacedReusesTheStoredTokens() = runTest {
+        refresher.refresh(staleRefreshToken = "refresh-1") {
+            responseOf(HttpStatusCode.OK, authJson("access-2", "refresh-2"))
+        }
         var networkCalls = 0
 
-        val tokens = refresher.refresh(staleRefreshToken = "refresh-1", failedAccessToken = "access-0") {
+        val tokens = refresher.refresh(staleRefreshToken = "refresh-1", failedAccessToken = "access-1") {
             networkCalls++
             responseOf(HttpStatusCode.OK, authJson("access-3", "refresh-3"))
         }
 
         assertThat(networkCalls).isEqualTo(0)
-        assertThat(tokens?.accessToken).isEqualTo("access-1")
+        assertThat(tokens?.accessToken).isEqualTo("access-2")
+        assertThat(tokens?.refreshToken).isEqualTo("refresh-2")
+    }
+
+    // AC-18
+    @Test
+    fun requestSentUnderAnotherAccountIsNotRetriedWithTheCurrentOnesTokens() = runTest {
+        session.saveToken("access-b")
+        session.saveRefreshToken("refresh-b")
+        var networkCalls = 0
+
+        val tokens = refresher.refresh(staleRefreshToken = "refresh-b", failedAccessToken = "access-a") {
+            networkCalls++
+            responseOf(HttpStatusCode.OK, authJson("access-3", "refresh-3"))
+        }
+
+        assertThat(tokens).isNull()
+        assertThat(networkCalls).isEqualTo(0)
+        assertThat(session.getToken()).isEqualTo("access-b")
+    }
+
+    // AC-18
+    @Test
+    fun tokensOfAnEarlierSessionLineageAreForgottenAfterANewSignIn() = runTest {
+        refresher.refresh(staleRefreshToken = "refresh-1") {
+            responseOf(HttpStatusCode.OK, authJson("access-2", "refresh-2"))
+        }
+        // Another account signs in; the old account's request fails late.
+        session.saveToken("access-b")
+        session.saveRefreshToken("refresh-b")
+
+        val tokens = refresher.refresh(staleRefreshToken = "refresh-1", failedAccessToken = "access-1") {
+            responseOf(HttpStatusCode.OK, authJson("access-3", "refresh-3"))
+        }
+
+        assertThat(tokens).isNull()
+        assertThat(session.getToken()).isEqualTo("access-b")
     }
 
     // AC-28
@@ -215,14 +262,45 @@ class TokenRefresherTest {
         assertThat(session.getRefreshToken()).isEqualTo("refresh-b")
     }
 
+    // AC-28
+    @Test
+    fun cancelledCallerStillStoresTheRotatedTokens() = runTest {
+        val entered = CompletableDeferred<Unit>()
+        val gate = CompletableDeferred<Unit>()
+        val job = launch {
+            refresher.refresh(staleRefreshToken = "refresh-1") {
+                entered.complete(Unit)
+                gate.await()
+                responseOf(HttpStatusCode.OK, authJson("access-2", "refresh-2"))
+            }
+        }
+        entered.await()
+
+        job.cancel()
+        gate.complete(Unit)
+        job.join()
+
+        // The server consumed refresh-1, so the store must not keep it.
+        assertThat(session.getRefreshToken()).isEqualTo("refresh-2")
+        assertThat(session.getToken()).isEqualTo("access-2")
+    }
+
     // endregion
 
     // region Through the real HTTP client
 
+    // Written from MockEngine threads, always under recordLock.
+    private val recordLock = Mutex()
     private val refreshTokensReceived = mutableListOf<String>()
     private val protectedRequestTokens = mutableListOf<String?>()
-    private val recordLock = Mutex()
     private val authPathRequests = mutableListOf<String>()
+    private val firstTokenArrivals = mutableListOf<String>()
+    private val refreshEntered = CompletableDeferred<Unit>()
+    private var refreshGate: CompletableDeferred<Unit>? = null
+    private var hold = Hold.NONE
+    private val bothArrived = CompletableDeferred<Unit>()
+    private val lateRequestArrived = CompletableDeferred<Unit>()
+    private val afterFirstRetry = CompletableDeferred<Unit>()
     private var storedTokenWhenRetried: String? = null
     private var refreshResponse: MockRequestHandleScope.() -> HttpResponseData = {
         respond(authJson("access-2", "refresh-2"), HttpStatusCode.OK, jsonHeaders)
@@ -233,24 +311,61 @@ class TokenRefresherTest {
         when {
             path.endsWith("auth/refresh") -> {
                 val body = request.body.toByteArray().decodeToString()
-                refreshTokensReceived += appJson.decodeFromString<RefreshTokenRequestDto>(body).refreshToken
+                val refreshToken = appJson.decodeFromString<RefreshTokenRequestDto>(body).refreshToken
+                recordLock.withLock { refreshTokensReceived += refreshToken }
+                refreshEntered.complete(Unit)
+                refreshGate?.await()
                 refreshResponse(this)
             }
 
             path.endsWith("auth/login") || path.endsWith("auth/register") -> {
-                authPathRequests += path
+                recordLock.withLock { authPathRequests += path }
                 unauthorized()
             }
 
             else -> {
                 val authorization = request.headers[HttpHeaders.Authorization]
                 recordLock.withLock { protectedRequestTokens += authorization }
+                holdUntilTestAllowsAnswer(path, authorization)
                 if (authorization == "Bearer access-2") {
+                    afterFirstRetry.complete(Unit)
                     storedTokenWhenRetried = session.getToken()
                     respond("ok", HttpStatusCode.OK)
                 } else {
                     unauthorized()
                 }
+            }
+        }
+    }
+
+    private enum class Hold {
+        NONE,
+
+        /** Both requests carrying the first token wait for each other, so their 401s overlap. */
+        BOTH_ARRIVE,
+
+        /** `data/one` is answered at once; `data/late` is answered only after `data/one` was retried. */
+        LATE_ANSWER
+    }
+
+    /** Lets a test decide exactly when the 401 for a request carrying the first token is sent. */
+    private suspend fun holdUntilTestAllowsAnswer(path: String, authorization: String?) {
+        if (authorization != "Bearer access-1") return
+        when (hold) {
+            Hold.NONE -> Unit
+            Hold.BOTH_ARRIVE -> {
+                val arrivals = recordLock.withLock {
+                    firstTokenArrivals += path
+                    firstTokenArrivals.size
+                }
+                if (arrivals == 2) bothArrived.complete(Unit)
+                bothArrived.await()
+            }
+            Hold.LATE_ANSWER -> if (path.endsWith("data/late")) {
+                lateRequestArrived.complete(Unit)
+                afterFirstRetry.await()
+            } else {
+                lateRequestArrived.await()
             }
         }
     }
@@ -284,14 +399,49 @@ class TokenRefresherTest {
 
     // AC-28
     @Test
-    fun twoConcurrentUnauthorizedRequestsShareOneRefresh() = runTest {
+    fun twoOverlappingUnauthorizedRequestsShareOneRefresh() = runTest {
+        hold = Hold.BOTH_ARRIVE
+
         val responses = listOf(
             async { client.get("data/one") },
             async { client.get("data/two") }
         ).awaitAll()
 
         assertThat(responses.map { it.status }).isEqualTo(listOf(HttpStatusCode.OK, HttpStatusCode.OK))
-        assertThat(refreshTokensReceived).hasSize(1)
+        assertThat(refreshTokensReceived).isEqualTo(listOf("refresh-1"))
+        // Both were sent with the old token first and retried with the new one.
+        assertThat(protectedRequestTokens.sorted())
+            .isEqualTo(listOf("Bearer access-1", "Bearer access-1", "Bearer access-2", "Bearer access-2"))
+    }
+
+    // AC-28
+    @Test
+    fun unauthorizedAnswerThatArrivesAfterTheRefreshIsRetriedWithoutAnotherRefresh() = runTest {
+        hold = Hold.LATE_ANSWER
+
+        val responses = listOf(
+            async { client.get("data/one") },
+            async { client.get("data/late") }
+        ).awaitAll()
+
+        assertThat(responses.map { it.status }).isEqualTo(listOf(HttpStatusCode.OK, HttpStatusCode.OK))
+        assertThat(refreshTokensReceived).isEqualTo(listOf("refresh-1"))
+    }
+
+    // AC-28
+    @Test
+    fun leavingScreenDuringRefreshStillStoresTheRotatedTokens() = runTest {
+        val gate = CompletableDeferred<Unit>()
+        refreshGate = gate
+        val job = launch { client.get("data") }
+        refreshEntered.await()
+
+        job.cancel()
+        gate.complete(Unit)
+        job.join()
+
+        assertThat(session.getRefreshToken()).isEqualTo("refresh-2")
+        assertThat(session.getToken()).isEqualTo("access-2")
     }
 
     // AC-28
@@ -354,6 +504,11 @@ class TokenRefresherTest {
     /** A real response, as the refresh request would produce, so safeCall can decode it. */
     private suspend fun responseOf(status: HttpStatusCode, body: String = ""): HttpResponse {
         val engine = MockEngine { respond(body, status, jsonHeaders) }
-        return HttpClient(engine) { install(ContentNegotiation) { json(appJson) } }.get("https://refresh.test/")
+        val responseClient = HttpClient(engine) { install(ContentNegotiation) { json(appJson) } }
+        try {
+            return responseClient.get("https://refresh.test/")
+        } finally {
+            responseClient.close()
+        }
     }
 }

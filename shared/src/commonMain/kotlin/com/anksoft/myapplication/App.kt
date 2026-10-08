@@ -15,6 +15,7 @@ import com.anksoft.myapplication.core.presentation.locale.ProvideAppLocale
 import com.anksoft.myapplication.core.session.SessionExpiry
 import com.anksoft.myapplication.core.storage.SessionManager
 import com.anksoft.myapplication.features.auth.presentation.login.LoginScreen
+import com.anksoft.myapplication.features.auth.presentation.signup.SignUpScreen
 import com.anksoft.myapplication.features.home.presentation.HomeScreen
 import org.koin.compose.koinInject
 
@@ -36,6 +37,12 @@ fun App() {
             Navigator(initialScreen) { navigator ->
                 // An expired session leaves no screen worth keeping: back to Login, no way back.
                 LaunchedEffect(navigator) {
+                    // The event is not replayed, so one that fired while nothing was collecting
+                    // (for example during an Activity restart) is caught by this check.
+                    val current = navigator.lastItem
+                    if (sessionManager.getToken() == null && current !is LoginScreen && current !is SignUpScreen) {
+                        navigator.replaceAll(LoginScreen())
+                    }
                     sessionExpiry.events.collect { navigator.replaceAll(LoginScreen()) }
                 }
                 SlideTransition(navigator) { screen ->

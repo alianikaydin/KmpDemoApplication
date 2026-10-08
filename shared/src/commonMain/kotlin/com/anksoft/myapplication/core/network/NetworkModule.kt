@@ -83,6 +83,8 @@ fun createHttpClient(
         }
         install(Auth) {
             bearer {
+                // The refresh token is single-use: finish the exchange even if the caller leaves.
+                nonCancellableRefresh = true
                 // Attaches the stored access token to outgoing requests.
                 loadTokens {
                     sessionManager.getToken()?.let { accessToken ->

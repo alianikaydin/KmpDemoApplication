@@ -15,6 +15,7 @@ import io.ktor.client.engine.mock.respondOk
 import io.ktor.client.request.get
 import io.ktor.http.HttpHeaders
 import kotlinx.coroutines.test.runTest
+import kotlin.test.AfterTest
 import kotlin.test.Test
 
 class AuthTokenCacheTest {
@@ -45,6 +46,11 @@ class AuthTokenCacheTest {
         emptyList(),
         NoOpLogger
     )
+
+    @AfterTest
+    fun tearDown() {
+        client.close()
+    }
 
     // AC-18
     @Test

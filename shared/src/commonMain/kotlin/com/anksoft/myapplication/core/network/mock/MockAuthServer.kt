@@ -39,8 +39,8 @@ data class SeedUser(
  *
  * Tokens are plain strings that name their user, so a refresh token can be validated after a
  * process restart. A refresh token works once; sending it again is answered with 401 like the
- * real backend does for a reused token. Every 401 carries `WWW-Authenticate: Bearer`, which the
- * client's auth plugin needs to start a refresh.
+ * real backend does for a reused token. Every 401 carries `WWW-Authenticate: Bearer` like the real
+ * backend; the client's single bearer provider does not depend on it, but a second auth provider would.
  */
 class MockAuthServer(seedUsers: List<SeedUser> = listOf(DEMO_USER)) {
 
