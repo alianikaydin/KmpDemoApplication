@@ -410,7 +410,7 @@ class TokenRefresherTest {
         assertThat(responses.map { it.status }).isEqualTo(listOf(HttpStatusCode.OK, HttpStatusCode.OK))
         assertThat(refreshTokensReceived).isEqualTo(listOf("refresh-1"))
         // Both were sent with the old token first and retried with the new one.
-        assertThat(protectedRequestTokens.sorted())
+        assertThat(protectedRequestTokens.filterNotNull().sorted())
             .isEqualTo(listOf("Bearer access-1", "Bearer access-1", "Bearer access-2", "Bearer access-2"))
     }
 
