@@ -1,9 +1,9 @@
 #!/usr/bin/env bash
 # Validates the hand-edited Xcode project and the committed SPM lock file.
-# Needs Xcode on PATH. Usage: check-ios-project.sh <cloned-source-packages-dir>
+# Needs Xcode on PATH. Usage: verify-ios-project.sh <cloned-source-packages-dir>
 set -euo pipefail
 
-spm_dir="${1:?usage: check-ios-project.sh <cloned-source-packages-dir>}"
+spm_dir="${1:?usage: verify-ios-project.sh <cloned-source-packages-dir>}"
 project="iosApp/iosApp.xcodeproj"
 
 plutil -lint "$project/project.pbxproj"
