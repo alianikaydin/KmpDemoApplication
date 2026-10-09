@@ -17,3 +17,17 @@ fun recordingLogger(
     val writer = RecordingLogWriter()
     return DispatchingLogger(min, listOf(writer)) to writer
 }
+
+/** A [RemoteLogWriter] that records entries together with the throwable it received. */
+class RecordingRemoteLogWriter(
+    override val minSeverity: LogSeverity = LogSeverity.INFO
+) : RemoteLogWriter {
+    class Record(val entry: LogEntry, val throwable: Throwable?)
+
+    private val _records = mutableListOf<Record>()
+    val records: List<Record> get() = _records
+
+    override fun write(entry: LogEntry, throwable: Throwable?) {
+        _records += Record(entry, throwable)
+    }
+}
