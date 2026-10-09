@@ -1,0 +1,11 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Android 12+ (API 31+). The crash install id is install-level data: a restore or a device
+     transfer must start with a new one, so its file is left out of both. -->
+<data-extraction-rules>
+    <cloud-backup>
+        <exclude domain="sharedpref" path="crash_reporting.xml" />
+    </cloud-backup>
+    <device-transfer>
+        <exclude domain="sharedpref" path="crash_reporting.xml" />
+    </device-transfer>
+</data-extraction-rules>
