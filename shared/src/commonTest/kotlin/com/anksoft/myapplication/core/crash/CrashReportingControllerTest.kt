@@ -14,6 +14,7 @@ import com.anksoft.myapplication.core.crash.FakeCrashReporter.Call
 import com.anksoft.myapplication.core.logging.NoOpLogger
 import com.russhwolf.settings.MapSettings
 import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.plus
 import kotlinx.coroutines.test.TestScope
 import kotlinx.coroutines.test.UnconfinedTestDispatcher
 import kotlinx.coroutines.test.runTest
