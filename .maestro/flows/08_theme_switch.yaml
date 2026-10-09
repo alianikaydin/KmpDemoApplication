@@ -94,6 +94,7 @@ appId: ${APP_ID}
     element:
       id: settings_logout_button
     direction: DOWN
+    centerElement: true
 - tapOn:
     id: settings_logout_button
 - extendedWaitUntil:
