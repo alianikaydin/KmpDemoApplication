@@ -52,6 +52,9 @@ jobs:
           mkdir -p "$OUT_DIR"
           echo build > "$OUT_DIR/stage"
           ./gradlew :androidApp:assembleDevDebug --stacktrace
+          # Free the runner's memory for the emulator: the Gradle and Kotlin
+          # daemons otherwise stay alive for the whole emulator run.
+          ./gradlew --stop
 
       - name: Enable KVM
         run: |
@@ -168,6 +171,8 @@ jobs:
         run: |
           echo build > "$OUT_DIR/stage"
           ./gradlew :androidApp:assembleDevDebug -PkmpBackendUrl=http://10.0.2.2:8081/api/v1/ --stacktrace
+          # Free the runner's memory for the emulator (see android-ui).
+          ./gradlew --stop
 
       - name: Enable KVM
         run: |
