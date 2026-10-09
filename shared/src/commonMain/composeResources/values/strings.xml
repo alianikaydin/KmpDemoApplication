@@ -1,6 +1,7 @@
 <resources>
     <!-- Common -->
     <string name="common_back">Back</string>
+    <string name="common_retry">Try again</string>
 
     <!-- Home -->
     <string name="home_title">Home</string>
@@ -50,4 +51,9 @@
     <string name="error_server">Something went wrong. Please try again.</string>
     <string name="error_unknown">Something went wrong. Please try again.</string>
     <string name="error_session_expired">Your session expired. Please sign in again.</string>
+
+    <!-- Consent (the consent text itself comes from the backend, never from here) -->
+    <string name="consent_privacy_policy_link">Privacy policy</string>
+    <string name="consent_texts_load_failed">Couldn\'t load the consent text.</string>
+    <string name="consent_error_text_updated">The consent text was updated. Please review it and try again.</string>
 </resources>

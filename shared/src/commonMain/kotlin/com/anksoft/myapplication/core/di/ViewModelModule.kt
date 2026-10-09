@@ -7,6 +7,6 @@ import org.koin.dsl.module
 
 val viewModelModule = module {
     factory { LoginScreenModel(get(), get(), get(), get()) }
-    factory { SignUpScreenModel(get(), get()) }
+    factory { SignUpScreenModel(get(), get(), get()) }
     factory { SettingsScreenModel(get(), get(), get()) }
 }
