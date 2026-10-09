@@ -2,6 +2,7 @@ package com.anksoft.myapplication.features.settings.presentation
 
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.selection.toggleable
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
@@ -14,6 +15,11 @@ import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.testTag
+import androidx.compose.ui.semantics.LiveRegionMode
+import androidx.compose.ui.semantics.Role
+import androidx.compose.ui.semantics.heading
+import androidx.compose.ui.semantics.liveRegion
+import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import cafe.adriel.voyager.core.screen.Screen
@@ -21,13 +27,19 @@ import cafe.adriel.voyager.koin.koinScreenModel
 import cafe.adriel.voyager.navigator.LocalNavigator
 import cafe.adriel.voyager.navigator.currentOrThrow
 import com.anksoft.myapplication.core.preferences.AppLanguage
+import com.anksoft.myapplication.core.presentation.asString
 import com.anksoft.myapplication.features.auth.presentation.login.LoginScreen
+import com.anksoft.myapplication.features.consent.presentation.PrivacyPolicyLink
 import myapplication.shared.generated.resources.Res
 import myapplication.shared.generated.resources.common_back
+import myapplication.shared.generated.resources.common_retry
+import myapplication.shared.generated.resources.consent_status_load_failed
 import myapplication.shared.generated.resources.language_system_default
 import myapplication.shared.generated.resources.settings_environment
 import myapplication.shared.generated.resources.settings_language
+import myapplication.shared.generated.resources.settings_consent_toggle_label
 import myapplication.shared.generated.resources.settings_logout
+import myapplication.shared.generated.resources.settings_privacy_title
 import myapplication.shared.generated.resources.settings_title
 import myapplication.shared.generated.resources.settings_version
 import org.jetbrains.compose.resources.stringResource
@@ -125,6 +137,18 @@ fun SettingsContent(
 
             Spacer(modifier = Modifier.height(16.dp))
 
+            PrivacySection(
+                privacy = state.privacy,
+                onEvent = onEvent,
+                modifier = Modifier.fillMaxWidth()
+            )
+
+            Spacer(modifier = Modifier.height(16.dp))
+
+            HorizontalDivider()
+
+            Spacer(modifier = Modifier.height(16.dp))
+
             Text(
                 text = stringResource(Res.string.settings_environment, state.environmentName),
                 style = MaterialTheme.typography.bodyMedium,
@@ -158,6 +182,71 @@ fun SettingsContent(
                     Text(stringResource(Res.string.settings_logout))
                 }
             }
+        }
+    }
+}
+
+/** The switch for optional data collection (AC-13..AC-16). */
+@Composable
+private fun PrivacySection(
+    privacy: PrivacyState,
+    onEvent: (SettingsEvent) -> Unit,
+    modifier: Modifier = Modifier
+) {
+    Column(modifier = modifier) {
+        Text(
+            text = stringResource(Res.string.settings_privacy_title),
+            style = MaterialTheme.typography.titleMedium,
+            modifier = Modifier.semantics { heading() }
+        )
+
+        // The backend's own label once it is loaded; the app's generic one otherwise.
+        val label = privacy.label ?: stringResource(Res.string.settings_consent_toggle_label)
+        Row(
+            modifier = Modifier
+                .fillMaxWidth()
+                .heightIn(min = 48.dp)
+                .toggleable(
+                    value = privacy.isChecked,
+                    enabled = privacy.isToggleEnabled,
+                    role = Role.Switch,
+                    onValueChange = { onEvent(SettingsEvent.ConsentToggle(it)) }
+                )
+                .testTag(SettingsTestTags.CONSENT_TOGGLE),
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            Text(text = label, modifier = Modifier.weight(1f))
+            Spacer(modifier = Modifier.width(12.dp))
+            // The row owns the interaction; the switch only draws the state.
+            Switch(checked = privacy.isChecked, onCheckedChange = null)
+        }
+
+        PrivacyPolicyLink(url = privacy.policyUrl, testTag = SettingsTestTags.PRIVACY_POLICY)
+
+        if (privacy.showRetry) {
+            Text(
+                text = stringResource(Res.string.consent_status_load_failed),
+                color = MaterialTheme.colorScheme.error,
+                style = MaterialTheme.typography.bodyMedium,
+                modifier = Modifier.semantics { liveRegion = LiveRegionMode.Polite }
+            )
+            TextButton(
+                onClick = { onEvent(SettingsEvent.RetryConsent) },
+                modifier = Modifier
+                    .heightIn(min = 48.dp)
+                    .testTag(SettingsTestTags.CONSENT_RETRY)
+            ) {
+                Text(stringResource(Res.string.common_retry))
+            }
+        }
+
+        privacy.error?.let { error ->
+            Text(
+                text = error.asString(),
+                color = MaterialTheme.colorScheme.error,
+                style = MaterialTheme.typography.bodyMedium,
+                modifier = Modifier.semantics { liveRegion = LiveRegionMode.Polite }
+            )
         }
     }
 }
