@@ -283,7 +283,13 @@ class InitKoinTest {
         ).koin
 
         assertThat(koin.get<CrashGate>().isOpen).isTrue()
-        assertThat(vendor.calls.contains(FakeCrashReporter.Call.SetCollection(true))).isTrue()
-        assertThat(vendor.breadcrumbs.last()).contains("Started env=STAGE")
+        val calls = vendor.calls.toList()
+        val enabledAt = calls.indexOf(FakeCrashReporter.Call.SetCollection(true))
+        val startupLineAt = calls.indexOfFirst {
+            it is FakeCrashReporter.Call.Breadcrumb && it.message.contains("Started env=STAGE")
+        }
+        assertThat(enabledAt >= 0).isTrue()
+        assertThat(startupLineAt >= 0).isTrue()
+        assertThat(enabledAt < startupLineAt).isTrue()
     }
 }

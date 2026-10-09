@@ -1,5 +1,6 @@
 package com.anksoft.myapplication.core.crash
 
+import com.anksoft.myapplication.core.concurrency.createReentrantLock
 import kotlin.reflect.KClass
 
 /** Records every call in order. [throwOn] makes the named call types throw, to test failure handling. */
@@ -17,18 +18,22 @@ class FakeCrashReporter(
         data class NonFatal(val report: NonFatalReport) : Call
     }
 
+    // Log writers can call the reporter from several dispatchers, so access is locked.
+    private val lock = createReentrantLock()
     private val _calls = mutableListOf<Call>()
-    val calls: List<Call> get() = _calls
 
-    val breadcrumbs: List<String> get() = _calls.filterIsInstance<Call.Breadcrumb>().map { it.message }
-    val nonFatals: List<NonFatalReport> get() = _calls.filterIsInstance<Call.NonFatal>().map { it.report }
+    /** A snapshot of the calls so far, in order. */
+    val calls: List<Call> get() = lock.withLock { _calls.toList() }
+
+    val breadcrumbs: List<String> get() = calls.filterIsInstance<Call.Breadcrumb>().map { it.message }
+    val nonFatals: List<NonFatalReport> get() = calls.filterIsInstance<Call.NonFatal>().map { it.report }
 
     fun clear() {
-        _calls.clear()
+        lock.withLock { _calls.clear() }
     }
 
     private fun record(call: Call) {
-        _calls += call
+        lock.withLock { _calls += call }
         if (call::class in throwOn) throw IllegalStateException("fake reporter failure")
     }
 
