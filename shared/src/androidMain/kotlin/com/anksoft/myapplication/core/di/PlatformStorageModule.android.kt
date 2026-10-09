@@ -13,4 +13,10 @@ actual val platformStorageModule: Module = module {
             get<Context>().getSharedPreferences("app_preferences", Context.MODE_PRIVATE)
         )
     }
+    single<Settings>(CrashReportingSettings) {
+        // Its own file so the backup rules can exclude exactly this one (see backup_rules.xml).
+        SharedPreferencesSettings(
+            get<Context>().getSharedPreferences("crash_reporting", Context.MODE_PRIVATE)
+        )
+    }
 }
