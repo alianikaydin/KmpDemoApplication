@@ -3,6 +3,7 @@ package com.anksoft.myapplication.features.settings.presentation
 import cafe.adriel.voyager.core.model.StateScreenModel
 import cafe.adriel.voyager.core.model.screenModelScope
 import com.anksoft.myapplication.core.config.AppConfig
+import com.anksoft.myapplication.core.crash.TestCrashTrigger
 import com.anksoft.myapplication.core.domain.DataError
 import com.anksoft.myapplication.core.domain.onFailure
 import com.anksoft.myapplication.core.preferences.AppLanguage
@@ -47,7 +48,9 @@ data class SettingsState(
     val versionName: String,
     val versionCode: Int,
     val selectedLanguage: AppLanguage = AppLanguage.SYSTEM,
-    val privacy: PrivacyState = PrivacyState()
+    val privacy: PrivacyState = PrivacyState(),
+    /** True only when the build binds a test crash trigger (dev and stage). */
+    val showTestCrash: Boolean = false
 )
 
 sealed interface SettingsEvent {
@@ -55,6 +58,7 @@ sealed interface SettingsEvent {
     data class LanguageSelect(val language: AppLanguage) : SettingsEvent
     data class ConsentToggle(val enabled: Boolean) : SettingsEvent
     data object RetryConsent : SettingsEvent
+    data object TestCrash : SettingsEvent
 }
 
 class SettingsScreenModel(
@@ -62,13 +66,16 @@ class SettingsScreenModel(
     appConfig: AppConfig,
     private val appPreferences: AppPreferences,
     private val consentManager: AccountConsentManager,
-    observeConsentTexts: ObserveConsentTextsUseCase
+    observeConsentTexts: ObserveConsentTextsUseCase,
+    /** Bound only in dev and stage builds; null hides the test crash action. */
+    private val testCrashTrigger: TestCrashTrigger? = null
 ) : StateScreenModel<SettingsState>(
     SettingsState(
         environmentName = appConfig.environment.name,
         versionName = appConfig.versionName,
         versionCode = appConfig.versionCode,
-        selectedLanguage = appPreferences.language.value
+        selectedLanguage = appPreferences.language.value,
+        showTestCrash = testCrashTrigger != null
     )
 ) {
 
@@ -111,6 +118,9 @@ class SettingsScreenModel(
                 consentManager.refresh()
                 retryTexts.tryEmit(Unit)
             }
+            // Called directly, not in screenModelScope: the exception must leave the click handler
+            // on the main thread, where the crash handler of the platform sees it.
+            SettingsEvent.TestCrash -> testCrashTrigger?.crash()
         }
     }
 

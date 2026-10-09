@@ -12,5 +12,5 @@ val viewModelModule = module {
     factory { SignUpScreenModel(get(), get(), get()) }
     factory { HomeScreenModel(get()) }
     factory { ConsentPromptScreenModel(get(), get()) }
-    factory { SettingsScreenModel(get(), get(), get(), get(), get()) }
+    factory { SettingsScreenModel(get(), get(), get(), get(), get(), getOrNull()) }
 }

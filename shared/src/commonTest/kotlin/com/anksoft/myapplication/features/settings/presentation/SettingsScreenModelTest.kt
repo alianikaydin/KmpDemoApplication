@@ -10,6 +10,9 @@ import cafe.adriel.voyager.core.model.screenModelScope
 import com.anksoft.myapplication.core.config.AppConfig
 import com.anksoft.myapplication.core.config.AppEnvironment
 import com.anksoft.myapplication.core.consent.OptionalDataConsent
+import com.anksoft.myapplication.core.crash.RecordingTestCrashTrigger
+import com.anksoft.myapplication.core.crash.TestCrashException
+import com.anksoft.myapplication.core.crash.TestCrashTrigger
 import com.anksoft.myapplication.core.domain.DataError
 import com.anksoft.myapplication.core.domain.Result
 import com.anksoft.myapplication.core.logging.NoOpLogger
@@ -38,6 +41,7 @@ import myapplication.shared.generated.resources.consent_error_text_updated
 import kotlin.test.AfterTest
 import kotlin.test.BeforeTest
 import kotlin.test.Test
+import kotlin.test.assertFailsWith
 
 class SettingsScreenModelTest {
 
@@ -67,7 +71,8 @@ class SettingsScreenModelTest {
 
     private fun createModel(
         environment: AppEnvironment = AppEnvironment.PROD,
-        manager: AccountConsentManager = createManager()
+        manager: AccountConsentManager = createManager(),
+        testCrashTrigger: TestCrashTrigger? = null
     ) = SettingsScreenModel(
         authRepository = repository,
         appConfig = AppConfig.create(
@@ -79,7 +84,8 @@ class SettingsScreenModelTest {
         ),
         appPreferences = preferences,
         consentManager = manager,
-        observeConsentTexts = ObserveConsentTextsUseCase(consent, ContentLanguage(preferences) { "en" })
+        observeConsentTexts = ObserveConsentTextsUseCase(consent, ContentLanguage(preferences) { "en" }),
+        testCrashTrigger = testCrashTrigger
     )
 
     // AC-7
@@ -395,4 +401,39 @@ class SettingsScreenModelTest {
     }
 
     // endregion
+
+    // AC-23
+    @Test
+    fun testCrashActionIsHiddenWithoutATrigger() = runTest {
+        assertThat(createModel().state.value.showTestCrash).isFalse()
+    }
+
+    // AC-23
+    @Test
+    fun testCrashActionIsShownWithATrigger() = runTest {
+        val model = createModel(testCrashTrigger = RecordingTestCrashTrigger())
+
+        assertThat(model.state.value.showTestCrash).isTrue()
+    }
+
+    // AC-23
+    @Test
+    fun testCrashEventInvokesTheTrigger() = runTest {
+        val trigger = RecordingTestCrashTrigger()
+        val model = createModel(testCrashTrigger = trigger)
+
+        assertFailsWith<TestCrashException> { model.onEvent(SettingsEvent.TestCrash) }
+
+        assertThat(trigger.callCount).isEqualTo(1)
+    }
+
+    // AC-23: without a trigger the event does nothing, so a stray event cannot crash a prod build.
+    @Test
+    fun testCrashEventWithoutATriggerDoesNothing() = runTest {
+        val model = createModel()
+
+        model.onEvent(SettingsEvent.TestCrash)
+
+        assertThat(model.state.value.showTestCrash).isFalse()
+    }
 }

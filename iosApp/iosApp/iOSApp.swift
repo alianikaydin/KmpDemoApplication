@@ -21,13 +21,21 @@ struct iOSApp: App {
             FirebaseApp.configure()
             crashBridge = FirebaseCrashBridge()
         }
+        // The test crash action exists only in configurations that define TEST_CRASH_ENABLED
+        // (Dev and Stage .xcconfig). Release has no such condition, so prod never binds it.
+        #if TEST_CRASH_ENABLED
+        let testCrashEnabled = true
+        #else
+        let testCrashEnabled = false
+        #endif
         KoinIosKt.doInitKoin(
             environment: environment,
             backendUrl: backendUrl,
             demoAllowed: demoAllowed,
             versionName: versionName,
             versionCode: versionCode,
-            crashBridge: crashBridge
+            crashBridge: crashBridge,
+            testCrashEnabled: testCrashEnabled
         )
     }
 
