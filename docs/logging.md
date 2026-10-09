@@ -31,7 +31,7 @@ The minimum level comes from `AppConfig.environment` (see `docs/environments.md`
 
 ## Tags
 
-Fixed constants in `LogTags`: `App`, `Network`, `Http`, `Auth`. Do not derive tags from
+Fixed constants in `LogTags`: `App`, `Network`, `Http`, `Auth`, `Session`, `Consent`, `Crash`. Do not derive tags from
 class names (minified JS would mangle them).
 
 ## What must never be logged
@@ -45,10 +45,10 @@ place (`safeCall`) with the error type, path and status code only.
 
 `DispatchingLogger` sends each entry to every `LogWriter` registered in Koin. The default
 writer prints to the platform console (Logcat, Xcode console, browser console) through
-Kermit. To add a destination, such as crash reporting, register another writer:
+Kermit. To add a destination, register another writer:
 
 ```kotlin
-single<LogWriter>(named("crash")) { CrashReportingWriter() }
+single<LogWriter>(named(CRASH_LOG_WRITER)) { CrashLogWriter(reporter) }
 ```
 
 The writer list is captured once, when `AppLogger` is created (at the start of `initKoin`).
@@ -56,8 +56,17 @@ A writer must therefore be registered in the modules passed to `initKoin` (inclu
 `platformModules`); one added later with `loadKoinModules` is never called. A writer that
 throws is skipped and does not affect the caller or the other writers.
 
-Writers get an already redacted `LogEntry`. To turn logging off, override the logger:
-`single<AppLogger> { NoOpLogger }`.
+Writers get an already redacted `LogEntry`. A plain `LogWriter` follows the environment's
+minimum level and only sees the throwable's class name (`LogEntry.throwableName`).
+
+A writer that sends entries off the device (crash reporting, later analytics) implements
+`RemoteLogWriter` instead. It has its own `minSeverity`, independent of the console minimum, so
+prod can send INFO breadcrumbs while its console stays at WARN. It also receives the throwable
+(`write(entry, throwable)`), but it must never read the throwable's message: only the type
+name and the stack frames may leave the device. `CrashLogWriter` is the first one
+(`docs/crash-reporting.md`).
+
+To turn logging off, override the logger: `single<AppLogger> { NoOpLogger }`.
 
 Unit tests must not resolve the real console writer (`android.util.Log` is not available
 on the host). Use `recordingLogger()` from the test sources, or override

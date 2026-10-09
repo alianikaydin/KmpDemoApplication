@@ -37,6 +37,12 @@ The rule lives in `AppConfig.create` (shared) and is unit tested per environment
 The stage and prod URLs are placeholders (`api-stage.example.com`, `api.example.com`).
 Replace the two constants in `AppConfig.kt` when the real backends exist.
 
+## Crash reporting
+
+Crash reporting is off in dev and on in stage and prod, with the account's consent
+(`docs/crash-reporting.md`). Firebase config files are per environment and are not committed.
+The "Trigger test crash" action in Settings exists in dev and stage only.
+
 ## Version
 
 `version.properties` in the repo root is the only place for the version:
