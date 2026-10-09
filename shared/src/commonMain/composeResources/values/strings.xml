@@ -50,4 +50,8 @@
     <string name="error_server">Something went wrong. Please try again.</string>
     <string name="error_unknown">Something went wrong. Please try again.</string>
     <string name="error_session_expired">Your session expired. Please sign in again.</string>
+    <string name="settings_theme">Theme</string>
+    <string name="theme_system">System</string>
+    <string name="theme_light">Light</string>
+    <string name="theme_dark">Dark</string>
 </resources>

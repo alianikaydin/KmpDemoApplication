@@ -21,6 +21,8 @@ import cafe.adriel.voyager.koin.koinScreenModel
 import cafe.adriel.voyager.navigator.LocalNavigator
 import cafe.adriel.voyager.navigator.currentOrThrow
 import com.anksoft.myapplication.core.preferences.AppLanguage
+import com.anksoft.myapplication.core.preferences.ThemeMode
+import com.anksoft.myapplication.core.presentation.theme.AppTheme
 import com.anksoft.myapplication.features.auth.presentation.login.LoginScreen
 import myapplication.shared.generated.resources.Res
 import myapplication.shared.generated.resources.common_back
@@ -125,6 +127,17 @@ fun SettingsContent(
 
             Spacer(modifier = Modifier.height(16.dp))
 
+            ThemePicker(
+                selected = state.selectedThemeMode,
+                onSelect = { onEvent(SettingsEvent.ThemeModeSelect(it)) }
+            )
+
+            Spacer(modifier = Modifier.height(16.dp))
+
+            HorizontalDivider()
+
+            Spacer(modifier = Modifier.height(16.dp))
+
             Text(
                 text = stringResource(Res.string.settings_environment, state.environmentName),
                 style = MaterialTheme.typography.bodyMedium,
@@ -199,9 +212,27 @@ private fun SettingsContentPreview() {
             environmentName = "DEV",
             versionName = "1.0",
             versionCode = 1,
-            selectedLanguage = AppLanguage.TURKISH
+            selectedLanguage = AppLanguage.TURKISH,
+            selectedThemeMode = ThemeMode.DARK
         ),
         onEvent = {},
         onBackClick = {}
     )
+}
+
+@Preview
+@Composable
+private fun SettingsContentDarkPreview() {
+    AppTheme(darkTheme = true) {
+        SettingsContent(
+            state = SettingsState(
+                environmentName = "DEV",
+                versionName = "1.0",
+                versionCode = 1,
+                selectedThemeMode = ThemeMode.DARK
+            ),
+            onEvent = {},
+            onBackClick = {}
+        )
+    }
 }

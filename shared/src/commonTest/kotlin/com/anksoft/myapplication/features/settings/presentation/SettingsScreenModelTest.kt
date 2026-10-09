@@ -8,6 +8,7 @@ import com.anksoft.myapplication.core.config.AppConfig
 import com.anksoft.myapplication.core.config.AppEnvironment
 import com.anksoft.myapplication.core.preferences.AppLanguage
 import com.anksoft.myapplication.core.preferences.FakeAppPreferences
+import com.anksoft.myapplication.core.preferences.ThemeMode
 import com.anksoft.myapplication.features.auth.FakeAuthRepository
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.test.UnconfinedTestDispatcher
@@ -128,5 +129,34 @@ class SettingsScreenModelTest {
         assertThat(state.environmentName).isEqualTo("STAGE")
         assertThat(state.versionName).isEqualTo("2.1")
         assertThat(state.versionCode).isEqualTo(42)
+    }
+
+    // AC-2
+    @Test
+    fun initialStateShowsTheStoredThemeMode() = runTest {
+        preferences = FakeAppPreferences(initialThemeMode = ThemeMode.DARK)
+
+        assertThat(createModel().state.value.selectedThemeMode).isEqualTo(ThemeMode.DARK)
+    }
+
+    // AC-5
+    @Test
+    fun themeModeSelectWritesThePreference() = runTest {
+        val model = createModel()
+
+        model.onEvent(SettingsEvent.ThemeModeSelect(ThemeMode.DARK))
+
+        assertThat(preferences.setThemeModeCalls).isEqualTo(listOf(ThemeMode.DARK))
+        assertThat(model.state.value.selectedThemeMode).isEqualTo(ThemeMode.DARK)
+    }
+
+    // AC-5
+    @Test
+    fun stateFollowsThemeChangesMadeElsewhere() = runTest {
+        val model = createModel()
+
+        preferences.setThemeMode(ThemeMode.LIGHT)
+
+        assertThat(model.state.value.selectedThemeMode).isEqualTo(ThemeMode.LIGHT)
     }
 }
