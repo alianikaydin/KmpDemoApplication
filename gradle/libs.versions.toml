@@ -22,7 +22,7 @@ kotlinx-serialization = "1.11.0"
 kotlinx-coroutines = "1.11.0"
 turbine = "1.2.1"
 assertk = "0.28.1"
-kmpdemo-contract = "0.1.0"
+kmpdemo-contract = "0.2.0"
 kermit = "2.2.0"
 
 [libraries]

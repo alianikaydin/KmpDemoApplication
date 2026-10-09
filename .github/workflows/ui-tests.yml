@@ -26,7 +26,7 @@ env:
   MAESTRO_VERSION: "2.0.10"
   # KmpDemoBackend ref used by android-e2e. Bump it together with the contract
   # version (kmpdemo-contract in gradle/libs.versions.toml).
-  BACKEND_REF: contract-v0.1.0
+  BACKEND_REF: contract-v0.2.0
   # Read access to the contract library on GitHub Packages.
   ORG_GRADLE_PROJECT_kmpDemoBackendUsername: ${{ github.actor }}
   ORG_GRADLE_PROJECT_kmpDemoBackendPassword: ${{ secrets.GPR_READ_TOKEN }}
