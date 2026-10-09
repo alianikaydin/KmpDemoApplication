@@ -23,11 +23,14 @@ class InstallIdStore(
 
     fun getOrCreate(): String {
         memoryId?.let { return it }
-        val stored = runCatching { settingsProvider().getStringOrNull(INSTALL_ID_KEY) }.getOrNull()
+        val read = runCatching { settingsProvider().getStringOrNull(INSTALL_ID_KEY) }
+        val stored = read.getOrNull()
         if (!stored.isNullOrBlank()) return stored
         val created = newId()
-        val persisted = runCatching { settingsProvider().putString(INSTALL_ID_KEY, created) }.isSuccess
-        // Remember the id in memory only when it could not be stored, so the next call matches.
+        // A failed read says nothing about what is stored, so do not overwrite it: keep the new id
+        // in memory for this process. A failed write is handled the same way.
+        val persisted = read.isSuccess &&
+            runCatching { settingsProvider().putString(INSTALL_ID_KEY, created) }.isSuccess
         if (!persisted) memoryId = created
         return created
     }
