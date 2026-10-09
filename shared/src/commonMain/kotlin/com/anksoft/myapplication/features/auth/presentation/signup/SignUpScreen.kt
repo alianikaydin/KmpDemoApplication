@@ -1,6 +1,9 @@
 package com.anksoft.myapplication.features.auth.presentation.signup
 
 import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.selection.toggleable
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.foundation.text.KeyboardActions
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material.icons.Icons
@@ -12,17 +15,26 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.focus.onFocusChanged
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.semantics.LiveRegionMode
+import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.semantics.liveRegion
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.input.PasswordVisualTransformation
+import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import cafe.adriel.voyager.core.screen.Screen
 import cafe.adriel.voyager.koin.koinScreenModel
 import cafe.adriel.voyager.navigator.LocalNavigator
 import cafe.adriel.voyager.navigator.currentOrThrow
+import com.anksoft.myapplication.core.domain.DataError
 import com.anksoft.myapplication.core.presentation.asString
+import com.anksoft.myapplication.features.consent.domain.model.ConsentTexts
+import com.anksoft.myapplication.features.consent.domain.usecase.ConsentTextsLoad
+import com.anksoft.myapplication.features.consent.presentation.ConsentDescription
+import com.anksoft.myapplication.features.consent.presentation.ConsentStateMarker
+import com.anksoft.myapplication.features.consent.presentation.ConsentTextsError
+import com.anksoft.myapplication.features.consent.presentation.PrivacyPolicyLink
 import com.anksoft.myapplication.features.home.presentation.HomeScreen
 import myapplication.shared.generated.resources.Res
 import myapplication.shared.generated.resources.common_back
@@ -84,6 +96,7 @@ fun SignUpContent(
                 modifier = Modifier
                     .widthIn(max = 480.dp)
                     .fillMaxWidth()
+                    .verticalScroll(rememberScrollState())
                     .padding(16.dp),
                 horizontalAlignment = Alignment.CenterHorizontally,
                 verticalArrangement = Arrangement.Center
@@ -166,6 +179,10 @@ fun SignUpContent(
                     )
                 )
 
+                Spacer(modifier = Modifier.height(16.dp))
+
+                ConsentSection(state = state, onEvent = onEvent)
+
                 state.formError?.let { error ->
                     Text(
                         text = error.asString(),
@@ -193,5 +210,81 @@ fun SignUpContent(
                 }
             }
         }
+    }
+}
+
+/**
+ * The optional consent box (AC-1, AC-2): unchecked by default, never required, and usable only while
+ * the backend text is on screen (AC-4). One toggleable row, so the whole label is the touch target
+ * and a screen reader announces the box together with its text.
+ */
+@Composable
+private fun ConsentSection(state: SignUpState, onEvent: (SignUpEvent) -> Unit) {
+    when (val load = state.consentTexts) {
+        is ConsentTextsLoad.Loaded -> {
+            Row(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .heightIn(min = 48.dp)
+                    .toggleable(
+                        value = state.consentChecked,
+                        enabled = !state.isLoading,
+                        role = Role.Checkbox,
+                        onValueChange = { onEvent(SignUpEvent.ConsentCheckedChange(it)) }
+                    )
+                    .testTag(SignUpTestTags.CONSENT_CHECKBOX),
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                // The row owns the interaction; the box itself only draws the state.
+                Checkbox(checked = state.consentChecked, onCheckedChange = null)
+                Spacer(modifier = Modifier.width(12.dp))
+                ConsentDescription(texts = load.texts, modifier = Modifier.weight(1f))
+            }
+            ConsentStateMarker(
+                checked = state.consentChecked,
+                onTag = SignUpTestTags.CONSENT_STATE_ON,
+                offTag = SignUpTestTags.CONSENT_STATE_OFF
+            )
+            PrivacyPolicyLink(url = load.texts.safePolicyUrl, testTag = SignUpTestTags.PRIVACY_POLICY)
+        }
+
+        is ConsentTextsLoad.Failed -> ConsentTextsError(
+            onRetryClick = { onEvent(SignUpEvent.RetryConsentTexts) },
+            retryTestTag = SignUpTestTags.CONSENT_RETRY
+        )
+
+        ConsentTextsLoad.Loading -> CircularProgressIndicator(modifier = Modifier.size(24.dp))
+    }
+}
+
+private val previewTexts = ConsentTexts(
+    version = 1,
+    language = "en",
+    label = "Share optional usage data",
+    description = "Helps us improve the app. You can change this later in Settings.",
+    policyUrl = "https://example.com/privacy"
+)
+
+@Preview
+@Composable
+private fun SignUpContentLoadedPreview() {
+    MaterialTheme {
+        SignUpContent(
+            state = SignUpState(consentTexts = ConsentTextsLoad.Loaded(previewTexts)),
+            onEvent = {},
+            onBackClick = {}
+        )
+    }
+}
+
+@Preview
+@Composable
+private fun SignUpContentFailedPreview() {
+    MaterialTheme {
+        SignUpContent(
+            state = SignUpState(consentTexts = ConsentTextsLoad.Failed(DataError.Remote.NO_INTERNET)),
+            onEvent = {},
+            onBackClick = {}
+        )
     }
 }

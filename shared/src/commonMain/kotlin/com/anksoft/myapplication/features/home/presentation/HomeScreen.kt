@@ -3,14 +3,19 @@ package com.anksoft.myapplication.features.home.presentation
 import androidx.compose.foundation.layout.*
 import androidx.compose.material3.*
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.collectAsState
+import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.unit.dp
 import cafe.adriel.voyager.core.screen.Screen
+import cafe.adriel.voyager.koin.koinScreenModel
 import cafe.adriel.voyager.navigator.LocalNavigator
 import cafe.adriel.voyager.navigator.Navigator
 import cafe.adriel.voyager.navigator.currentOrThrow
+import com.anksoft.myapplication.features.consent.presentation.prompt.ConsentPromptScreen
 import com.anksoft.myapplication.features.settings.presentation.SettingsScreen
 import myapplication.shared.generated.resources.Res
 import myapplication.shared.generated.resources.home_go_to_settings
@@ -25,6 +30,15 @@ class HomeScreen : Screen {
     @Composable
     override fun Content() {
         val navigator = LocalNavigator.currentOrThrow
+        val screenModel = koinScreenModel<HomeScreenModel>()
+        val state by screenModel.state.collectAsState()
+
+        LaunchedEffect(state.showConsentPrompt) {
+            if (state.showConsentPrompt) {
+                navigator.push(ConsentPromptScreen())
+                screenModel.onEvent(HomeEvent.ConsentPromptOpened)
+            }
+        }
 
         Scaffold(
             topBar = {

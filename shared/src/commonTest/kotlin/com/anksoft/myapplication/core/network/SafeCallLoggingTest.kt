@@ -95,6 +95,22 @@ class SafeCallLoggingTest {
         assertThat(entry.message).contains("UNAUTHORIZED")
     }
 
+    // S16
+    @Test
+    fun unprocessableEntityMapsToItsOwnErrorAndIsLoggedAsWarning() = runTest {
+        val (logger, writer) = recordingLogger()
+        val http = client {
+            respondJson(HttpStatusCode.UnprocessableEntity, """{"error":"unknown_consent_version","message":"x"}""")
+        }
+
+        val result = safeCall<AuthResponseDto>(logger, path) { http.post(path) }
+
+        assertThat(result).isEqualTo(Result.Failure(DataError.Remote.UNPROCESSABLE))
+        val entry = writer.entries.single()
+        assertThat(entry.severity).isEqualTo(LogSeverity.WARN)
+        assertThat(entry.message).contains("UNPROCESSABLE")
+    }
+
     // AC-6
     @Test
     fun unexpectedExceptionLogsClassNameButNotItsMessage() = runTest {
@@ -183,7 +199,8 @@ class SafeCallLoggingTest {
                 DataError.Remote.REQUEST_TIMEOUT,
                 DataError.Remote.TOO_MANY_REQUESTS,
                 DataError.Remote.UNAUTHORIZED,
-                DataError.Remote.CONFLICT
+                DataError.Remote.CONFLICT,
+                DataError.Remote.UNPROCESSABLE
             )
         )
     }

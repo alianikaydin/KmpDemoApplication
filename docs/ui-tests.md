@@ -11,7 +11,7 @@ independent from `ci.yml`.
 | Path | Purpose |
 |------|---------|
 | `.maestro/flows/` | One file per flow, named `NN_what_it_checks.yaml` |
-| `.maestro/subflows/` | Reusable steps (`launch_clean`, `login_with`) |
+| `.maestro/subflows/` | Reusable steps (`launch_clean`, `login_with`, `submit_signup`, `dismiss_consent_prompt`) |
 | `.maestro/config.yaml` | Flow selection and execution order |
 | `scripts/ui-tests/` | Install, run, boot and classify scripts used by CI (and locally) |
 
@@ -21,8 +21,32 @@ on Login), `04_session_persists_until_logout` (session survives a restart and
 ends on logout), `05_reinstall_drops_session` (a session left from a previous
 install is dropped), `06_settings_shows_environment` (Settings shows the
 environment and version), `07_language_switch` (in-app language change applies
-at once and the back stack is kept, AC-6). The app runs in demo mode (in-app mock backend), so the demo user is
-`demo@example.com` / `Demo1234` and no network is needed.
+at once and the back stack is kept, AC-6), `08_signup_consent_unchecked` and
+`09_signup_consent_checked` (the optional consent box at sign-up and the Settings switch that follows),
+`10_consent_prompt_reject` and `11_consent_prompt_accept` (the one-time prompt, the Settings switch and
+no second prompt at the next login). The app runs in demo mode (in-app mock backend), so no network is needed.
+
+Seed users of the mock backend:
+
+| User | Password | Consent decision |
+|------|----------|------------------|
+| `demo@example.com` | `Demo1234` | granted, so the prompt never shows in the other flows |
+| `consent@example.com` | `Demo1234` | none, so the prompt shows after login (flows 10 and 11) |
+
+Maestro cannot read the on/off state of the consent controls on iOS: Compose does not expose the state
+of a checkbox or switch to XCUITest (the iOS hierarchy shows only `id`, `accessibilityText` and `enabled`, and
+`checked: true` never matches; see the `ios-ui` run of PR #21, commit `0c2b681`, where marking the row as
+selected changed nothing). Next to each consent control there is therefore an invisible 1dp marker with no
+text and no description (so a screen reader announces nothing) whose tag says the state:
+`signup_consent_state_on` / `signup_consent_state_off` and `settings_consent_state_on` /
+`settings_consent_state_off`. Exactly one of each pair is on screen. Flows 08 to 11 assert the marker on both
+platforms and also assert `checked:` on Android. The sign-up flows submit with the keyboard's Done key on iOS
+(`submit_signup`), because the keyboard covers the submit button.
+
+`dismiss_consent_prompt` is a safety step after each login: if the prompt is on screen it rejects it,
+otherwise it does nothing. The mock keeps decisions in memory only, so they are lost when the app
+process ends; flows 10 and 11 therefore do not restart the app between steps. Every flow starts with
+`launch_clean`, which makes them independent of each other.
 
 ## End-to-end check against the real backend (Android)
 

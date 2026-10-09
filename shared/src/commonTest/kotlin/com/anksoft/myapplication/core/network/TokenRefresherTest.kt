@@ -262,6 +262,24 @@ class TokenRefresherTest {
         assertThat(session.getRefreshToken()).isEqualTo("refresh-b")
     }
 
+    // N2, AC-18
+    @Test
+    fun rejectedRefreshDoesNotEndASessionThatReplacedTheRejectedOne() = runTest {
+        val tokens = refresher.refresh(staleRefreshToken = "refresh-1") {
+            // The user logged out and signed in as someone else while the request was in flight.
+            session.clear()
+            session.saveToken("access-b")
+            session.saveRefreshToken("refresh-b")
+            responseOf(HttpStatusCode.Unauthorized)
+        }
+
+        assertThat(tokens).isNull()
+        assertThat(expiredCount).isEqualTo(0)
+        assertThat(observer.events).isEmpty()
+        assertThat(session.getToken()).isEqualTo("access-b")
+        assertThat(session.getRefreshToken()).isEqualTo("refresh-b")
+    }
+
     // AC-28
     @Test
     fun cancelledCallerStillStoresTheRotatedTokens() = runTest {

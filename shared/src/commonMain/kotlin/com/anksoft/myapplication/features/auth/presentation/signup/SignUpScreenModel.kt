@@ -10,9 +10,14 @@ import com.anksoft.myapplication.core.presentation.toUiText
 import com.anksoft.myapplication.features.auth.domain.PasswordError
 import com.anksoft.myapplication.features.auth.domain.UserDataValidator
 import com.anksoft.myapplication.features.auth.domain.repository.AuthRepository
+import com.anksoft.myapplication.features.consent.domain.model.ConsentChoice
+import com.anksoft.myapplication.features.consent.domain.usecase.ConsentTextsLoad
+import com.anksoft.myapplication.features.consent.domain.usecase.ObserveConsentTextsUseCase
+import kotlinx.coroutines.flow.MutableSharedFlow
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 import myapplication.shared.generated.resources.Res
+import myapplication.shared.generated.resources.consent_error_text_updated
 import myapplication.shared.generated.resources.error_email_already_registered
 import myapplication.shared.generated.resources.error_email_invalid
 import myapplication.shared.generated.resources.error_email_required
@@ -33,7 +38,11 @@ data class SignUpState(
     /** Unmet password rules, so the UI can show a live checklist (AC-2.2). */
     val unmetPasswordRules: List<PasswordError> = emptyList(),
     val isLoading: Boolean = false,
-    val isSignedUp: Boolean = false
+    val isSignedUp: Boolean = false,
+    /** The consent text for the language in use; the box is usable only once it is [ConsentTextsLoad.Loaded]. */
+    val consentTexts: ConsentTextsLoad = ConsentTextsLoad.Loading,
+    /** Unchecked by default (AC-1). Consent is optional, so it never gates [canSubmit] (AC-2). */
+    val consentChecked: Boolean = false
 ) {
     val canSubmit: Boolean
         get() = email.isNotBlank() &&
@@ -48,12 +57,41 @@ sealed interface SignUpEvent {
     data class ConfirmPasswordChanged(val confirmPassword: String) : SignUpEvent
     data object EmailFocusLost : SignUpEvent
     data object SignUpClicked : SignUpEvent
+    data class ConsentCheckedChange(val checked: Boolean) : SignUpEvent
+    data object RetryConsentTexts : SignUpEvent
 }
 
 class SignUpScreenModel(
     private val repository: AuthRepository,
-    private val validator: UserDataValidator
+    private val validator: UserDataValidator,
+    observeConsentTexts: ObserveConsentTextsUseCase
 ) : StateScreenModel<SignUpState>(SignUpState()) {
+
+    private val retryConsentTexts = MutableSharedFlow<Unit>(extraBufferCapacity = 1)
+
+    // The version of the text the box was last shown with. A different version is different text, so a
+    // check given for the old one does not carry over (S7); the same version in another language does.
+    private var shownTextVersion: Int? = null
+
+    init {
+        screenModelScope.launch {
+            observeConsentTexts(retryConsentTexts).collect { load -> showConsentTexts(load) }
+        }
+    }
+
+    private fun showConsentTexts(load: ConsentTextsLoad) {
+        // Decided outside update { }: the lambda may run more than once, a field write in it would not be repeatable.
+        val versionChanged = load is ConsentTextsLoad.Loaded &&
+            shownTextVersion != null && shownTextVersion != load.texts.version
+        if (load is ConsentTextsLoad.Loaded) shownTextVersion = load.texts.version
+        mutableState.update { state ->
+            // While loading or failed the box keeps its value; it is disabled, so it cannot change.
+            state.copy(
+                consentTexts = load,
+                consentChecked = state.consentChecked && !versionChanged
+            )
+        }
+    }
 
     fun onEvent(event: SignUpEvent) {
         when (event) {
@@ -88,6 +126,13 @@ class SignUpScreenModel(
             }
 
             SignUpEvent.SignUpClicked -> submit()
+
+            is SignUpEvent.ConsentCheckedChange -> mutableState.update {
+                // Consent can only be given for a text the user can see (AC-4).
+                if (it.consentTexts is ConsentTextsLoad.Loaded) it.copy(consentChecked = event.checked) else it
+            }
+
+            SignUpEvent.RetryConsentTexts -> retryConsentTexts.tryEmit(Unit)
         }
     }
 
@@ -126,16 +171,39 @@ class SignUpScreenModel(
 
         screenModelScope.launch {
             mutableState.update { it.copy(isLoading = true, formError = null) }
-            repository.register(email.lowercase(), current.password)
+            repository.register(email.lowercase(), current.password, current.toConsentChoice())
                 .onSuccess {
                     // AC-2.5: registration authenticates, no second login needed.
                     mutableState.update { it.copy(isLoading = false, isSignedUp = true) }
                 }
-                .onFailure { error ->
-                    mutableState.update {
-                        it.copy(isLoading = false, formError = error.toSignUpUiText())
-                    }
-                }
+                .onFailure { error -> showRegistrationFailure(error) }
+        }
+    }
+
+    /**
+     * What the user decided on the form, for the text that is on screen. Without a loaded text there
+     * is nothing the user could have agreed to, so no decision is sent at all (AC-4): never "granted".
+     */
+    private fun SignUpState.toConsentChoice(): ConsentChoice? =
+        (consentTexts as? ConsentTextsLoad.Loaded)?.let { loaded ->
+            ConsentChoice.of(granted = consentChecked, texts = loaded.texts)
+        }
+
+    private fun showRegistrationFailure(error: DataError) {
+        if (error == DataError.Remote.UNPROCESSABLE) {
+            // The text version the user saw is gone: load the current text and ask again (AC-22).
+            shownTextVersion = null
+            retryConsentTexts.tryEmit(Unit)
+            mutableState.update {
+                it.copy(
+                    isLoading = false,
+                    consentChecked = false,
+                    formError = UiText.Resource(Res.string.consent_error_text_updated)
+                )
+            }
+        } else {
+            // The box keeps its value, so a retry sends the same choice (AC-5).
+            mutableState.update { it.copy(isLoading = false, formError = error.toSignUpUiText()) }
         }
     }
 
