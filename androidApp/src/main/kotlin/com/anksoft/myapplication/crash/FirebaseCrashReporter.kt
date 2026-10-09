@@ -37,6 +37,7 @@ class FirebaseCrashReporter private constructor(
         crashlytics.recordException(ReportedException.from(report))
     }
 
+    @Suppress("SwallowedException") // Deliberate: see the class comment.
     private inline fun safely(block: () -> Unit) {
         try {
             block()
@@ -50,6 +51,7 @@ class FirebaseCrashReporter private constructor(
          * Returns the reporter, or null when Firebase is not configured (no google-services.json
          * was part of this build). The app then keeps the no-op reporter.
          */
+        @Suppress("SwallowedException") // Deliberate: a broken SDK setup must not stop the app.
         fun createOrNull(context: Context): CrashReporter? = try {
             if (FirebaseApp.getApps(context).isEmpty()) null else FirebaseCrashReporter(FirebaseCrashlytics.getInstance())
         } catch (e: Exception) {
