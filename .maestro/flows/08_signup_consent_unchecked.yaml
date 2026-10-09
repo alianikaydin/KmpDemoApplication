@@ -27,17 +27,7 @@ appId: ${APP_ID}
 - tapOn:
     id: signup_confirm_password_input
 - inputText: Secret123
-- hideKeyboard
-- scrollUntilVisible:
-    element:
-      id: signup_consent_checkbox
-    direction: DOWN
-- scrollUntilVisible:
-    element:
-      id: signup_submit_button
-    direction: DOWN
-- tapOn:
-    id: signup_submit_button
+- runFlow: ../subflows/submit_signup.yaml
 - extendedWaitUntil:
     visible:
       id: home_title

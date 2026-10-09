@@ -11,7 +11,7 @@ independent from `ci.yml`.
 | Path | Purpose |
 |------|---------|
 | `.maestro/flows/` | One file per flow, named `NN_what_it_checks.yaml` |
-| `.maestro/subflows/` | Reusable steps (`launch_clean`, `login_with`, `dismiss_consent_prompt`) |
+| `.maestro/subflows/` | Reusable steps (`launch_clean`, `login_with`, `submit_signup`, `dismiss_consent_prompt`) |
 | `.maestro/config.yaml` | Flow selection and execution order |
 | `scripts/ui-tests/` | Install, run, boot and classify scripts used by CI (and locally) |
 
@@ -32,6 +32,10 @@ Seed users of the mock backend:
 |------|----------|------------------|
 | `demo@example.com` | `Demo1234` | granted, so the prompt never shows in the other flows |
 | `consent@example.com` | `Demo1234` | none, so the prompt shows after login (flows 10 and 11) |
+
+On iOS, Compose does not expose the on/off state of a checkbox or switch, so the two consent rows mark
+themselves as selected while they are on (`exposeToggleState`); Maestro reads that as `checked`. The sign-up
+flows submit with the keyboard's Done key on iOS (`submit_signup`), because the keyboard covers the button.
 
 `dismiss_consent_prompt` is a safety step after each login: if the prompt is on screen it rejects it,
 otherwise it does nothing. The mock keeps decisions in memory only, so they are lost when the app

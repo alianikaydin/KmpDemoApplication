@@ -28,6 +28,7 @@ import cafe.adriel.voyager.navigator.LocalNavigator
 import cafe.adriel.voyager.navigator.currentOrThrow
 import com.anksoft.myapplication.core.preferences.AppLanguage
 import com.anksoft.myapplication.core.presentation.asString
+import com.anksoft.myapplication.core.presentation.exposeToggleState
 import com.anksoft.myapplication.features.auth.presentation.login.LoginScreen
 import com.anksoft.myapplication.features.consent.presentation.PrivacyPolicyLink
 import myapplication.shared.generated.resources.Res
@@ -212,6 +213,7 @@ private fun PrivacySection(
                     role = Role.Switch,
                     onValueChange = { onEvent(SettingsEvent.ConsentToggle(it)) }
                 )
+                .exposeToggleState(privacy.isChecked)
                 .testTag(SettingsTestTags.CONSENT_TOGGLE),
             verticalAlignment = Alignment.CenterVertically
         ) {

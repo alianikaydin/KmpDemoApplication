@@ -29,6 +29,7 @@ import cafe.adriel.voyager.navigator.LocalNavigator
 import cafe.adriel.voyager.navigator.currentOrThrow
 import com.anksoft.myapplication.core.domain.DataError
 import com.anksoft.myapplication.core.presentation.asString
+import com.anksoft.myapplication.core.presentation.exposeToggleState
 import com.anksoft.myapplication.features.consent.domain.model.ConsentTexts
 import com.anksoft.myapplication.features.consent.domain.usecase.ConsentTextsLoad
 import com.anksoft.myapplication.features.consent.presentation.ConsentDescription
@@ -231,6 +232,7 @@ private fun ConsentSection(state: SignUpState, onEvent: (SignUpEvent) -> Unit) {
                         role = Role.Checkbox,
                         onValueChange = { onEvent(SignUpEvent.ConsentCheckedChange(it)) }
                     )
+                    .exposeToggleState(state.consentChecked)
                     .testTag(SignUpTestTags.CONSENT_CHECKBOX),
                 verticalAlignment = Alignment.CenterVertically
             ) {
