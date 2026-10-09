@@ -10,6 +10,7 @@ import com.anksoft.myapplication.core.logging.LogTags
 import com.anksoft.myapplication.core.logging.debug
 import com.anksoft.myapplication.core.presentation.UiText
 import com.anksoft.myapplication.core.presentation.toUiText
+import com.anksoft.myapplication.core.session.SessionExpiry
 import com.anksoft.myapplication.features.auth.domain.UserDataValidator
 import com.anksoft.myapplication.features.auth.domain.usecase.LoginUseCase
 import kotlinx.coroutines.flow.update
@@ -19,6 +20,7 @@ import myapplication.shared.generated.resources.error_email_invalid
 import myapplication.shared.generated.resources.error_email_required
 import myapplication.shared.generated.resources.error_invalid_credentials
 import myapplication.shared.generated.resources.error_password_required
+import myapplication.shared.generated.resources.error_session_expired
 
 data class LoginState(
     val email: String = "",
@@ -45,8 +47,16 @@ sealed interface LoginEvent {
 class LoginScreenModel(
     private val login: LoginUseCase,
     private val validator: UserDataValidator,
-    private val logger: AppLogger
+    private val logger: AppLogger,
+    sessionExpiry: SessionExpiry
 ) : StateScreenModel<LoginState>(LoginState()) {
+
+    init {
+        // The session ended on its own (refresh token rejected): explain why Login is showing.
+        if (sessionExpiry.consumeExpiredNotice()) {
+            mutableState.update { it.copy(formError = UiText.Resource(Res.string.error_session_expired)) }
+        }
+    }
 
     fun onEvent(event: LoginEvent) {
         when (event) {

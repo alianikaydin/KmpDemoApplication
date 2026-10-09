@@ -4,6 +4,7 @@ import assertk.assertThat
 import assertk.assertions.contains
 import assertk.assertions.doesNotContain
 import assertk.assertions.isEqualTo
+import assertk.assertions.isEmpty
 import assertk.assertions.isInstanceOf
 import assertk.assertions.isNull
 import com.anksoft.myapplication.core.domain.DataError
@@ -13,6 +14,11 @@ import com.anksoft.myapplication.core.logging.LogSeverity
 import com.anksoft.myapplication.core.logging.LogTags
 import com.anksoft.myapplication.core.logging.NoOpLogger
 import com.anksoft.myapplication.core.logging.recordingLogger
+import com.anksoft.myapplication.core.network.AuthTokenCache
+import com.anksoft.myapplication.core.network.FakeAuthTokenCache
+import com.anksoft.myapplication.core.session.FakeSessionObserver
+import com.anksoft.myapplication.core.session.SessionObserver
+import com.anksoft.myapplication.core.session.SignOutReason
 import com.anksoft.myapplication.core.storage.SessionManager
 import com.anksoft.myapplication.features.auth.data.datasource.AuthRemoteDataSource
 import com.anksoft.myapplication.features.auth.data.repository.AuthRepositoryImpl
@@ -47,7 +53,9 @@ class AuthRepositoryImplTest {
     private fun repositoryReturning(
         status: HttpStatusCode,
         body: String,
-        logger: AppLogger = NoOpLogger
+        logger: AppLogger = NoOpLogger,
+        tokenCache: AuthTokenCache = FakeAuthTokenCache(),
+        observers: List<SessionObserver> = emptyList()
     ): Pair<AuthRepositoryImpl, SessionManager> {
         val engine = MockEngine {
             respond(
@@ -66,7 +74,7 @@ class AuthRepositoryImplTest {
             }
         }
         val sessionManager = SessionManager(MapSettings())
-        return AuthRepositoryImpl(AuthRemoteDataSource(client, logger), sessionManager, logger) to sessionManager
+        return AuthRepositoryImpl(AuthRemoteDataSource(client, logger), sessionManager, tokenCache, observers, logger) to sessionManager
     }
 
     @Test
@@ -218,5 +226,93 @@ class AuthRepositoryImplTest {
 
         assertThat(writer.entries.single { it.tag == LogTags.AUTH }.message)
             .contains("register failed error=CONFLICT")
+    }
+
+    // AC-18
+    @Test
+    fun loginAndRegisterClearTheBearerCacheBeforeStoringTheNewSession() = runTest {
+        val cache = FakeAuthTokenCache()
+        val (repository, _) = repositoryReturning(HttpStatusCode.OK, successBody, tokenCache = cache)
+
+        repository.login("user@example.com", "Password1")
+        assertThat(cache.clearCount).isEqualTo(1)
+
+        repository.register("user@example.com", "Password1")
+        assertThat(cache.clearCount).isEqualTo(2)
+    }
+
+    // AC-18
+    @Test
+    fun failedLoginLeavesTheBearerCacheAlone() = runTest {
+        val cache = FakeAuthTokenCache()
+        val (repository, _) = repositoryReturning(HttpStatusCode.Unauthorized, "{}", tokenCache = cache)
+
+        repository.login("user@example.com", "wrong")
+
+        assertThat(cache.clearCount).isEqualTo(0)
+    }
+
+    // AC-18
+    @Test
+    fun logoutClearsTheBearerCache() = runTest {
+        val cache = FakeAuthTokenCache()
+        val (repository, _) = repositoryReturning(HttpStatusCode.OK, successBody, tokenCache = cache)
+
+        repository.logout()
+
+        assertThat(cache.clearCount).isEqualTo(1)
+    }
+
+    // AC-28
+    @Test
+    fun observersLearnAboutSignInOnlyAfterTheSessionWasStored() = runTest {
+        val observer = FakeSessionObserver()
+        val (repository, session) = repositoryReturning(HttpStatusCode.OK, successBody, observers = listOf(observer))
+        var tokenSeenByObserver: String? = null
+        observer.onEvent = { tokenSeenByObserver = session.getToken() }
+
+        repository.login("user@example.com", "Password1")
+
+        assertThat(observer.events).isEqualTo(listOf(FakeSessionObserver.Event.SignedIn))
+        assertThat(tokenSeenByObserver).isEqualTo("access-123")
+    }
+
+    // AC-28
+    @Test
+    fun registerNotifiesObserversOfSignIn() = runTest {
+        val observer = FakeSessionObserver()
+        val (repository, _) = repositoryReturning(HttpStatusCode.OK, successBody, observers = listOf(observer))
+
+        repository.register("user@example.com", "Password1")
+
+        assertThat(observer.events).isEqualTo(listOf(FakeSessionObserver.Event.SignedIn))
+    }
+
+    // AC-28
+    @Test
+    fun failedLoginDoesNotNotifyObservers() = runTest {
+        val observer = FakeSessionObserver()
+        val (repository, _) = repositoryReturning(HttpStatusCode.Unauthorized, "{}", observers = listOf(observer))
+
+        repository.login("user@example.com", "wrong")
+
+        assertThat(observer.events).isEmpty()
+    }
+
+    // AC-28
+    @Test
+    fun logoutNotifiesObserversSynchronouslyAfterTheSessionWasCleared() = runTest {
+        val observer = FakeSessionObserver()
+        val (repository, session) = repositoryReturning(HttpStatusCode.OK, successBody, observers = listOf(observer))
+        repository.login("user@example.com", "Password1")
+        observer.events.clear()
+        var tokenSeenByObserver: String? = "unset"
+        observer.onEvent = { tokenSeenByObserver = session.getToken() }
+
+        repository.logout()
+
+        assertThat(observer.events)
+            .isEqualTo(listOf(FakeSessionObserver.Event.SignedOut(SignOutReason.USER_LOGOUT)))
+        assertThat(tokenSeenByObserver).isNull()
     }
 }

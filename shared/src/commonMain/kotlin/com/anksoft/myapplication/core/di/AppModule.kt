@@ -27,6 +27,7 @@ fun initKoin(
         loggingModule,
         networkModule,
         storageModule,
+        sessionModule,
         repositoryModule,
         useCaseModule,
         viewModelModule

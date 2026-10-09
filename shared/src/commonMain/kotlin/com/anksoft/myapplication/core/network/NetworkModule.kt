@@ -1,5 +1,7 @@
 package com.anksoft.myapplication.core.network
 
+import com.anksoft.kmpdemo.contract.auth.AuthPaths
+import com.anksoft.kmpdemo.contract.auth.RefreshTokenRequestDto
 import com.anksoft.myapplication.core.config.AppConfig
 import com.anksoft.myapplication.core.config.AppEnvironment
 import com.anksoft.myapplication.core.logging.AppLogger
@@ -7,6 +9,7 @@ import com.anksoft.myapplication.core.logging.LogTags
 import com.anksoft.myapplication.core.logging.debug
 import com.anksoft.myapplication.core.network.mock.MockAuthServer
 import com.anksoft.myapplication.core.network.mock.createMockEngine
+import com.anksoft.myapplication.core.session.SessionExpiry
 import com.anksoft.myapplication.core.storage.SessionManager
 import io.ktor.client.HttpClient
 import io.ktor.client.HttpClientConfig
@@ -19,6 +22,9 @@ import io.ktor.client.plugins.contentnegotiation.ContentNegotiation
 import io.ktor.client.plugins.defaultRequest
 import io.ktor.client.plugins.logging.LogLevel
 import io.ktor.client.plugins.logging.Logging
+import io.ktor.client.request.post
+import io.ktor.client.request.setBody
+import io.ktor.client.statement.request
 import io.ktor.http.ContentType
 import io.ktor.http.HttpHeaders
 import io.ktor.http.contentType
@@ -29,31 +35,45 @@ import io.ktor.client.plugins.logging.Logger as KtorLogger
 /** Auth request timeout per the performance NFR. */
 private const val REQUEST_TIMEOUT_MILLIS = 15_000L
 
+/** A 401 from these endpoints is an answer (wrong password, rejected refresh), not an expired token. */
+private val NO_REFRESH_PATHS = listOf(AuthPaths.LOGIN, AuthPaths.REGISTER, AuthPaths.REFRESH)
+
+private const val BEARER_PREFIX = "Bearer "
+
 val networkModule = module {
     single { MockAuthServer() }
     single {
         val config = get<AppConfig>()
+        // Resolved on first use: SessionExpiry is not needed to build the client.
+        val koin = getKoin()
         createHttpClient(
             engine = if (config.useMockBackend) createMockEngine(get()) else null,
             config = config,
             sessionManager = get(),
-            logger = get()
+            logger = get(),
+            onSessionExpired = { koin.get<SessionExpiry>().expire() }
         )
     }
+    single<AuthTokenCache> { KtorAuthTokenCache(get()) }
 }
 
 /**
  * Builds the app's HttpClient. A null [engine] uses the platform default
  * (OkHttp / Darwin / Js); demo mode and tests pass a MockEngine instead.
  * HTTP logging goes through [logger] and its level depends on the environment.
+ *
+ * A 401 on a protected request triggers one token refresh. If the backend rejects the refresh
+ * token, [onSessionExpired] is called.
  */
 fun createHttpClient(
     engine: HttpClientEngine?,
     config: AppConfig,
     sessionManager: SessionManager,
-    logger: AppLogger
+    logger: AppLogger,
+    onSessionExpired: () -> Unit = {}
 ): HttpClient {
     val httpLogger = KtorLoggerBridge(logger)
+    val refresher = TokenRefresher(sessionManager, logger, onSessionExpired)
     val block: HttpClientConfig<*>.() -> Unit = {
         install(ContentNegotiation) {
             json(appJson)
@@ -63,6 +83,8 @@ fun createHttpClient(
         }
         install(Auth) {
             bearer {
+                // The refresh token is single-use: finish the exchange even if the caller leaves.
+                nonCancellableRefresh = true
                 // Attaches the stored access token to outgoing requests.
                 loadTokens {
                     sessionManager.getToken()?.let { accessToken ->
@@ -72,9 +94,24 @@ fun createHttpClient(
                         )
                     }
                 }
-                // Silent refresh (AC-5.2) needs the backend refresh contract,
-                // which does not exist yet -- deliberately left to P1 rather
-                // than guessed at. Until then a 401 surfaces to the caller.
+                refreshTokens {
+                    val path = response.request.url.encodedPath
+                    if (NO_REFRESH_PATHS.any { path.endsWith(it) }) {
+                        null
+                    } else {
+                        refresher.refresh(
+                            staleRefreshToken = oldTokens?.refreshToken,
+                            failedAccessToken = response.request.headers[HttpHeaders.Authorization]
+                                ?.removePrefix(BEARER_PREFIX)
+                        ) { refreshToken ->
+                            client.post(AuthPaths.REFRESH) {
+                                // Member of RefreshTokensParams: keeps this call out of the auth plugin.
+                                markAsRefreshTokenRequest()
+                                setBody(RefreshTokenRequestDto(refreshToken))
+                            }
+                        }
+                    }
+                }
             }
         }
         install(Logging) {
