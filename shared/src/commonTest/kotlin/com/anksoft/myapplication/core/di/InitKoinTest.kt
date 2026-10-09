@@ -6,6 +6,8 @@ import assertk.assertions.isEqualTo
 import assertk.assertions.isInstanceOf
 import assertk.assertions.isTrue
 import com.anksoft.myapplication.core.config.AppConfig
+import com.anksoft.myapplication.core.consent.ConsentManager
+import com.anksoft.myapplication.core.consent.OptionalDataConsent
 import com.anksoft.myapplication.core.config.TestAppConfigs
 import com.anksoft.myapplication.core.domain.Result
 import com.anksoft.myapplication.core.logging.AppLogger
@@ -16,6 +18,9 @@ import com.anksoft.myapplication.core.logging.LogWriter
 import com.anksoft.myapplication.core.logging.RecordingLogWriter
 import com.anksoft.myapplication.core.network.mock.MockAuthServer
 import com.anksoft.myapplication.features.auth.domain.repository.AuthRepository
+import com.anksoft.myapplication.features.consent.FakeConsentRepository
+import com.anksoft.myapplication.features.consent.domain.AccountConsentManager
+import com.anksoft.myapplication.features.consent.domain.repository.ConsentRepository
 import com.anksoft.myapplication.core.preferences.AppLanguage
 import com.anksoft.myapplication.core.preferences.AppPreferences
 import com.anksoft.myapplication.core.session.FakeSessionObserver
@@ -27,7 +32,6 @@ import com.anksoft.myapplication.core.storage.SessionManager
 import com.russhwolf.settings.MapSettings
 import com.russhwolf.settings.Settings
 import kotlinx.coroutines.test.runTest
-import org.koin.core.context.loadKoinModules
 import org.koin.core.context.stopKoin
 import org.koin.core.qualifier.named
 import org.koin.dsl.module
@@ -40,6 +44,11 @@ class InitKoinTest {
     private val recorder = RecordingLogWriter()
     private val consoleOverride = module { single<LogWriter>(named(CONSOLE_LOG_WRITER)) { recorder } }
 
+    // Host tests have no Android context, so the session storage is replaced as well: the consent
+    // manager is created at start and reads the session.
+    private val sessionStorage = MapSettings()
+    private val sessionOverride = module { single<Settings> { sessionStorage } }
+
     // Host tests have no Android context, so the platform's preferences storage is replaced too.
     private val preferencesStorage = MapSettings()
     private val preferencesOverride = module { single<Settings>(AppPreferencesSettings) { preferencesStorage } }
@@ -51,9 +60,10 @@ class InitKoinTest {
 
     @Test
     fun demoConfigWiresMockBackendEndToEnd() = runTest {
-        val koin = initKoin(config = TestAppConfigs.demo(), platformModules = listOf(consoleOverride)).koin
-        // Platform settings need an Android context; swap in memory-backed settings.
-        loadKoinModules(module { single<Settings> { MapSettings() } })
+        val koin = initKoin(
+            config = TestAppConfigs.demo(),
+            platformModules = listOf(consoleOverride, sessionOverride)
+        ).koin
 
         val demoUser = MockAuthServer.DEMO_USER
         val result = koin.get<AuthRepository>().login(demoUser.email, demoUser.password)
@@ -66,7 +76,7 @@ class InitKoinTest {
     fun koinProvidesTheGivenConfig() {
         val config = TestAppConfigs.remote("https://configured.test/api/")
 
-        val koin = initKoin(config = config, platformModules = listOf(consoleOverride)).koin
+        val koin = initKoin(config = config, platformModules = listOf(consoleOverride, sessionOverride)).koin
 
         assertThat(koin.get<AppConfig>()).isEqualTo(config)
     }
@@ -76,7 +86,10 @@ class InitKoinTest {
     fun platformModulesAreLoaded() {
         val platformModule = module { single<String>(named("platform")) { "from-platform" } }
 
-        val koin = initKoin(config = TestAppConfigs.demo(), platformModules = listOf(consoleOverride, platformModule)).koin
+        val koin = initKoin(
+            config = TestAppConfigs.demo(),
+            platformModules = listOf(consoleOverride, sessionOverride, platformModule)
+        ).koin
 
         assertThat(koin.get<String>(named("platform"))).isEqualTo("from-platform")
     }
@@ -84,7 +97,7 @@ class InitKoinTest {
     // AC-1
     @Test
     fun startupLogsOneAppEntryWithEnvironmentAndVersion() {
-        initKoin(config = TestAppConfigs.demo(), platformModules = listOf(consoleOverride))
+        initKoin(config = TestAppConfigs.demo(), platformModules = listOf(consoleOverride, sessionOverride))
 
         val entry = recorder.entries.single { it.tag == LogTags.APP }
         assertThat(entry.severity).isEqualTo(LogSeverity.INFO)
@@ -97,7 +110,7 @@ class InitKoinTest {
     fun loggerIsProvidedFromOnePlaceAndSharedAcrossConsumers() {
         val koin = initKoin(
             config = TestAppConfigs.demo(),
-            platformModules = listOf(consoleOverride)
+            platformModules = listOf(consoleOverride, sessionOverride)
         ).koin
 
         assertThat(koin.get<AppLogger>() === koin.get<AppLogger>()).isTrue()
@@ -106,13 +119,13 @@ class InitKoinTest {
     // AC-9
     @Test
     fun preferencesUseTheirOwnStorageNotTheSessionStorage() {
-        val sessionStorage = MapSettings()
         val koin = initKoin(
             config = TestAppConfigs.demo(),
-            platformModules = listOf(consoleOverride, preferencesOverride, module { single<Settings> { sessionStorage } })
+            platformModules = listOf(consoleOverride, preferencesOverride, sessionOverride)
         ).koin
 
         koin.get<AppPreferences>().setLanguage(AppLanguage.TURKISH)
+        // Signed out, so the consent manager has nothing of its own to write.
         koin.get<SessionManager>().saveToken("access-123")
 
         assertThat(preferencesStorage.keys).isEqualTo(setOf(LANGUAGE_KEY))
@@ -124,7 +137,7 @@ class InitKoinTest {
     fun preferencesAreOneSharedInstance() {
         val koin = initKoin(
             config = TestAppConfigs.demo(),
-            platformModules = listOf(consoleOverride, preferencesOverride)
+            platformModules = listOf(consoleOverride, preferencesOverride, sessionOverride)
         ).koin
 
         assertThat(koin.get<AppPreferences>() === koin.get<AppPreferences>()).isTrue()
@@ -138,10 +151,8 @@ class InitKoinTest {
             config = TestAppConfigs.demo(),
             platformModules = listOf(
                 consoleOverride,
-                module {
-                    single<Settings> { MapSettings() }
-                    single<SessionObserver> { observer }
-                }
+                sessionOverride,
+                module { single<SessionObserver> { observer } }
             )
         ).koin
 
@@ -162,9 +173,75 @@ class InitKoinTest {
     fun sessionExpiryIsOneSharedInstance() {
         val koin = initKoin(
             config = TestAppConfigs.demo(),
-            platformModules = listOf(consoleOverride, module { single<Settings> { MapSettings() } })
+            platformModules = listOf(consoleOverride, sessionOverride)
         ).koin
 
         assertThat(koin.get<SessionExpiry>() === koin.get<SessionExpiry>()).isTrue()
+    }
+
+    // AC-26
+    @Test
+    fun theConsentFacadeAndTheSessionObserverAreTheSameAccountConsentManager() {
+        val koin = initKoin(
+            config = TestAppConfigs.demo(),
+            platformModules = listOf(consoleOverride, sessionOverride)
+        ).koin
+
+        val manager = koin.get<AccountConsentManager>()
+
+        assertThat(koin.get<ConsentManager>() === manager).isTrue()
+        assertThat(koin.getAll<SessionObserver>().filterIsInstance<AccountConsentManager>().single() === manager)
+            .isTrue()
+    }
+
+    // E5 rule 4: the first value must be ready before anyone asks.
+    @Test
+    fun theConsentManagerIsCreatedAtStartWithoutAnyoneAskingForIt() {
+        var created = false
+        val spyRepository = object : ConsentRepository by FakeConsentRepository() {
+            override fun isSignedIn(): Boolean {
+                created = true
+                return false
+            }
+        }
+
+        initKoin(
+            config = TestAppConfigs.demo(),
+            platformModules = listOf(
+                consoleOverride,
+                sessionOverride,
+                module { single<ConsentRepository> { spyRepository } }
+            )
+        )
+
+        assertThat(created).isTrue()
+    }
+
+    // AC-19
+    @Test
+    fun withoutASessionTheConsentFacadeSaysUnknown() {
+        val koin = initKoin(
+            config = TestAppConfigs.demo(),
+            platformModules = listOf(consoleOverride, sessionOverride)
+        ).koin
+
+        assertThat(koin.get<ConsentManager>().optionalDataConsent.value).isEqualTo(OptionalDataConsent.UNKNOWN)
+    }
+
+    // AC-6, AC-27: a restart with a session starts from the cached decision.
+    @Test
+    fun aStoredSessionWithACachedGrantStartsTheFacadeAtGranted() {
+        SessionManager(sessionStorage).apply {
+            saveToken("access-123")
+            saveUserId("demo-1")
+            saveConsent("granted", 1)
+        }
+
+        val koin = initKoin(
+            config = TestAppConfigs.demo(),
+            platformModules = listOf(consoleOverride, sessionOverride)
+        ).koin
+
+        assertThat(koin.get<ConsentManager>().optionalDataConsent.value).isEqualTo(OptionalDataConsent.GRANTED)
     }
 }
