@@ -147,6 +147,18 @@ jobs:
           mkdir -p "$OUT_DIR"
           echo setup > "$OUT_DIR/stage"
           cd backend
+          # Docker Hub rate-limits anonymous pulls on shared runners. Pull the
+          # same official images (compose services and Dockerfile bases) from
+          # the AWS public mirror and tag them with their Docker Hub names, so
+          # compose and the build find them locally.
+          images=$(awk '/^[[:space:]]*image:/ { print $2 }' compose.yaml; awk '/^FROM / { print $2 }' server/Dockerfile)
+          for image in $images; do
+            case "$image" in
+              */*) ;;
+              *) docker pull "public.ecr.aws/docker/library/$image" \
+                   && docker tag "public.ecr.aws/docker/library/$image" "$image" || true ;;
+            esac
+          done
           bash scripts/server-up.sh || {
             echo "::error title=Infrastructure failure::Backend did not become ready on :8081"
             exit 2
