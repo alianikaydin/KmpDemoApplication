@@ -146,6 +146,12 @@ action crashes the app but nothing is sent.
 - Fatal crashes on Android show a sanitized throwable in Logcat as well (type name and stack, no
   message) when a Firebase config is present. Use a build without the config file to see messages.
 
+## Android SDK versions
+
+Firebase Android libraries get their versions from the Firebase BoM (`firebase-bom` in
+`gradle/libs.versions.toml`); `firebase-crashlytics` and `firebase-installations` are declared
+without versions. Raise the BoM to move all Firebase libraries together.
+
 ## iOS package version exception
 
 The Firebase iOS SDK version is not in `gradle/libs.versions.toml` (Swift Package Manager cannot read
