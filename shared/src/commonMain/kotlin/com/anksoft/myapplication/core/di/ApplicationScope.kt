@@ -7,9 +7,11 @@ import kotlinx.coroutines.CoroutineExceptionHandler
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.SupervisorJob
+import kotlinx.coroutines.cancel
 import org.koin.core.qualifier.Qualifier
 import org.koin.core.qualifier.named
 import org.koin.dsl.module
+import org.koin.dsl.onClose
 
 /**
  * Qualifier of the process-wide [CoroutineScope] for work that belongs to no screen (the consent
@@ -26,5 +28,5 @@ val applicationScopeModule = module {
             logger.error(LogTags.APP, throwable) { "uncaught error in the application scope" }
         }
         CoroutineScope(SupervisorJob() + Dispatchers.Default + handler)
-    }
+    } onClose { scope -> scope?.cancel() }
 }

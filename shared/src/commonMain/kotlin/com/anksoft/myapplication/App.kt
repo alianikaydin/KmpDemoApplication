@@ -17,8 +17,8 @@ import com.anksoft.myapplication.core.presentation.locale.ProvideAppLocale
 import com.anksoft.myapplication.core.session.SessionExpiry
 import com.anksoft.myapplication.core.storage.SessionManager
 import com.anksoft.myapplication.features.auth.presentation.login.LoginScreen
-import com.anksoft.myapplication.features.consent.domain.AccountConsentManager
 import com.anksoft.myapplication.features.auth.presentation.signup.SignUpScreen
+import com.anksoft.myapplication.features.consent.domain.AccountConsentManager
 import com.anksoft.myapplication.features.home.presentation.HomeScreen
 import org.koin.compose.koinInject
 

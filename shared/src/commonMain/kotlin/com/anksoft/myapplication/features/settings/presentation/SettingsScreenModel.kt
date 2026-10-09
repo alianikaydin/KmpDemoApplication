@@ -3,9 +3,9 @@ package com.anksoft.myapplication.features.settings.presentation
 import cafe.adriel.voyager.core.model.StateScreenModel
 import cafe.adriel.voyager.core.model.screenModelScope
 import com.anksoft.myapplication.core.config.AppConfig
-import com.anksoft.myapplication.core.preferences.AppLanguage
 import com.anksoft.myapplication.core.domain.DataError
 import com.anksoft.myapplication.core.domain.onFailure
+import com.anksoft.myapplication.core.preferences.AppLanguage
 import com.anksoft.myapplication.core.preferences.AppPreferences
 import com.anksoft.myapplication.core.presentation.UiText
 import com.anksoft.myapplication.core.presentation.toUiText

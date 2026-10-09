@@ -31,7 +31,9 @@ class SessionExpiry(
      * another thread cannot slip in between and then be told it was signed out.
      */
     fun expire() {
-        // Resolved before the lock is taken: building the observers may take locks of its own.
+        // Resolved first. A caller such as TokenRefresher may already hold the session lock, so the
+        // lazy list can be built under it; building the observers must not wait for another thread
+        // that is itself waiting for the session lock.
         val sessionObservers = observers.value
         sessionManager.withSessionLock {
             if (sessionManager.getToken() != null || sessionManager.getRefreshToken() != null) {
