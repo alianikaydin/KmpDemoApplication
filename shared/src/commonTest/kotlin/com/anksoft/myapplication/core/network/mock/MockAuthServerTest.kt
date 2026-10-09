@@ -20,6 +20,7 @@ import com.anksoft.myapplication.core.storage.SessionManager
 import com.anksoft.myapplication.features.auth.data.datasource.AuthRemoteDataSource
 import com.anksoft.myapplication.features.auth.data.repository.AuthRepositoryImpl
 import com.anksoft.myapplication.features.auth.domain.model.User
+import com.anksoft.myapplication.features.consent.data.datasource.ConsentLocalDataSource
 import com.russhwolf.settings.MapSettings
 import io.ktor.client.HttpClient
 import io.ktor.client.call.body
@@ -42,7 +43,14 @@ class MockAuthServerTest {
         logger = NoOpLogger
     )
     private val remoteDataSource = AuthRemoteDataSource(httpClient, NoOpLogger)
-    private val repository = AuthRepositoryImpl(remoteDataSource, sessionManager, KtorAuthTokenCache(httpClient), emptyList(), NoOpLogger)
+    private val repository = AuthRepositoryImpl(
+        remoteDataSource,
+        sessionManager,
+        KtorAuthTokenCache(httpClient),
+        ConsentLocalDataSource(sessionManager),
+        emptyList(),
+        NoOpLogger
+    )
 
     private val demoUser = MockAuthServer.DEMO_USER
 
@@ -85,7 +93,7 @@ class MockAuthServerTest {
 
     @Test
     fun registeredUserCanLogIn() = runTest {
-        val register = repository.register("new@example.com", "Secret123")
+        val register = repository.register("new@example.com", "Secret123", consent = null)
         val login = repository.login("new@example.com", "Secret123")
 
         assertThat(register).isInstanceOf(Result.Success::class)
@@ -94,7 +102,7 @@ class MockAuthServerTest {
 
     @Test
     fun registeringExistingEmailReturnsConflict() = runTest {
-        val result = repository.register(demoUser.email, "Another123")
+        val result = repository.register(demoUser.email, "Another123", consent = null)
 
         assertThat(result).isEqualTo(Result.Failure(DataError.Remote.CONFLICT))
     }

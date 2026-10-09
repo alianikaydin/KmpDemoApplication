@@ -126,7 +126,7 @@ class SignUpScreenModel(
 
         screenModelScope.launch {
             mutableState.update { it.copy(isLoading = true, formError = null) }
-            repository.register(email.lowercase(), current.password)
+            repository.register(email.lowercase(), current.password, consent = null)
                 .onSuccess {
                     // AC-2.5: registration authenticates, no second login needed.
                     mutableState.update { it.copy(isLoading = false, isSignedUp = true) }

@@ -76,6 +76,46 @@ class SessionManager(private val settings: Settings) {
 
     fun getUserName(): String? = read(KEY_USER_NAME)
 
+    /**
+     * Caches the account's consent decision for the current session: the status string and the
+     * text version, nothing that identifies the user (AC-27). A null [textVersion] removes the version.
+     */
+    fun saveConsent(status: String, textVersion: Int?) {
+        withSessionLock {
+            write(KEY_CONSENT_STATUS, status)
+            if (textVersion == null) {
+                delete(KEY_CONSENT_TEXT_VERSION)
+            } else {
+                write(KEY_CONSENT_TEXT_VERSION, textVersion.toString())
+            }
+        }
+    }
+
+    /**
+     * Like [saveConsent], but only while the session of [userId] is still the stored one. A consent
+     * answer that arrives after a logout, or after another account signed in, is thrown away
+     * instead of being cached for the wrong session. Returns whether it was stored.
+     */
+    fun saveConsentForUser(userId: String, status: String, textVersion: Int?): Boolean = withSessionLock {
+        if (getToken() != null && getUserId() == userId) {
+            saveConsent(status, textVersion)
+            true
+        } else {
+            false
+        }
+    }
+
+    fun getConsentStatus(): String? = read(KEY_CONSENT_STATUS)
+
+    fun getConsentTextVersion(): Int? = read(KEY_CONSENT_TEXT_VERSION)?.toIntOrNull()
+
+    fun clearConsent() {
+        withSessionLock {
+            delete(KEY_CONSENT_STATUS)
+            delete(KEY_CONSENT_TEXT_VERSION)
+        }
+    }
+
     /** Wipes every session key. Called on logout and on refresh failure (AC-5.3). */
     fun clear() {
         withSessionLock { SESSION_KEYS.forEach(::delete) }
@@ -98,6 +138,8 @@ class SessionManager(private val settings: Settings) {
         internal const val KEY_USER_ID = "user_id"
         internal const val KEY_USER_EMAIL = "user_email"
         internal const val KEY_USER_NAME = "user_name"
+        internal const val KEY_CONSENT_STATUS = "consent_status"
+        internal const val KEY_CONSENT_TEXT_VERSION = "consent_text_version"
 
         /** Every key this class owns; used by [SessionStorageMigrator]. */
         internal val SESSION_KEYS = listOf(
@@ -106,6 +148,8 @@ class SessionManager(private val settings: Settings) {
             KEY_USER_ID,
             KEY_USER_EMAIL,
             KEY_USER_NAME,
+            KEY_CONSENT_STATUS,
+            KEY_CONSENT_TEXT_VERSION,
         )
     }
 }

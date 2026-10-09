@@ -8,6 +8,7 @@ import com.anksoft.myapplication.core.network.mock.MockAuthServer
 import com.anksoft.myapplication.core.storage.SessionManager
 import com.anksoft.myapplication.features.auth.data.datasource.AuthRemoteDataSource
 import com.anksoft.myapplication.features.auth.data.repository.AuthRepositoryImpl
+import com.anksoft.myapplication.features.consent.data.datasource.ConsentLocalDataSource
 import com.russhwolf.settings.MapSettings
 import io.ktor.client.HttpClient
 import io.ktor.client.engine.mock.MockEngine
@@ -43,6 +44,7 @@ class AuthTokenCacheTest {
         AuthRemoteDataSource(client, NoOpLogger),
         sessionManager,
         KtorAuthTokenCache(client),
+        ConsentLocalDataSource(sessionManager),
         emptyList(),
         NoOpLogger
     )
@@ -61,7 +63,7 @@ class AuthTokenCacheTest {
         client.get("auth/me")
         repository.logout()
 
-        repository.register("account-b@example.com", "Password1")
+        repository.register("account-b@example.com", "Password1", consent = null)
         val tokenOfB = sessionManager.getToken()
         client.get("auth/me")
 
