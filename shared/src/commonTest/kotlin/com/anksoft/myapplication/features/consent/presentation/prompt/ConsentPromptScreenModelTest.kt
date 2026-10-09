@@ -23,7 +23,7 @@ import com.anksoft.myapplication.features.consent.domain.usecase.ObserveConsentT
 import kotlinx.coroutines.CompletableDeferred
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
-import kotlinx.coroutines.cancel
+import kotlinx.coroutines.cancelChildren
 import kotlinx.coroutines.test.UnconfinedTestDispatcher
 import kotlinx.coroutines.test.resetMain
 import kotlinx.coroutines.test.runTest
@@ -96,8 +96,9 @@ class ConsentPromptScreenModelTest {
         val model = createModel()
         model.onEvent(ConsentPromptEvent.Reject)
 
-        // What Voyager does when the screen leaves the back stack.
-        model.screenModelScope.cancel()
+        // What Voyager does when the screen leaves the back stack: its running work is cancelled. Only the
+        // children are cancelled, not the scope itself: ScreenModels created outside Voyager share one scope.
+        model.screenModelScope.coroutineContext.cancelChildren()
         gate.complete(Unit)
 
         assertThat(consent.savedChoices).isEqualTo(listOf(choice(false)))

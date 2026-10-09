@@ -304,6 +304,8 @@ class AccountConsentManagerTest {
     @Test
     fun switchingCollectionOffTakesEffectBeforeTheBackendAnswers() = runTest {
         repository.cached = granted
+        // The fetch at start-up must agree with the cache, or it replaces the cached grant.
+        repository.fetchResult = Result.Success(granted)
         val manager = createManager()
         runCurrent()
         val gate = CompletableDeferred<Unit>()
@@ -328,6 +330,8 @@ class AccountConsentManagerTest {
     @Test
     fun aFailedSwitchOffKeepsCollectionOffWhileTheScreenShowsTheStoredGrant() = runTest {
         repository.cached = granted
+        // The fetch at start-up must agree with the cache, or it replaces the cached grant.
+        repository.fetchResult = Result.Success(granted)
         val manager = createManager()
         runCurrent()
         repository.saveResult = Result.Failure(DataError.Remote.NO_INTERNET)
@@ -451,6 +455,8 @@ class AccountConsentManagerTest {
     @Test
     fun aSwitchOffIsStillSavedWhenTheCallerLeavesBeforeTheBackendAnswers() = runTest {
         repository.cached = granted
+        // The fetch at start-up must agree with the cache, or it replaces the cached grant.
+        repository.fetchResult = Result.Success(granted)
         val manager = createManager()
         runCurrent()
         val gate = CompletableDeferred<Unit>()
