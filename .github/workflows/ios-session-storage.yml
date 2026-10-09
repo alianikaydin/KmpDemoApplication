@@ -72,7 +72,7 @@ jobs:
           sudo xcode-select -s "$xcode_app"
 
       - name: Check Xcode project and Package.resolved
-        run: bash scripts/ci/check-ios-project.sh "$RUNNER_TEMP/spm"
+        run: bash scripts/ui-tests/verify-ios-project.sh "$RUNNER_TEMP/spm"
 
       - name: Build the current iOS app
         run: |
