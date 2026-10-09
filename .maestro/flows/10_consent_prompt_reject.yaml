@@ -1,0 +1,67 @@
+# The consent-pending user is asked once after login. Rejecting leaves the switch off; switching on in
+# Settings works; the prompt does not come back at the next login (AC-7, AC-9, AC-15, AC-18).
+# The mock keeps decisions in memory only, so the app is not restarted between the steps.
+appId: ${APP_ID}
+---
+- runFlow: ../subflows/launch_clean.yaml
+- runFlow:
+    file: ../subflows/login_with.yaml
+    env:
+      EMAIL: consent@example.com
+      PASSWORD: Demo1234
+- extendedWaitUntil:
+    visible:
+      id: consent_screen
+    timeout: 20000
+- assertVisible:
+    id: consent_accept
+- assertVisible:
+    id: consent_reject
+- assertVisible:
+    id: consent_privacy_policy
+- takeScreenshot: 10_consent_prompt
+- tapOn:
+    id: consent_reject
+- extendedWaitUntil:
+    visible:
+      id: home_title
+    timeout: 20000
+- tapOn:
+    id: home_settings_button
+- scrollUntilVisible:
+    element:
+      id: settings_consent_toggle
+    direction: DOWN
+- assertVisible:
+    id: settings_consent_toggle
+    checked: false
+- tapOn:
+    id: settings_consent_toggle
+- extendedWaitUntil:
+    visible:
+      id: settings_consent_toggle
+      checked: true
+    timeout: 20000
+- scrollUntilVisible:
+    element:
+      id: settings_logout_button
+    direction: DOWN
+- tapOn:
+    id: settings_logout_button
+- extendedWaitUntil:
+    visible:
+      id: login_title
+    timeout: 20000
+- runFlow:
+    file: ../subflows/login_with.yaml
+    env:
+      EMAIL: consent@example.com
+      PASSWORD: Demo1234
+- extendedWaitUntil:
+    visible:
+      id: home_title
+    timeout: 20000
+- waitForAnimationToEnd
+- assertNotVisible:
+    id: consent_screen
+- takeScreenshot: 10_home_after_second_login
