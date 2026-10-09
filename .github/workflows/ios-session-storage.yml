@@ -71,6 +71,9 @@ jobs:
           echo "Using $xcode_app"
           sudo xcode-select -s "$xcode_app"
 
+      - name: Check Xcode project and Package.resolved
+        run: bash scripts/ci/check-ios-project.sh "$RUNNER_TEMP/spm"
+
       - name: Build the current iOS app
         run: |
           set -o pipefail
