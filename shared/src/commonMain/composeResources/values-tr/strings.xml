@@ -62,4 +62,5 @@
     <string name="consent_accept">Kabul et</string>
     <string name="consent_reject">Reddet</string>
     <string name="consent_status_load_failed">Gizlilik tercihiniz alınamadı.</string>
+    <string name="settings_test_crash">Test çökmesi oluştur</string>
 </resources>

@@ -41,6 +41,7 @@ import myapplication.shared.generated.resources.settings_language
 import myapplication.shared.generated.resources.settings_consent_toggle_label
 import myapplication.shared.generated.resources.settings_logout
 import myapplication.shared.generated.resources.settings_privacy_title
+import myapplication.shared.generated.resources.settings_test_crash
 import myapplication.shared.generated.resources.settings_title
 import myapplication.shared.generated.resources.settings_version
 import org.jetbrains.compose.resources.stringResource
@@ -183,6 +184,21 @@ fun SettingsContent(
                     Text(stringResource(Res.string.settings_logout))
                 }
             }
+
+            // Last, below the logout button, so the layout above stays as it was. Only dev and stage
+            // builds bind a trigger; in prod there is no button and nothing to call.
+            if (state.showTestCrash) {
+                Spacer(modifier = Modifier.height(16.dp))
+
+                OutlinedButton(
+                    onClick = { onEvent(SettingsEvent.TestCrash) },
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .testTag(SettingsTestTags.TEST_CRASH)
+                ) {
+                    Text(stringResource(Res.string.settings_test_crash))
+                }
+            }
         }
     }
 }
@@ -295,6 +311,21 @@ private fun SettingsContentPreview() {
             versionName = "1.0",
             versionCode = 1,
             selectedLanguage = AppLanguage.TURKISH
+        ),
+        onEvent = {},
+        onBackClick = {}
+    )
+}
+
+@Preview
+@Composable
+private fun SettingsContentWithTestCrashPreview() {
+    SettingsContent(
+        state = SettingsState(
+            environmentName = "STAGE",
+            versionName = "1.0",
+            versionCode = 1,
+            showTestCrash = true
         ),
         onEvent = {},
         onBackClick = {}

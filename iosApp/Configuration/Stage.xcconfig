@@ -8,3 +8,5 @@ APP_DISPLAY_NAME = MyApplication Stage
 KOTLIN_FRAMEWORK_BUILD_TYPE = release
 // Resets any Local.xcconfig override; stage always uses the URL built into the app.
 KMP_BACKEND_URL =
+// Compiles the test crash action of Settings in (Prod.xcconfig does not set it).
+SWIFT_ACTIVE_COMPILATION_CONDITIONS = $(inherited) TEST_CRASH_ENABLED

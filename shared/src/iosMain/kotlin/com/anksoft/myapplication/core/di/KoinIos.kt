@@ -6,6 +6,8 @@ import com.anksoft.myapplication.core.crash.CrashReporter
 import com.anksoft.myapplication.core.crash.IosCrashReporter
 import com.anksoft.myapplication.core.crash.NativeCrashBridge
 import com.anksoft.myapplication.core.crash.PLATFORM_CRASH_REPORTER
+import com.anksoft.myapplication.core.crash.TestCrashTrigger
+import com.anksoft.myapplication.core.crash.ThrowingTestCrashTrigger
 import com.anksoft.myapplication.core.crash.installKotlinCrashHook
 import org.koin.core.KoinApplication
 import org.koin.core.qualifier.named
@@ -17,7 +19,8 @@ import org.koin.dsl.module
  * Swift sees this as `KoinIosKt.doInitKoin(...)`.
  *
  * [crashBridge] is the Swift Crashlytics bridge, or null when the build has no
- * `GoogleService-Info.plist`; crash reporting is then a no-op.
+ * `GoogleService-Info.plist`; crash reporting is then a no-op. [testCrashEnabled] is true only in
+ * the Swift configurations that define `TEST_CRASH_ENABLED` (Debug and Stage, never Release).
  */
 fun doInitKoin(
     environment: String,
@@ -25,12 +28,16 @@ fun doInitKoin(
     demoAllowed: Boolean,
     versionName: String,
     versionCode: String,
-    crashBridge: NativeCrashBridge?
+    crashBridge: NativeCrashBridge?,
+    testCrashEnabled: Boolean
 ): KoinApplication {
     val crashReporter = crashBridge?.let { IosCrashReporter(it) }
     val platformModule = module {
         if (crashReporter != null) {
             single<CrashReporter>(named(PLATFORM_CRASH_REPORTER)) { crashReporter }
+        }
+        if (testCrashEnabled) {
+            single<TestCrashTrigger> { ThrowingTestCrashTrigger }
         }
     }
     val app = initKoin(
