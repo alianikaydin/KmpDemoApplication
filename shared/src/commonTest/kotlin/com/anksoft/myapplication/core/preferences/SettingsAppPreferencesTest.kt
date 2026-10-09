@@ -187,7 +187,7 @@ class SettingsAppPreferencesTest {
         val preferences = SettingsAppPreferences(ThrowingSettings(failReads = true), logger)
 
         assertThat(preferences.themeMode.value).isEqualTo(ThemeMode.SYSTEM)
-        assertThat(writer.entries.map { it.severity }).contains(LogSeverity.WARN)
+        assertThat(writer.entries.map { it.message }).contains("Could not read the theme preference")
     }
 
     // AC-5

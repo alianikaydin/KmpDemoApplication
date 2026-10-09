@@ -11,7 +11,7 @@ pattern='Color\((0x|[0-9])|Color\.(White|Black|Red|Green|Blue|Gray|LightGray|Dar
 # git grep exits 0 on a match (violation), 1 on no match (success) and 2+ on an error such as a
 # bad pathspec or pattern; an error must not pass as "no match".
 set +e
-matches=$(git grep -nE "$pattern" -- '*.kt' shared androidApp webApp \
+matches=$(git grep -nE "$pattern" -- ':(glob)shared/**/*.kt' ':(glob)androidApp/**/*.kt' ':(glob)webApp/**/*.kt' \
     ':(glob,exclude)**/core/presentation/theme/**' ':(glob,exclude)**/build/**' \
     ':(glob,exclude)**/*Test*/**')
 rc=$?
