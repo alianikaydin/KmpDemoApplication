@@ -153,6 +153,12 @@ jobs:
         run: |
           mkdir -p "$OUT_DIR"
           echo setup > "$OUT_DIR/stage"
+          # Docker Hub rate-limits anonymous pulls from shared runners. Pull the backend's
+          # base images through Google's Docker Hub mirror and tag them with their Docker Hub
+          # names, so compose finds them locally and does not pull from Docker Hub.
+          for image in postgres:17-alpine eclipse-temurin:21-jre-noble; do
+            docker pull "mirror.gcr.io/library/$image" && docker tag "mirror.gcr.io/library/$image" "$image" || true
+          done
           cd backend
           bash scripts/server-up.sh || {
             echo "::error title=Infrastructure failure::Backend did not become ready on :8081"
