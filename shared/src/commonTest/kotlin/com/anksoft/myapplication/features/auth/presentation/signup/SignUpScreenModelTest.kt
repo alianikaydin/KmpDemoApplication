@@ -5,6 +5,7 @@ import assertk.assertions.hasSize
 import assertk.assertions.isEqualTo
 import assertk.assertions.isFalse
 import assertk.assertions.isInstanceOf
+import assertk.assertions.isNotNull
 import assertk.assertions.isNull
 import assertk.assertions.isTrue
 import com.anksoft.myapplication.core.domain.DataError
@@ -225,7 +226,7 @@ class SignUpScreenModelTest {
         model.onEvent(SignUpEvent.SignUpClicked)
 
         assertThat(auth.registerCalls).hasSize(0)
-        assertThat(model.state.value.emailError).isInstanceOf<UiText.Resource>()
+        assertThat(model.state.value.emailError).isNotNull().isInstanceOf<UiText.Resource>()
     }
 
     @Test
