@@ -19,3 +19,8 @@ captures
 node_modules/
 .agent/
 iosApp/Configuration/Local.xcconfig
+
+# Firebase configuration (docs/crash-reporting.md); only the *.example files are committed.
+androidApp/src/*/google-services.json
+androidApp/google-services.json
+iosApp/Firebase/*/GoogleService-Info.plist

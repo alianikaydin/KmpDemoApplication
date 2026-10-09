@@ -52,6 +52,14 @@ jobs:
           key: konan-${{ runner.os }}-${{ hashFiles('gradle/libs.versions.toml') }}
           restore-keys: konan-${{ runner.os }}-
 
+      # Firebase iOS SDK (Swift Package Manager). Keyed on the committed Package.resolved.
+      - name: Cache Swift packages
+        uses: actions/cache@v4
+        with:
+          path: ${{ runner.temp }}/spm
+          key: spm-${{ runner.os }}-${{ hashFiles('iosApp/iosApp.xcodeproj/project.xcworkspace/xcshareddata/swiftpm/Package.resolved') }}
+          restore-keys: spm-${{ runner.os }}-
+
       # Same Xcode selection as ui-tests.yml: the app needs the iOS 26 SDK.
       - name: Select Xcode
         run: |
@@ -63,6 +71,9 @@ jobs:
           echo "Using $xcode_app"
           sudo xcode-select -s "$xcode_app"
 
+      - name: Check Xcode project and Package.resolved
+        run: bash scripts/ui-tests/verify-ios-project.sh "$RUNNER_TEMP/spm"
+
       - name: Build the current iOS app
         run: |
           set -o pipefail
@@ -71,6 +82,7 @@ jobs:
           xcodebuild -project iosApp/iosApp.xcodeproj -scheme iosApp -configuration Debug \
             -sdk iphonesimulator -destination 'generic/platform=iOS Simulator' \
             -derivedDataPath build/ios \
+            -clonedSourcePackagesDirPath "$RUNNER_TEMP/spm" \
             CODE_SIGN_IDENTITY=- CODE_SIGN_STYLE=Manual DEVELOPMENT_TEAM= \
             build 2>&1 | tee "$OUT_DIR/xcodebuild.log"
 
@@ -90,6 +102,7 @@ jobs:
           xcodebuild -project iosApp/iosApp.xcodeproj -scheme iosApp -configuration Debug \
             -sdk iphonesimulator -destination 'generic/platform=iOS Simulator' \
             -derivedDataPath build/ios-legacy \
+            -clonedSourcePackagesDirPath "$RUNNER_TEMP/spm" \
             CODE_SIGN_IDENTITY=- CODE_SIGN_STYLE=Manual DEVELOPMENT_TEAM= \
             build 2>&1 | tee "$OUT_DIR/xcodebuild-legacy.log"
           git checkout -- shared/src/iosMain

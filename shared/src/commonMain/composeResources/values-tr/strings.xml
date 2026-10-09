@@ -1,6 +1,7 @@
 <resources>
     <!-- Common -->
     <string name="common_back">Geri</string>
+    <string name="common_retry">Tekrar dene</string>
 
     <!-- Home -->
     <string name="home_title">Ana Sayfa</string>
@@ -50,4 +51,16 @@
     <string name="error_server">Bir şeyler ters gitti. Lütfen tekrar deneyin.</string>
     <string name="error_unknown">Bir şeyler ters gitti. Lütfen tekrar deneyin.</string>
     <string name="error_session_expired">Oturumunuzun süresi doldu. Lütfen tekrar giriş yapın.</string>
+
+    <!-- Consent (the consent text itself comes from the backend, never from here) -->
+    <string name="consent_privacy_policy_link">Gizlilik politikası</string>
+    <string name="consent_texts_load_failed">Rıza metni yüklenemedi.</string>
+    <string name="consent_error_text_updated">Rıza metni güncellendi. Lütfen gözden geçirip tekrar deneyin.</string>
+    <string name="settings_privacy_title">Gizlilik</string>
+    <string name="settings_consent_toggle_label">İsteğe bağlı veri toplama</string>
+    <string name="consent_prompt_title">Gizlilik tercihiniz</string>
+    <string name="consent_accept">Kabul et</string>
+    <string name="consent_reject">Reddet</string>
+    <string name="consent_status_load_failed">Gizlilik tercihiniz alınamadı.</string>
+    <string name="settings_test_crash">Test çökmesi oluştur</string>
 </resources>

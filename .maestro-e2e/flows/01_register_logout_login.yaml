@@ -6,6 +6,18 @@ appId: ${APP_ID}
 - runFlow: ../../.maestro/subflows/launch_clean.yaml
 - tapOn:
     id: login_sign_up_link
+# The consent text comes from the real backend: the box must be shown and usable.
+- scrollUntilVisible:
+    element:
+      id: signup_consent_checkbox
+    direction: DOWN
+- assertVisible:
+    id: signup_consent_checkbox
+    enabled: true
+- scrollUntilVisible:
+    element:
+      id: signup_email_input
+    direction: UP
 - tapOn:
     id: signup_email_input
 - inputText: ${E2E_EMAIL}
@@ -16,12 +28,20 @@ appId: ${APP_ID}
     id: signup_confirm_password_input
 - inputText: ${E2E_PASSWORD}
 - hideKeyboard
+- scrollUntilVisible:
+    element:
+      id: signup_submit_button
+    direction: DOWN
 - tapOn:
     id: signup_submit_button
 - extendedWaitUntil:
     visible:
       id: home_title
     timeout: 30000
+# The box was left unchecked: the backend holds "denied", so no prompt.
+- waitForAnimationToEnd
+- assertNotVisible:
+    id: consent_screen
 - takeScreenshot: e2e_01_home_after_register
 - tapOn:
     id: home_settings_button
@@ -45,4 +65,7 @@ appId: ${APP_ID}
     visible:
       id: home_title
     timeout: 30000
+- waitForAnimationToEnd
+- assertNotVisible:
+    id: consent_screen
 - takeScreenshot: e2e_02_home_after_login

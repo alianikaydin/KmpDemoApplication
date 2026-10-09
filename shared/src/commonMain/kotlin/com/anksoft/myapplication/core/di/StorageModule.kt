@@ -1,6 +1,7 @@
 package com.anksoft.myapplication.core.di
 
 import com.anksoft.myapplication.core.preferences.AppPreferences
+import com.anksoft.myapplication.core.preferences.ContentLanguage
 import com.anksoft.myapplication.core.preferences.SettingsAppPreferences
 import com.anksoft.myapplication.core.storage.SessionManager
 import com.anksoft.myapplication.core.storage.createSecureSettings
@@ -13,4 +14,5 @@ val storageModule = module {
     single { createSecureSettings() }
     single { SessionManager(get()) }
     single<AppPreferences> { SettingsAppPreferences(get(AppPreferencesSettings), get()) }
+    single { ContentLanguage(get()) }
 }

@@ -11,6 +11,10 @@
 		<string>en</string>
 		<string>tr</string>
 	</array>
+	<key>FirebaseCrashlyticsCollectionEnabled</key>
+	<false/>
+	<key>FirebaseDataCollectionDefaultEnabled</key>
+	<false/>
 	<key>KMPBackendURL</key>
 	<string>$(KMP_BACKEND_URL)</string>
 	<key>KMPDemoAllowed</key>

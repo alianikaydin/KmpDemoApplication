@@ -1,4 +1,5 @@
 import SwiftUI
+import FirebaseCore
 import Shared
 
 @main
@@ -12,12 +13,29 @@ struct iOSApp: App {
         let demoAllowed = (info.object(forInfoDictionaryKey: "KMPDemoAllowed") as? String) == "YES"
         let versionName = info.object(forInfoDictionaryKey: "CFBundleShortVersionString") as? String ?? ""
         let versionCode = info.object(forInfoDictionaryKey: "CFBundleVersion") as? String ?? ""
+        // Crash reporting exists only when the build has a GoogleService-Info.plist for its
+        // environment (iosApp/Firebase/<env>/, copied in by a build phase). Without it the
+        // Firebase SDK is never started and the shared code gets no bridge, so it stays a no-op.
+        var crashBridge: NativeCrashBridge?
+        if Bundle.main.path(forResource: "GoogleService-Info", ofType: "plist") != nil {
+            FirebaseApp.configure()
+            crashBridge = FirebaseCrashBridge()
+        }
+        // The test crash action exists only in configurations that define TEST_CRASH_ENABLED
+        // (Dev and Stage .xcconfig). Release has no such condition, so prod never binds it.
+        #if TEST_CRASH_ENABLED
+        let testCrashEnabled = true
+        #else
+        let testCrashEnabled = false
+        #endif
         KoinIosKt.doInitKoin(
             environment: environment,
             backendUrl: backendUrl,
             demoAllowed: demoAllowed,
             versionName: versionName,
-            versionCode: versionCode
+            versionCode: versionCode,
+            crashBridge: crashBridge,
+            testCrashEnabled: testCrashEnabled
         )
     }
 

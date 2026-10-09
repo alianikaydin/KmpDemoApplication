@@ -26,7 +26,7 @@ env:
   MAESTRO_VERSION: "2.0.10"
   # KmpDemoBackend ref used by android-e2e. Bump it together with the contract
   # version (kmpdemo-contract in gradle/libs.versions.toml).
-  BACKEND_REF: contract-v0.1.0
+  BACKEND_REF: contract-v0.2.0
   # Read access to the contract library on GitHub Packages.
   ORG_GRADLE_PROJECT_kmpDemoBackendUsername: ${{ github.actor }}
   ORG_GRADLE_PROJECT_kmpDemoBackendPassword: ${{ secrets.GPR_READ_TOKEN }}
@@ -147,6 +147,18 @@ jobs:
           mkdir -p "$OUT_DIR"
           echo setup > "$OUT_DIR/stage"
           cd backend
+          # Docker Hub rate-limits anonymous pulls on shared runners. Pull the
+          # same official images (compose services and Dockerfile bases) from
+          # the AWS public mirror and tag them with their Docker Hub names, so
+          # compose and the build find them locally.
+          images=$(awk '/^[[:space:]]*image:/ { print $2 }' compose.yaml; awk '/^FROM / { print $2 }' server/Dockerfile)
+          for image in $images; do
+            case "$image" in
+              */*) ;;
+              *) docker pull "public.ecr.aws/docker/library/$image" \
+                   && docker tag "public.ecr.aws/docker/library/$image" "$image" || true ;;
+            esac
+          done
           bash scripts/server-up.sh || {
             echo "::error title=Infrastructure failure::Backend did not become ready on :8081"
             exit 2
@@ -254,6 +266,14 @@ jobs:
           key: konan-${{ runner.os }}-${{ hashFiles('gradle/libs.versions.toml') }}
           restore-keys: konan-${{ runner.os }}-
 
+      # Firebase iOS SDK (Swift Package Manager). Keyed on the committed Package.resolved.
+      - name: Cache Swift packages
+        uses: actions/cache@v4
+        with:
+          path: ${{ runner.temp }}/spm
+          key: spm-${{ runner.os }}-${{ hashFiles('iosApp/iosApp.xcodeproj/project.xcworkspace/xcshareddata/swiftpm/Package.resolved') }}
+          restore-keys: spm-${{ runner.os }}-
+
       # Compose Multiplatform links against iOS 26 SDK symbols (e.g. UIViewLayoutRegion),
       # so the app must be built with Xcode 26+; pick the newest one on the image.
       - name: Select Xcode
@@ -265,6 +285,9 @@ jobs:
           fi
           echo "Using $xcode_app"
           sudo xcode-select -s "$xcode_app"
+
+      - name: Check Xcode project and Package.resolved
+        run: bash scripts/ui-tests/verify-ios-project.sh "$RUNNER_TEMP/spm"
 
       - name: Build iOS app for the simulator
         run: |
@@ -278,6 +301,7 @@ jobs:
             -sdk iphonesimulator \
             -destination 'generic/platform=iOS Simulator' \
             -derivedDataPath build/ios \
+            -clonedSourcePackagesDirPath "$RUNNER_TEMP/spm" \
             CODE_SIGN_IDENTITY=- CODE_SIGN_STYLE=Manual DEVELOPMENT_TEAM= \
             build 2>&1 | tee "$OUT_DIR/xcodebuild.log"
 
@@ -318,6 +342,7 @@ jobs:
               -sdk iphonesimulator \
               -destination 'generic/platform=iOS Simulator' \
               -derivedDataPath "build/ios-$scheme" \
+              -clonedSourcePackagesDirPath "$RUNNER_TEMP/spm" \
               CODE_SIGN_IDENTITY=- CODE_SIGN_STYLE=Manual DEVELOPMENT_TEAM= \
               build 2>&1 | tee "$OUT_DIR/xcodebuild-$scheme.log"
           done

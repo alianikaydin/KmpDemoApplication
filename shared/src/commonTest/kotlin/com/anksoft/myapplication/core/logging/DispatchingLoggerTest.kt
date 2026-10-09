@@ -7,6 +7,7 @@ import assertk.assertions.isEmpty
 import assertk.assertions.isEqualTo
 import assertk.assertions.isFalse
 import assertk.assertions.isNull
+import assertk.assertions.isSameInstanceAs
 import kotlin.coroutines.cancellation.CancellationException
 import kotlin.test.Test
 import kotlin.test.assertFailsWith
@@ -120,5 +121,82 @@ class DispatchingLoggerTest {
         val (_, writer) = recordingLogger()
 
         assertThat(writer.entries).isEmpty()
+    }
+
+    // AC-12
+    @Test
+    fun remoteWriterReceivesThrowableWhilePlainWriterOnlySeesItsName() {
+        val plain = RecordingLogWriter()
+        val remote = RecordingRemoteLogWriter()
+        val logger = DispatchingLogger(LogSeverity.DEBUG, listOf(plain, remote))
+        val failure = IllegalStateException("boom")
+
+        logger.error("T", failure) { "failed" }
+
+        assertThat(remote.records.single().throwable).isSameInstanceAs(failure)
+        assertThat(plain.entries.single().throwableName).isEqualTo("IllegalStateException")
+    }
+
+    // AC-13: prod console shows WARN and above, crash reporting still wants INFO.
+    @Test
+    fun remoteWriterWithInfoMinimumGetsInfoEvenWhenConsoleMinimumIsWarn() {
+        val plain = RecordingLogWriter()
+        val remote = RecordingRemoteLogWriter(minSeverity = LogSeverity.INFO)
+        val logger = DispatchingLogger(LogSeverity.WARN, listOf(plain, remote))
+
+        logger.info("T") { "info" }
+        logger.warn("T") { "warn" }
+
+        assertThat(remote.records.map { it.entry.severity })
+            .isEqualTo(listOf(LogSeverity.INFO, LogSeverity.WARN))
+        assertThat(plain.entries.map { it.severity }).isEqualTo(listOf(LogSeverity.WARN))
+    }
+
+    // AC-13
+    @Test
+    fun debugEntryNeverReachesInfoMinimumRemoteWriter() {
+        val remote = RecordingRemoteLogWriter(minSeverity = LogSeverity.INFO)
+        val logger = DispatchingLogger(LogSeverity.DEBUG, listOf(remote))
+
+        logger.debug("T") { "debug" }
+
+        assertThat(remote.records).isEmpty()
+    }
+
+    @Test
+    fun messageIsNotBuiltWhenNoWriterAcceptsTheSeverity() {
+        val plain = RecordingLogWriter()
+        val remote = RecordingRemoteLogWriter(minSeverity = LogSeverity.INFO)
+        val logger = DispatchingLogger(LogSeverity.WARN, listOf(plain, remote))
+        var built = false
+
+        logger.debug("T") { built = true; "debug" }
+
+        assertThat(built).isFalse()
+    }
+
+    @Test
+    fun throwingRemoteWriterDoesNotStopOtherWriters() {
+        val broken = object : RemoteLogWriter {
+            override val minSeverity = LogSeverity.INFO
+            override fun write(entry: LogEntry, throwable: Throwable?) {
+                throw IllegalStateException("boom")
+            }
+        }
+        val recording = RecordingLogWriter()
+        val logger = DispatchingLogger(LogSeverity.DEBUG, listOf(broken, recording))
+
+        logger.error("T") { "still delivered" }
+
+        assertThat(recording.entries.single().message).isEqualTo("still delivered")
+    }
+
+    @Test
+    fun remoteWriterCalledThroughThePlainInterfaceGetsNoThrowable() {
+        val remote = RecordingRemoteLogWriter()
+
+        (remote as LogWriter).write(LogEntry(LogSeverity.INFO, "T", "plain call"))
+
+        assertThat(remote.records.single().throwable).isNull()
     }
 }

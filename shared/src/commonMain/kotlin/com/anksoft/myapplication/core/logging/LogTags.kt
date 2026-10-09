@@ -7,4 +7,6 @@ object LogTags {
     const val HTTP = "Http"
     const val AUTH = "Auth"
     const val SESSION = "Session"
+    const val CONSENT = "Consent"
+    const val CRASH = "Crash"
 }
