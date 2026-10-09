@@ -145,7 +145,8 @@ fun SettingsContent(
                     .fillMaxWidth()
                     .testTag(SettingsTestTags.LOGOUT_BUTTON),
                 colors = ButtonDefaults.buttonColors(
-                    containerColor = MaterialTheme.colorScheme.error
+                    containerColor = MaterialTheme.colorScheme.error,
+                    contentColor = MaterialTheme.colorScheme.onError
                 ),
                 enabled = !state.isLoading
             ) {

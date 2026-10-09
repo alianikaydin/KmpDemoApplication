@@ -1,10 +1,10 @@
 package com.anksoft.myapplication
 
-import androidx.compose.material3.MaterialTheme
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
+import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.compose.runtime.remember
 import androidx.compose.ui.tooling.preview.Preview
 import cafe.adriel.voyager.navigator.Navigator
@@ -12,6 +12,8 @@ import cafe.adriel.voyager.transitions.SlideTransition
 import com.anksoft.myapplication.core.preferences.AppPreferences
 import com.anksoft.myapplication.core.presentation.locale.LocaleKeyedContent
 import com.anksoft.myapplication.core.presentation.locale.ProvideAppLocale
+import com.anksoft.myapplication.core.presentation.theme.AppTheme
+import com.anksoft.myapplication.core.presentation.theme.PlatformThemeEffect
 import com.anksoft.myapplication.core.session.SessionExpiry
 import com.anksoft.myapplication.core.storage.SessionManager
 import com.anksoft.myapplication.features.auth.presentation.login.LoginScreen
@@ -26,6 +28,11 @@ fun App() {
     val sessionExpiry = koinInject<SessionExpiry>()
     val appPreferences = koinInject<AppPreferences>()
     val language by appPreferences.language.collectAsState()
+    val themeMode by appPreferences.themeMode.collectAsState()
+    // Read above ProvideAppLocale so it is the real system configuration.
+    val systemInDarkTheme = isSystemInDarkTheme()
+    val darkTheme = themeMode.isDark(systemInDarkTheme)
+    PlatformThemeEffect(themeMode, darkTheme)
     // Remembered once: App recomposes when the language changes and must not hand the
     // Navigator a new initial screen.
     val initialScreen = remember {
@@ -33,7 +40,8 @@ fun App() {
     }
 
     ProvideAppLocale(language) {
-        MaterialTheme {
+        // No key() on the theme: a theme change only recomposes, the back stack survives (AC-5).
+        AppTheme(darkTheme = darkTheme) {
             Navigator(initialScreen) { navigator ->
                 // An expired session leaves no screen worth keeping: back to Login, no way back.
                 LaunchedEffect(navigator) {
