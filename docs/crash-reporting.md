@@ -88,9 +88,9 @@ files are **not committed** (`.gitignore`); only `*.example` files are.
 
 1. Copy the `*.example` file next to where the real one goes, drop the `.example` suffix and fill
    in the values from the Firebase console (or download the file from the console).
-2. Android: with at least one `google-services.json` present, `androidApp` applies the Google
-   Services and Crashlytics Gradle plugins. A flavor without its own file only gets a warning.
-   With no file at all the plugins are not applied and the app runs with the no-op reporter.
+2. Android: `androidApp` always applies the Google Services and Crashlytics Gradle plugins, with
+   `missingGoogleServicesStrategy = WARN`. A flavor without its own file only gets a warning and the
+   app runs with the no-op reporter.
 3. iOS: a build phase copies `iosApp/Firebase/<env>/GoogleService-Info.plist` into the app. A
    missing file prints `warning: Firebase config missing ...`; the app starts without crash
    reporting.
@@ -114,8 +114,8 @@ the supported no-op path.
 
 1. Register the app in the Firebase console with the application / bundle id from the table.
 2. Download the config file to the path in the table and keep it out of git.
-3. For a new environment, add the flavor (`androidApp/build.gradle.kts`), the xcconfig and the
-   `firebaseConfigPresent` path list in `androidApp/build.gradle.kts`, and extend this table.
+3. For a new environment, add the flavor (`androidApp/build.gradle.kts`) and the xcconfig, and
+   extend this table. The Gradle plugins pick the new flavor's `google-services.json` up on their own.
 4. To use another Firebase project, replace the files; nothing in the code names a project.
 
 ## Test crash and end-to-end check
@@ -141,7 +141,8 @@ action crashes the app but nothing is sent.
 - On iOS the Firebase SDK has no on-demand fatal API, so a fatal Kotlin crash can appear as two
   records (the Kotlin error and the process abort).
 - Android R8 is off (`docs/environments.md`), so there is no mapping file to upload yet. When R8 is
-  turned on, check the mapping upload per flavor; flavors without a config file must disable it.
+  turned on, check the mapping upload per flavor; the Crashlytics plugin is applied to every flavor,
+  so flavors without a config file must disable it.
 - Fatal crashes on Android show a sanitized throwable in Logcat as well (type name and stack, no
   message) when a Firebase config is present. Use a build without the config file to see messages.
 

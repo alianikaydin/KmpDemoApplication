@@ -1,3 +1,4 @@
+import com.google.gms.googleservices.GoogleServicesPlugin.MissingGoogleServicesStrategy
 import org.jetbrains.kotlin.gradle.dsl.JvmTarget
 import java.io.StringReader
 import java.util.Properties
@@ -5,6 +6,8 @@ import java.util.Properties
 plugins {
     alias(libs.plugins.androidApplication)
     alias(libs.plugins.composeCompiler)
+    alias(libs.plugins.googleServices)
+    alias(libs.plugins.firebaseCrashlytics)
 }
 
 kotlin {
@@ -38,29 +41,11 @@ require(backendUrl.isEmpty() || Regex("^https?://[^\\s\"\\\\$]+$").matches(backe
     "kmpBackendUrl must start with http:// or https:// and contain no spaces, quotes, backslashes or '$'"
 }
 
-// Firebase config files are not in the repo (docs/crash-reporting.md). The Google Services and
-// Crashlytics Gradle plugins are applied only when at least one of them exists, so a build without
-// them (CI, outside contributors) is exactly the build it was before Firebase: AC-19.
-val firebaseConfigPresent: Boolean =
-    listOf("", "src/dev/", "src/stage/", "src/prod/").any { dir -> file("${dir}google-services.json").exists() }
-
-if (firebaseConfigPresent) {
-    val googleServicesId = libs.plugins.googleServices.get().pluginId
-    pluginManager.apply(googleServicesId)
-    pluginManager.apply(libs.plugins.firebaseCrashlytics.get().pluginId)
-
-    // A flavor without its own file must warn instead of failing the build. The setter is called by
-    // reflection so this script compiles (and the no-file build works) even if the plugin's
-    // class names move between versions.
-    val googleServicesConfig = extensions.getByName("googleServices")
-    val strategyType = Class.forName(
-        "com.google.gms.googleservices.GoogleServicesPlugin\$MissingGoogleServicesStrategy",
-        true,
-        googleServicesConfig.javaClass.classLoader
-    )
-    val warn = strategyType.enumConstants.first { (it as Enum<*>).name == "WARN" }
-    googleServicesConfig.javaClass.getMethod("setMissingGoogleServicesStrategy", strategyType)
-        .invoke(googleServicesConfig, warn)
+// Firebase config files are not in the repo (docs/crash-reporting.md). A flavor without its
+// google-services.json warns instead of failing, so builds without the files (CI, outside
+// contributors) stay green and the SDK stays inert: AC-19.
+googleServices {
+    missingGoogleServicesStrategy = MissingGoogleServicesStrategy.WARN
 }
 
 dependencies {
