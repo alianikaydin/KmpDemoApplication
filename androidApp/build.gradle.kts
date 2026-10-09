@@ -57,7 +57,10 @@ dependencies {
 
     // Crashlytics SDK. Without a google-services.json no FirebaseApp exists and the SDK stays
     // inert, so crash reporting falls back to the no-op reporter.
+    implementation(platform(libs.firebase.bom))
     implementation(libs.firebase.crashlytics)
+    // Used directly (FID deletion), so declared instead of relying on the transitive dependency.
+    implementation(libs.firebase.installations)
 
     implementation(libs.compose.uiToolingPreview)
     debugImplementation(libs.compose.uiTooling)
