@@ -47,6 +47,19 @@ class InstallIdStoreTest {
     }
 
     @Test
+    fun failedReadKeepsOneIdForTheProcessAndDoesNotOverwriteTheStoredOne() {
+        val settings = ThrowingSettings(failReads = true)
+        settings.putString(INSTALL_ID_KEY, "existing-id")
+        val store = InstallIdStore({ settings })
+
+        val first = store.getOrCreate()
+
+        assertThat(store.getOrCreate()).isEqualTo(first)
+        settings.failReads = false
+        assertThat(settings.getStringOrNull(INSTALL_ID_KEY)).isEqualTo("existing-id")
+    }
+
+    @Test
     fun storageThatCannotBeResolvedDoesNotThrow() {
         val store = InstallIdStore({ error("no storage") })
 
