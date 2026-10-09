@@ -11,4 +11,8 @@ data class ConsentTexts(
     /** Only https links are opened; anything else the backend sends is shown without a link. */
     val hasSafePolicyUrl: Boolean
         get() = policyUrl.startsWith("https://")
+
+    /** [policyUrl] when it may be opened, otherwise null. */
+    val safePolicyUrl: String?
+        get() = policyUrl.takeIf { hasSafePolicyUrl }
 }

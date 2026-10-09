@@ -239,7 +239,7 @@ private fun ConsentSection(state: SignUpState, onEvent: (SignUpEvent) -> Unit) {
                 Spacer(modifier = Modifier.width(12.dp))
                 ConsentDescription(texts = load.texts, modifier = Modifier.weight(1f))
             }
-            PrivacyPolicyLink(texts = load.texts, testTag = SignUpTestTags.PRIVACY_POLICY)
+            PrivacyPolicyLink(url = load.texts.safePolicyUrl, testTag = SignUpTestTags.PRIVACY_POLICY)
         }
 
         is ConsentTextsLoad.Failed -> ConsentTextsError(

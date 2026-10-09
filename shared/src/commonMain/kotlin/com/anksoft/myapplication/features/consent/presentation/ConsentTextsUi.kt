@@ -10,7 +10,9 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalUriHandler
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.semantics.LiveRegionMode
+import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.semantics.liveRegion
+import androidx.compose.ui.semantics.role
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.unit.dp
 import com.anksoft.myapplication.features.consent.domain.model.ConsentTexts
@@ -33,16 +35,20 @@ fun ConsentDescription(texts: ConsentTexts, modifier: Modifier = Modifier) {
     }
 }
 
-/** Opens the privacy policy. Shown only for an https link; anything else is not offered (AC-1). */
+/**
+ * Opens the privacy policy. Pass [ConsentTexts.safePolicyUrl]: a null link (not https, or no text
+ * yet) shows nothing (AC-1).
+ */
 @Composable
-fun PrivacyPolicyLink(texts: ConsentTexts, testTag: String, modifier: Modifier = Modifier) {
-    if (!texts.hasSafePolicyUrl) return
+fun PrivacyPolicyLink(url: String?, testTag: String, modifier: Modifier = Modifier) {
+    if (url == null) return
     val uriHandler = LocalUriHandler.current
     TextButton(
         // Some platforms have no handler for a link; that must not crash the screen.
-        onClick = { runCatching { uriHandler.openUri(texts.policyUrl) } },
+        onClick = { runCatching { uriHandler.openUri(url) } },
         modifier = modifier
             .heightIn(min = 48.dp)
+            .semantics { role = Role.Button }
             .testTag(testTag)
     ) {
         Text(stringResource(Res.string.consent_privacy_policy_link))

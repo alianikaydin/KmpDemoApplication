@@ -56,4 +56,10 @@
     <string name="consent_privacy_policy_link">Privacy policy</string>
     <string name="consent_texts_load_failed">Couldn\'t load the consent text.</string>
     <string name="consent_error_text_updated">The consent text was updated. Please review it and try again.</string>
+    <string name="settings_privacy_title">Privacy</string>
+    <string name="settings_consent_toggle_label">Optional data collection</string>
+    <string name="consent_prompt_title">Your privacy choice</string>
+    <string name="consent_accept">Accept</string>
+    <string name="consent_reject">Reject</string>
+    <string name="consent_status_load_failed">Couldn\'t load your privacy choice.</string>
 </resources>
