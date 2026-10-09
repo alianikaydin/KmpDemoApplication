@@ -3,7 +3,9 @@ package com.anksoft.myapplication.core.storage
 import assertk.assertThat
 import assertk.assertions.isEmpty
 import assertk.assertions.isEqualTo
+import assertk.assertions.isFalse
 import assertk.assertions.isNull
+import assertk.assertions.isTrue
 import com.anksoft.myapplication.core.logging.NoOpLogger
 import com.anksoft.myapplication.core.preferences.AppLanguage
 import com.anksoft.myapplication.core.preferences.LANGUAGE_KEY
@@ -67,6 +69,55 @@ class SessionManagerTest {
         assertThat(shared.keys).isEqualTo(setOf(LANGUAGE_KEY))
         assertThat(SettingsAppPreferences(shared, NoOpLogger).language.value)
             .isEqualTo(AppLanguage.TURKISH)
+    }
+
+    // N2
+    @Test
+    fun replaceTokensStoresBothTokensWhenTheRefreshTokenIsStillTheExpectedOne() {
+        val sessionManager = SessionManager(MapSettings()).apply { saveAll() }
+
+        val replaced = sessionManager.replaceTokensIfRefreshTokenIs("refresh-456", "access-2", "refresh-2")
+
+        assertThat(replaced).isTrue()
+        assertThat(sessionManager.getToken()).isEqualTo("access-2")
+        assertThat(sessionManager.getRefreshToken()).isEqualTo("refresh-2")
+    }
+
+    // N2
+    @Test
+    fun replaceTokensWritesNothingWhenAnotherSessionOwnsTheStore() {
+        val sessionManager = SessionManager(MapSettings()).apply { saveAll() }
+
+        val replaced = sessionManager.replaceTokensIfRefreshTokenIs("refresh-of-account-a", "access-2", "refresh-2")
+
+        assertThat(replaced).isFalse()
+        assertThat(sessionManager.getToken()).isEqualTo("access-123")
+        assertThat(sessionManager.getRefreshToken()).isEqualTo("refresh-456")
+    }
+
+    // N2
+    @Test
+    fun replaceTokensWritesNothingWhenThereIsNoSession() {
+        val settings = MapSettings()
+        val sessionManager = SessionManager(settings)
+
+        val replaced = sessionManager.replaceTokensIfRefreshTokenIs("refresh-456", "access-2", "refresh-2")
+
+        assertThat(replaced).isFalse()
+        assertThat(settings.keys).isEmpty()
+    }
+
+    // N2
+    @Test
+    fun theSessionCanBeReadAndWrittenInsideTheSessionLock() {
+        val sessionManager = SessionManager(MapSettings())
+
+        val seen = sessionManager.withSessionLock {
+            sessionManager.saveToken("access-123")
+            sessionManager.getToken()
+        }
+
+        assertThat(seen).isEqualTo("access-123")
     }
 
     private fun SessionManager.saveAll() {

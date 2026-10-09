@@ -26,13 +26,21 @@ class SessionExpiry(
     /**
      * Clears the session, tells the observers and emits on [events]. A second call for the same
      * session is a no-op because there is nothing left to clear.
+     *
+     * The check, the clearing and the notifications run under the session lock, so a sign-in on
+     * another thread cannot slip in between and then be told it was signed out.
      */
     fun expire() {
-        if (sessionManager.getToken() == null && sessionManager.getRefreshToken() == null) return
-        sessionManager.clear()
-        noticePending.value = true
-        observers.value.forEach { it.onSignedOut(SignOutReason.EXPIRED) }
-        _events.tryEmit(Unit)
+        // Resolved before the lock is taken: building the observers may take locks of its own.
+        val sessionObservers = observers.value
+        sessionManager.withSessionLock {
+            if (sessionManager.getToken() != null || sessionManager.getRefreshToken() != null) {
+                sessionManager.clear()
+                noticePending.value = true
+                sessionObservers.forEach { it.onSignedOut(SignOutReason.EXPIRED) }
+                _events.tryEmit(Unit)
+            }
+        }
     }
 
     /** True exactly once after an expiry, so Login shows its "session expired" notice a single time. */

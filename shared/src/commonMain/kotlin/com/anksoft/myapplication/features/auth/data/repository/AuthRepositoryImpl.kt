@@ -34,9 +34,12 @@ class AuthRepositoryImpl(
         remoteDataSource.register(email, password).map { it.persistSession() }.logOutcome("register")
 
     override suspend fun logout() {
-        sessionManager.clear()
-        tokenCache.clear()
-        sessionObservers.forEach { it.onSignedOut(SignOutReason.USER_LOGOUT) }
+        // One step against token refresh and session expiry running on other threads.
+        sessionManager.withSessionLock {
+            sessionManager.clear()
+            tokenCache.clear()
+            sessionObservers.forEach { it.onSignedOut(SignOutReason.USER_LOGOUT) }
+        }
     }
 
     override suspend fun getCurrentUser(): User? {
@@ -55,16 +58,19 @@ class AuthRepositoryImpl(
      * next launch. The password is never stored (AC-1.8).
      */
     private fun AuthResponseDto.persistSession(): User {
-        // Drop the previous account's cached bearer token before the new one is stored.
-        tokenCache.clear()
-        sessionManager.saveToken(accessToken)
-        refreshToken?.let(sessionManager::saveRefreshToken)
         val domainUser = user.toUser()
-        sessionManager.saveUserId(domainUser.id)
-        sessionManager.saveUserEmail(domainUser.email)
-        domainUser.name?.let(sessionManager::saveUserName)
-        // Observers run last, so they see the stored session.
-        sessionObservers.forEach { it.onSignedIn() }
+        // One step against token refresh and session expiry running on other threads.
+        sessionManager.withSessionLock {
+            // Drop the previous account's cached bearer token before the new one is stored.
+            tokenCache.clear()
+            sessionManager.saveToken(accessToken)
+            refreshToken?.let(sessionManager::saveRefreshToken)
+            sessionManager.saveUserId(domainUser.id)
+            sessionManager.saveUserEmail(domainUser.email)
+            domainUser.name?.let(sessionManager::saveUserName)
+            // Observers run last, so they see the stored session.
+            sessionObservers.forEach { it.onSignedIn() }
+        }
         return domainUser
     }
 }

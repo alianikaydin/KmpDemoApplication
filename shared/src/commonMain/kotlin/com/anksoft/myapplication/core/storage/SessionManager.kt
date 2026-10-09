@@ -12,8 +12,39 @@ import com.russhwolf.settings.Settings
  *
  * Storage failures (e.g. a Keychain error) are treated as "no value" so a broken
  * store sends the user to Login instead of crashing the app.
+ *
+ * Every access goes through one re-entrant lock, and [withSessionLock] lets a caller run a
+ * compound change (check, then write; clear, then notify) as one step against the other threads
+ * that touch the session.
  */
 class SessionManager(private val settings: Settings) {
+
+    private val lock = createSessionLock()
+
+    /**
+     * Runs [block] while holding the session lock. The lock is re-entrant, so [block] may call
+     * the other methods of this class. Keep it short and never suspend inside it.
+     */
+    fun <T> withSessionLock(block: () -> T): T = lock.withLock(block)
+
+    /**
+     * Stores a rotated token pair, but only if the stored refresh token is still
+     * [expectedRefreshToken]. Returns false (and writes nothing) when the session changed since
+     * the caller read it, for example because the user logged out and signed in again.
+     */
+    fun replaceTokensIfRefreshTokenIs(
+        expectedRefreshToken: String,
+        accessToken: String,
+        refreshToken: String
+    ): Boolean = withSessionLock {
+        if (getRefreshToken() == expectedRefreshToken) {
+            saveToken(accessToken)
+            saveRefreshToken(refreshToken)
+            true
+        } else {
+            false
+        }
+    }
 
     fun saveToken(token: String) {
         write(KEY_TOKEN, token)
@@ -47,18 +78,18 @@ class SessionManager(private val settings: Settings) {
 
     /** Wipes every session key. Called on logout and on refresh failure (AC-5.3). */
     fun clear() {
-        SESSION_KEYS.forEach(::delete)
+        withSessionLock { SESSION_KEYS.forEach(::delete) }
     }
 
     private fun read(key: String): String? =
-        runCatching { settings.getStringOrNull(key) }.getOrNull()
+        withSessionLock { runCatching { settings.getStringOrNull(key) }.getOrNull() }
 
     private fun write(key: String, value: String) {
-        runCatching { settings.putString(key, value) }
+        withSessionLock { runCatching { settings.putString(key, value) } }
     }
 
     private fun delete(key: String) {
-        runCatching { settings.remove(key) }
+        withSessionLock { runCatching { settings.remove(key) } }
     }
 
     companion object {
