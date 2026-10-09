@@ -8,6 +8,8 @@ import com.anksoft.myapplication.core.logging.NoOpLogger
 import com.anksoft.myapplication.core.preferences.AppLanguage
 import com.anksoft.myapplication.core.preferences.LANGUAGE_KEY
 import com.anksoft.myapplication.core.preferences.SettingsAppPreferences
+import com.anksoft.myapplication.core.preferences.THEME_KEY
+import com.anksoft.myapplication.core.preferences.ThemeMode
 import com.russhwolf.settings.MapSettings
 import kotlin.test.Test
 
@@ -67,6 +69,21 @@ class SessionManagerTest {
         assertThat(shared.keys).isEqualTo(setOf(LANGUAGE_KEY))
         assertThat(SettingsAppPreferences(shared, NoOpLogger).language.value)
             .isEqualTo(AppLanguage.TURKISH)
+    }
+
+    // AC-7
+    @Test
+    fun clearKeepsTheThemePreferenceEvenWhenBothShareOneStorage() {
+        val shared = MapSettings()
+        val sessionManager = SessionManager(shared).apply { saveAll() }
+        SettingsAppPreferences(shared, NoOpLogger).setThemeMode(ThemeMode.DARK)
+
+        sessionManager.clear()
+
+        assertThat(sessionManager.getToken()).isNull()
+        assertThat(shared.keys).isEqualTo(setOf(THEME_KEY))
+        assertThat(SettingsAppPreferences(shared, NoOpLogger).themeMode.value)
+            .isEqualTo(ThemeMode.DARK)
     }
 
     private fun SessionManager.saveAll() {

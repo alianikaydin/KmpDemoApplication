@@ -122,4 +122,108 @@ class SettingsAppPreferencesTest {
         assertThat(entry.severity).isEqualTo(LogSeverity.DEBUG)
         assertThat(entry.message).isEqualTo("Language set to TURKISH")
     }
+
+    // AC-1
+    @Test
+    fun themeIsSystemWhenNothingIsStored() {
+        assertThat(preferences().themeMode.value).isEqualTo(ThemeMode.SYSTEM)
+    }
+
+    // AC-5
+    @Test
+    fun settingAThemeIsPublishedToCollectors() = runTest {
+        val preferences = preferences()
+
+        preferences.themeMode.test {
+            assertThat(awaitItem()).isEqualTo(ThemeMode.SYSTEM)
+
+            preferences.setThemeMode(ThemeMode.DARK)
+
+            assertThat(awaitItem()).isEqualTo(ThemeMode.DARK)
+        }
+    }
+
+    // AC-6
+    @Test
+    fun newInstanceReadsTheThemeStoredByThePreviousOne() {
+        preferences().setThemeMode(ThemeMode.DARK)
+
+        assertThat(preferences().themeMode.value).isEqualTo(ThemeMode.DARK)
+    }
+
+    // AC-1
+    @Test
+    fun choosingSystemThemeRemovesTheStoredKey() {
+        val preferences = preferences()
+        preferences.setThemeMode(ThemeMode.LIGHT)
+
+        preferences.setThemeMode(ThemeMode.SYSTEM)
+
+        assertThat(settings.getStringOrNull(THEME_KEY)).isNull()
+        assertThat(preferences().themeMode.value).isEqualTo(ThemeMode.SYSTEM)
+    }
+
+    // AC-1
+    @Test
+    fun unknownStoredThemeFallsBackToSystem() {
+        settings.putString(THEME_KEY, "sepia")
+
+        assertThat(preferences().themeMode.value).isEqualTo(ThemeMode.SYSTEM)
+    }
+
+    // AC-15
+    @Test
+    fun themeIsStoredUnderTheAppPrefsPrefix() {
+        preferences().setThemeMode(ThemeMode.DARK)
+
+        assertThat(settings.keys).isEqualTo(setOf("app_prefs.theme"))
+        assertThat(settings.getStringOrNull("app_prefs.theme")).isEqualTo("dark")
+    }
+
+    @Test
+    fun failedThemeReadFallsBackToSystemAndLogsAWarning() {
+        val (logger, writer) = recordingLogger()
+
+        val preferences = SettingsAppPreferences(ThrowingSettings(failReads = true), logger)
+
+        assertThat(preferences.themeMode.value).isEqualTo(ThemeMode.SYSTEM)
+        assertThat(writer.entries.map { it.severity }).contains(LogSeverity.WARN)
+    }
+
+    // AC-5
+    @Test
+    fun failedThemeWriteStillAppliesTheChoiceForThisSession() {
+        val (logger, writer) = recordingLogger()
+        val preferences = SettingsAppPreferences(ThrowingSettings(failWrites = true), logger)
+
+        preferences.setThemeMode(ThemeMode.DARK)
+
+        assertThat(preferences.themeMode.value).isEqualTo(ThemeMode.DARK)
+        assertThat(writer.entries.map { it.severity }).contains(LogSeverity.WARN)
+    }
+
+    @Test
+    fun changingTheThemeLogsOneDebugEntryWithTheThemeName() {
+        val (logger, writer) = recordingLogger()
+        val preferences = SettingsAppPreferences(settings, logger)
+
+        preferences.setThemeMode(ThemeMode.DARK)
+
+        val entry = writer.entries.single()
+        assertThat(entry.severity).isEqualTo(LogSeverity.DEBUG)
+        assertThat(entry.message).isEqualTo("Theme set to DARK")
+    }
+
+    // AC-7
+    @Test
+    fun themeAndLanguageAreIndependent() {
+        val preferences = preferences()
+
+        preferences.setThemeMode(ThemeMode.DARK)
+        preferences.setLanguage(AppLanguage.TURKISH)
+        preferences.setThemeMode(ThemeMode.SYSTEM)
+
+        assertThat(preferences().language.value).isEqualTo(AppLanguage.TURKISH)
+        assertThat(preferences().themeMode.value).isEqualTo(ThemeMode.SYSTEM)
+    }
 }
