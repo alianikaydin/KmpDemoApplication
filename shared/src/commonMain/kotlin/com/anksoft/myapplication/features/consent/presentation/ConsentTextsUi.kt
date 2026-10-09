@@ -10,9 +10,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalUriHandler
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.semantics.LiveRegionMode
-import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.semantics.liveRegion
-import androidx.compose.ui.semantics.role
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.unit.dp
 import com.anksoft.myapplication.features.consent.domain.model.ConsentTexts
@@ -48,7 +46,6 @@ fun PrivacyPolicyLink(url: String?, testTag: String, modifier: Modifier = Modifi
         onClick = { runCatching { uriHandler.openUri(url) } },
         modifier = modifier
             .heightIn(min = 48.dp)
-            .semantics { role = Role.Button }
             .testTag(testTag)
     ) {
         Text(stringResource(Res.string.consent_privacy_policy_link))
