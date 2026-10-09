@@ -33,9 +33,15 @@ Seed users of the mock backend:
 | `demo@example.com` | `Demo1234` | granted, so the prompt never shows in the other flows |
 | `consent@example.com` | `Demo1234` | none, so the prompt shows after login (flows 10 and 11) |
 
-On iOS, Compose does not expose the on/off state of a checkbox or switch, so the two consent rows mark
-themselves as selected while they are on (`exposeToggleState`); Maestro reads that as `checked`. The sign-up
-flows submit with the keyboard's Done key on iOS (`submit_signup`), because the keyboard covers the button.
+Maestro cannot read the on/off state of the consent controls on iOS: Compose does not expose the state
+of a checkbox or switch to XCUITest (the iOS hierarchy shows only `id`, `accessibilityText` and `enabled`, and
+`checked: true` never matches; see the `ios-ui` run of PR #21, commit `0c2b681`, where marking the row as
+selected changed nothing). Next to each consent control there is therefore an invisible 1dp marker with no
+text and no description (so a screen reader announces nothing) whose tag says the state:
+`signup_consent_state_on` / `signup_consent_state_off` and `settings_consent_state_on` /
+`settings_consent_state_off`. Exactly one of each pair is on screen. Flows 08 to 11 assert the marker on both
+platforms and also assert `checked:` on Android. The sign-up flows submit with the keyboard's Done key on iOS
+(`submit_signup`), because the keyboard covers the submit button.
 
 `dismiss_consent_prompt` is a safety step after each login: if the prompt is on screen it rejects it,
 otherwise it does nothing. The mock keeps decisions in memory only, so they are lost when the app

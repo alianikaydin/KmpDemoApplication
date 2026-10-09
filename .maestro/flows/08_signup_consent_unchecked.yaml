@@ -10,8 +10,14 @@ appId: ${APP_ID}
       id: signup_consent_checkbox
     direction: DOWN
 - assertVisible:
-    id: signup_consent_checkbox
-    checked: false
+    id: signup_consent_state_off
+- runFlow:
+    when:
+      platform: Android
+    commands:
+      - assertVisible:
+          id: signup_consent_checkbox
+          checked: false
 - assertVisible:
     id: signup_privacy_policy
 - scrollUntilVisible:
@@ -43,6 +49,12 @@ appId: ${APP_ID}
       id: settings_consent_toggle
     direction: DOWN
 - assertVisible:
-    id: settings_consent_toggle
-    checked: false
+    id: settings_consent_state_off
+- runFlow:
+    when:
+      platform: Android
+    commands:
+      - assertVisible:
+          id: settings_consent_toggle
+          checked: false
 - takeScreenshot: fresh1_settings

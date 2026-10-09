@@ -26,15 +26,27 @@ appId: ${APP_ID}
       id: settings_consent_toggle
     direction: DOWN
 - assertVisible:
-    id: settings_consent_toggle
-    checked: true
+    id: settings_consent_state_on
+- runFlow:
+    when:
+      platform: Android
+    commands:
+      - assertVisible:
+          id: settings_consent_toggle
+          checked: true
 - tapOn:
     id: settings_consent_toggle
 - extendedWaitUntil:
     visible:
-      id: settings_consent_toggle
-      checked: false
+      id: settings_consent_state_off
     timeout: 20000
+- runFlow:
+    when:
+      platform: Android
+    commands:
+      - assertVisible:
+          id: settings_consent_toggle
+          checked: false
 - scrollUntilVisible:
     element:
       id: settings_logout_button

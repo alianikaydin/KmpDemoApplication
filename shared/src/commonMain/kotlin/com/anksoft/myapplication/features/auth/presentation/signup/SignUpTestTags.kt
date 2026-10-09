@@ -9,4 +9,7 @@ internal object SignUpTestTags {
     const val CONSENT_CHECKBOX = "signup_consent_checkbox"
     const val PRIVACY_POLICY = "signup_privacy_policy"
     const val CONSENT_RETRY = "signup_consent_retry"
+    /** Exactly one of these is on screen: it tells UI automation whether the box is checked. */
+    const val CONSENT_STATE_ON = "signup_consent_state_on"
+    const val CONSENT_STATE_OFF = "signup_consent_state_off"
 }

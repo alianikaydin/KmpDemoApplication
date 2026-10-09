@@ -10,16 +10,28 @@ appId: ${APP_ID}
       id: signup_consent_checkbox
     direction: DOWN
 - assertVisible:
-    id: signup_consent_checkbox
-    checked: false
+    id: signup_consent_state_off
+- runFlow:
+    when:
+      platform: Android
+    commands:
+      - assertVisible:
+          id: signup_consent_checkbox
+          checked: false
 - assertVisible:
     id: signup_privacy_policy
 # Check the box first: later the keyboard is up and covers the lower part of the form.
 - tapOn:
     id: signup_consent_checkbox
 - assertVisible:
-    id: signup_consent_checkbox
-    checked: true
+    id: signup_consent_state_on
+- runFlow:
+    when:
+      platform: Android
+    commands:
+      - assertVisible:
+          id: signup_consent_checkbox
+          checked: true
 - scrollUntilVisible:
     element:
       id: signup_email_input
@@ -49,6 +61,12 @@ appId: ${APP_ID}
       id: settings_consent_toggle
     direction: DOWN
 - assertVisible:
-    id: settings_consent_toggle
-    checked: true
+    id: settings_consent_state_on
+- runFlow:
+    when:
+      platform: Android
+    commands:
+      - assertVisible:
+          id: settings_consent_toggle
+          checked: true
 - takeScreenshot: fresh2_settings

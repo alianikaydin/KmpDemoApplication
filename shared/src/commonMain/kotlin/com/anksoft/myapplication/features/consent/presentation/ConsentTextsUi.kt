@@ -1,7 +1,9 @@
 package com.anksoft.myapplication.features.consent.presentation
 
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.heightIn
+import androidx.compose.foundation.layout.size
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
@@ -19,6 +21,17 @@ import myapplication.shared.generated.resources.common_retry
 import myapplication.shared.generated.resources.consent_privacy_policy_link
 import myapplication.shared.generated.resources.consent_texts_load_failed
 import org.jetbrains.compose.resources.stringResource
+
+/**
+ * An invisible marker next to a consent control that says whether it is on, for UI automation only.
+ * Compose on iOS does not expose the state of a checkbox or switch to XCUITest (see docs/ui-tests.md),
+ * so Maestro reads this tag instead. It has no text and no description, so a screen reader finds
+ * nothing to announce; it must stay outside the control's merged semantics.
+ */
+@Composable
+fun ConsentStateMarker(checked: Boolean, onTag: String, offTag: String) {
+    Box(modifier = Modifier.size(1.dp).testTag(if (checked) onTag else offTag))
+}
 
 /** The label and the short description of the consent text, exactly as the backend sent them (AC-21). */
 @Composable
