@@ -22,8 +22,8 @@ import androidx.compose.ui.unit.dp
 internal data class RadioOption<T>(val value: T, val label: String, val testTag: String)
 
 /**
- * A titled single-choice list. Reusable for any setting with a few fixed options (the theme
- * picker will use it too). Each row is one touch target of at least 48dp.
+ * A titled single-choice list. Reusable for any setting with a few fixed options (the language
+ * and theme pickers use it). Each row is one touch target of at least 48dp.
  */
 @Composable
 internal fun <T> SettingsRadioGroup(

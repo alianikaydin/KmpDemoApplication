@@ -8,4 +8,7 @@ internal object SettingsTestTags {
     const val LANGUAGE_SYSTEM = "settings_language_system"
     const val LANGUAGE_TURKISH = "settings_language_tr"
     const val LANGUAGE_ENGLISH = "settings_language_en"
+    const val THEME_SYSTEM = "settings_theme_system"
+    const val THEME_LIGHT = "settings_theme_light"
+    const val THEME_DARK = "settings_theme_dark"
 }

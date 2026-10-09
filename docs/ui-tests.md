@@ -11,7 +11,7 @@ independent from `ci.yml`.
 | Path | Purpose |
 |------|---------|
 | `.maestro/flows/` | One file per flow, named `NN_what_it_checks.yaml` |
-| `.maestro/subflows/` | Reusable steps (`launch_clean`, `login_with`) |
+| `.maestro/subflows/` | Reusable steps (`launch_clean`, `login_with`, `assert_selected`) |
 | `.maestro/config.yaml` | Flow selection and execution order |
 | `scripts/ui-tests/` | Install, run, boot and classify scripts used by CI (and locally) |
 
@@ -21,7 +21,7 @@ on Login), `04_session_persists_until_logout` (session survives a restart and
 ends on logout), `05_reinstall_drops_session` (a session left from a previous
 install is dropped), `06_settings_shows_environment` (Settings shows the
 environment and version), `07_language_switch` (in-app language change applies
-at once and the back stack is kept, AC-6). The app runs in demo mode (in-app mock backend), so the demo user is
+at once and the back stack is kept, AC-6), `08_theme_switch` (the theme choice applies at once, survives a restart and a logout, and the back stack is kept). The app runs in demo mode (in-app mock backend), so the demo user is
 `demo@example.com` / `Demo1234` and no network is needed.
 
 ## End-to-end check against the real backend (Android)
@@ -59,6 +59,10 @@ with the old NSUserDefaults `createSecureSettings()` restored. Then
    `id:` for taps and assertions. The only exception is a flow that tests the
    language itself (`07_language_switch`), which asserts the expected translation.
 4. Take a `takeScreenshot` at the end of the flow.
+5. To check which theme is drawn, assert the marker `app_theme_light` or `app_theme_dark`
+   (see `docs/theming.md`), never colors. To check a radio option in Settings, use
+   `runFlow: ../subflows/assert_selected.yaml` with `env: ID: <option id>`; it asserts
+   `checked` on Android and `selected` on iOS.
 
 ## Running locally
 
@@ -72,10 +76,20 @@ Install Maestro (`curl -fsSL https://get.maestro.mobile.dev | bash`), then:
   `maestro test .maestro/ -e APP_ID=com.anksoft.myapplication.dev` (Android) or
   `-e APP_ID=com.anksoft.myapplication.MyApplication.dev` (iOS).
 
+## Appearance (light and dark)
+
+The device appearance is set by `SYSTEM_APPEARANCE` (`light` default, or `dark`). The run scripts
+apply it (`adb shell cmd uimode night yes|no` on Android, `xcrun simctl ui <udid> appearance` on
+iOS) and pass it to Maestro as `-e SYSTEM_APPEARANCE=...`; flows use it to know which theme marker
+to expect while the app follows the system. Pull requests run the suite once in light mode. To run
+the whole suite in dark mode, start the `UI Tests` workflow by hand (Actions, Run workflow) with
+`appearance: dark`, or locally: `SYSTEM_APPEARANCE=dark bash scripts/ui-tests/run-android.sh`.
+The artifact names end with the appearance (`android-ui-results-dark`).
+
 ## Results and artifacts
 
 Open the run in GitHub: Actions, `UI Tests`, the run, then **Artifacts** at the
-bottom. Download `android-ui-results` and `ios-ui-results`. They are kept for
+bottom. Download `android-ui-results-<appearance>` and `ios-ui-results-<appearance>`. They are kept for
 14 days. Layout:
 
 - `report.xml`: JUnit result per flow
