@@ -1,4 +1,4 @@
-package com.anksoft.myapplication.core.storage
+package com.anksoft.myapplication.core.concurrency
 
 import assertk.assertThat
 import assertk.assertions.isEqualTo
@@ -11,9 +11,9 @@ import kotlinx.coroutines.withContext
 import kotlin.test.Test
 import kotlin.test.assertFailsWith
 
-class SessionLockTest {
+class ReentrantLockTest {
 
-    private val lock = createSessionLock()
+    private val lock = createReentrantLock()
 
     // N2: read-modify-write steps from several threads must not interleave.
     @Test

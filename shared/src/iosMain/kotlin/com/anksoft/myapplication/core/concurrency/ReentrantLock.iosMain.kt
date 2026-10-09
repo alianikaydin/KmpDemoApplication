@@ -1,8 +1,8 @@
-package com.anksoft.myapplication.core.storage
+package com.anksoft.myapplication.core.concurrency
 
 import platform.Foundation.NSRecursiveLock
 
-internal actual fun createSessionLock(): SessionLock = object : SessionLock {
+internal actual fun createReentrantLock(): ReentrantLock = object : ReentrantLock {
     private val lock = NSRecursiveLock()
 
     override fun <T> withLock(block: () -> T): T {

@@ -1,5 +1,6 @@
 package com.anksoft.myapplication.features.consent.domain
 
+import com.anksoft.myapplication.core.concurrency.createReentrantLock
 import com.anksoft.myapplication.core.consent.ConsentManager
 import com.anksoft.myapplication.core.consent.OptionalDataConsent
 import com.anksoft.myapplication.core.domain.DataError
@@ -13,7 +14,6 @@ import com.anksoft.myapplication.core.logging.info
 import com.anksoft.myapplication.core.logging.warn
 import com.anksoft.myapplication.core.session.SessionObserver
 import com.anksoft.myapplication.core.session.SignOutReason
-import com.anksoft.myapplication.core.storage.createSessionLock
 import com.anksoft.myapplication.features.consent.domain.model.AccountConsent
 import com.anksoft.myapplication.features.consent.domain.model.ConsentChoice
 import com.anksoft.myapplication.features.consent.domain.model.ConsentStatus
@@ -24,6 +24,7 @@ import com.anksoft.myapplication.features.consent.domain.repository.ConsentRepos
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.CoroutineStart
 import kotlinx.coroutines.Job
+import kotlinx.coroutines.async
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
@@ -57,7 +58,7 @@ class AccountConsentManager(
     private val logger: AppLogger
 ) : ConsentManager, SessionObserver {
 
-    private val stateLock = createSessionLock()
+    private val stateLock = createReentrantLock()
 
     private val _status = MutableStateFlow<ConsentStatus>(ConsentStatus.SignedOut)
     private val _optionalDataConsent = MutableStateFlow(OptionalDataConsent.UNKNOWN)
@@ -154,8 +155,17 @@ class AccountConsentManager(
      * Records the user's decision. Turning collection off applies at once; everything else only
      * changes after the backend confirmed it. On failure the previous confirmed state stays (a
      * switch-off stays in effect, see [ConsentStatus.Granted.suppressed]) and the error is returned.
+     *
+     * The write runs in the application [scope], not in the caller's coroutine: a user who leaves
+     * the screen right after switching off must not lose the write, or the next refresh would read
+     * the old "granted" back and collection would resume unnoticed. The caller only waits for the
+     * result; if it is cancelled, the write still finishes and its result is applied (a result
+     * from an earlier session is still dropped, see the generation check).
      */
-    suspend fun decide(choice: ConsentChoice): EmptyResult<DataError> = writeMutex.withLock {
+    suspend fun decide(choice: ConsentChoice): EmptyResult<DataError> =
+        scope.async { write(choice) }.await()
+
+    private suspend fun write(choice: ConsentChoice): EmptyResult<DataError> = writeMutex.withLock {
         val startGeneration = stateLock.withLock {
             // Fetches that started before this decision may carry the older answer.
             decisionCount++
@@ -167,6 +177,9 @@ class AccountConsentManager(
         }
         val result = repository.saveDecision(choice)
         stateLock.withLock {
+            // Again after the answer: a fetch that started while the write was running may still
+            // carry the value from before it and must not replace the new decision.
+            decisionCount++
             if (startGeneration != generation) {
                 logger.debug(LogTags.CONSENT) { "consent write result dropped: session changed" }
             } else {

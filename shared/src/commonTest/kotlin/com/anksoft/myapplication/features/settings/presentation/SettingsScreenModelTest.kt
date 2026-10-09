@@ -6,6 +6,7 @@ import assertk.assertions.isFalse
 import assertk.assertions.isNotNull
 import assertk.assertions.isNull
 import assertk.assertions.isTrue
+import cafe.adriel.voyager.core.model.screenModelScope
 import com.anksoft.myapplication.core.config.AppConfig
 import com.anksoft.myapplication.core.config.AppEnvironment
 import com.anksoft.myapplication.core.consent.OptionalDataConsent
@@ -22,10 +23,12 @@ import com.anksoft.myapplication.features.consent.domain.AccountConsentManager
 import com.anksoft.myapplication.features.consent.domain.model.AccountConsent
 import com.anksoft.myapplication.features.consent.domain.model.ConsentChoice
 import com.anksoft.myapplication.features.consent.domain.model.ConsentDecision
+import com.anksoft.myapplication.features.consent.domain.model.ConsentStatus
 import com.anksoft.myapplication.features.consent.domain.usecase.ObserveConsentTextsUseCase
 import kotlinx.coroutines.CompletableDeferred
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.cancel
 import kotlinx.coroutines.test.UnconfinedTestDispatcher
 import kotlinx.coroutines.test.resetMain
 import kotlinx.coroutines.test.runTest
@@ -318,6 +321,25 @@ class SettingsScreenModelTest {
 
         assertThat(model.state.value.privacy.error).isNull()
         assertThat(model.state.value.privacy.isChecked).isTrue()
+    }
+
+    // AC-15, AC-16: leaving Settings (the ScreenModel is disposed) must not drop the write.
+    @Test
+    fun aSwitchOffIsStillSavedWhenSettingsIsLeftBeforeTheBackendAnswers() = runTest {
+        consent.fetchResult = Result.Success(granted)
+        val gate = CompletableDeferred<Unit>()
+        consent.saveGate = gate
+        val manager = createManager()
+        val model = createModel(manager = manager)
+        model.onEvent(SettingsEvent.ConsentToggle(false))
+
+        // What Voyager does when the screen leaves the back stack.
+        model.screenModelScope.cancel()
+        gate.complete(Unit)
+
+        assertThat(consent.savedChoices).isEqualTo(listOf(choice(false)))
+        assertThat(manager.status.value).isEqualTo(ConsentStatus.Denied)
+        assertThat(manager.optionalDataConsent.value).isEqualTo(OptionalDataConsent.DENIED)
     }
 
     // AC-15

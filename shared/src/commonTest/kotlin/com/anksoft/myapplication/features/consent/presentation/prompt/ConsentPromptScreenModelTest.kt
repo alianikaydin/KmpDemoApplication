@@ -7,6 +7,7 @@ import assertk.assertions.isInstanceOf
 import assertk.assertions.isNotNull
 import assertk.assertions.isNull
 import assertk.assertions.isTrue
+import cafe.adriel.voyager.core.model.screenModelScope
 import com.anksoft.myapplication.core.consent.OptionalDataConsent
 import com.anksoft.myapplication.core.domain.DataError
 import com.anksoft.myapplication.core.domain.Result
@@ -22,6 +23,7 @@ import com.anksoft.myapplication.features.consent.domain.usecase.ObserveConsentT
 import kotlinx.coroutines.CompletableDeferred
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.cancel
 import kotlinx.coroutines.test.UnconfinedTestDispatcher
 import kotlinx.coroutines.test.resetMain
 import kotlinx.coroutines.test.runTest
@@ -83,6 +85,22 @@ class ConsentPromptScreenModelTest {
 
         assertThat(consent.savedChoices).isEqualTo(listOf(choice(false)))
         assertThat(model.state.value.isDone).isTrue()
+        assertThat(manager.optionalDataConsent.value).isEqualTo(OptionalDataConsent.DENIED)
+    }
+
+    // AC-9: leaving the prompt right after "Reject" must not drop the write.
+    @Test
+    fun aRejectIsStillSavedWhenThePromptIsLeftBeforeTheBackendAnswers() = runTest {
+        val gate = CompletableDeferred<Unit>()
+        consent.saveGate = gate
+        val model = createModel()
+        model.onEvent(ConsentPromptEvent.Reject)
+
+        // What Voyager does when the screen leaves the back stack.
+        model.screenModelScope.cancel()
+        gate.complete(Unit)
+
+        assertThat(consent.savedChoices).isEqualTo(listOf(choice(false)))
         assertThat(manager.optionalDataConsent.value).isEqualTo(OptionalDataConsent.DENIED)
     }
 

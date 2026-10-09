@@ -21,6 +21,7 @@ import com.anksoft.myapplication.features.consent.domain.model.ConsentDecision
 import com.anksoft.myapplication.features.consent.domain.model.ConsentStatus
 import kotlinx.coroutines.CompletableDeferred
 import kotlinx.coroutines.async
+import kotlinx.coroutines.launch
 import kotlinx.coroutines.test.TestScope
 import kotlinx.coroutines.test.runCurrent
 import kotlinx.coroutines.test.runTest
@@ -444,6 +445,72 @@ class AccountConsentManagerTest {
 
         assertThat(manager.status.value).isEqualTo(ConsentStatus.Denied)
         assertThat(manager.optionalDataConsent.value).isEqualTo(OptionalDataConsent.DENIED)
+    }
+
+    // AC-15, AC-16: leaving the screen while a switch-off is on its way must not lose the write.
+    @Test
+    fun aSwitchOffIsStillSavedWhenTheCallerLeavesBeforeTheBackendAnswers() = runTest {
+        repository.cached = granted
+        val manager = createManager()
+        runCurrent()
+        val gate = CompletableDeferred<Unit>()
+        repository.saveGate = gate
+        val saving = launch { manager.decide(choice(granted = false)) }
+        runCurrent()
+
+        saving.cancel()
+        gate.complete(Unit)
+        runCurrent()
+
+        assertThat(manager.status.value).isEqualTo(ConsentStatus.Denied)
+        assertThat(manager.optionalDataConsent.value).isEqualTo(OptionalDataConsent.DENIED)
+        assertThat(repository.savedChoices).isEqualTo(listOf(choice(granted = false)))
+    }
+
+    // AC-8, AC-15
+    @Test
+    fun aSwitchOnIsStillSavedWhenTheCallerLeavesBeforeTheBackendAnswers() = runTest {
+        repository.fetchResult = Result.Success(none)
+        val manager = createManager()
+        runCurrent()
+        val gate = CompletableDeferred<Unit>()
+        repository.saveGate = gate
+        val saving = launch { manager.decide(choice(granted = true)) }
+        runCurrent()
+
+        saving.cancel()
+        gate.complete(Unit)
+        runCurrent()
+
+        assertThat(manager.status.value).isEqualTo(ConsentStatus.Granted())
+        assertThat(manager.optionalDataConsent.value).isEqualTo(OptionalDataConsent.GRANTED)
+        assertThat(repository.savedChoices).isEqualTo(listOf(choice(granted = true)))
+    }
+
+    // AC-17: a fetch that starts while the write runs and ends after it carries the old value.
+    @Test
+    fun aFetchThatStartedWhileTheDecisionWasBeingSavedCannotOverwriteIt() = runTest {
+        repository.fetchResult = Result.Success(none)
+        val manager = createManager()
+        runCurrent()
+        val saveGate = CompletableDeferred<Unit>()
+        val fetchGate = CompletableDeferred<Unit>()
+        repository.saveGate = saveGate
+        repository.fetchGate = fetchGate
+        val saving = launch { manager.decide(choice(granted = true)) }
+        runCurrent()
+
+        manager.refresh()
+        runCurrent()
+        saveGate.complete(Unit)
+        runCurrent()
+        assertThat(manager.status.value).isEqualTo(ConsentStatus.Granted())
+        fetchGate.complete(Unit)
+        runCurrent()
+        saving.join()
+
+        assertThat(manager.status.value).isEqualTo(ConsentStatus.Granted())
+        assertThat(manager.optionalDataConsent.value).isEqualTo(OptionalDataConsent.GRANTED)
     }
 
     @Test

@@ -1,5 +1,6 @@
 package com.anksoft.myapplication.core.storage
 
+import com.anksoft.myapplication.core.concurrency.createReentrantLock
 import com.russhwolf.settings.Settings
 
 /**
@@ -19,7 +20,7 @@ import com.russhwolf.settings.Settings
  */
 class SessionManager(private val settings: Settings) {
 
-    private val lock = createSessionLock()
+    private val lock = createReentrantLock()
 
     /**
      * Runs [block] while holding the session lock. The lock is re-entrant, so [block] may call
