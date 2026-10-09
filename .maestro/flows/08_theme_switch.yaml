@@ -1,0 +1,117 @@
+# theming AC-1, AC-2, AC-5, AC-6, AC-7, AC-13: the theme starts on System, the Settings choice
+# applies at once, the back stack survives, the choice survives a restart and a logout.
+# The drawn theme is read from the app_theme_light / app_theme_dark marker, not from colors.
+# SYSTEM_APPEARANCE (light or dark) is the device appearance, set by the run scripts.
+appId: ${APP_ID}
+---
+- runFlow: ../subflows/launch_clean.yaml
+# AC-1: nothing chosen yet, so the app follows the device.
+- assertVisible:
+    id: app_theme_${SYSTEM_APPEARANCE}
+- runFlow:
+    file: ../subflows/login_with.yaml
+    env:
+      EMAIL: demo@example.com
+      PASSWORD: Demo1234
+- extendedWaitUntil:
+    visible:
+      id: home_title
+    timeout: 20000
+- tapOn:
+    id: home_settings_button
+- scrollUntilVisible:
+    element:
+      id: settings_theme_system
+    direction: DOWN
+# AC-2: System is the selected option by default.
+- runFlow:
+    file: ../subflows/assert_selected.yaml
+    env:
+      ID: settings_theme_system
+# AC-5, AC-13: Dark applies at once.
+- tapOn:
+    id: settings_theme_dark
+- extendedWaitUntil:
+    visible:
+      id: app_theme_dark
+    timeout: 10000
+- runFlow:
+    file: ../subflows/assert_selected.yaml
+    env:
+      ID: settings_theme_dark
+- takeScreenshot: 08_settings_dark
+- tapOn:
+    id: settings_theme_light
+- extendedWaitUntil:
+    visible:
+      id: app_theme_light
+    timeout: 10000
+- tapOn:
+    id: settings_theme_system
+- extendedWaitUntil:
+    visible:
+      id: app_theme_${SYSTEM_APPEARANCE}
+    timeout: 10000
+- tapOn:
+    id: settings_theme_dark
+- extendedWaitUntil:
+    visible:
+      id: app_theme_dark
+    timeout: 10000
+# The back stack is kept: back returns to Home, already dark.
+- tapOn:
+    id: settings_back_button
+- extendedWaitUntil:
+    visible:
+      id: home_title
+    timeout: 10000
+- assertVisible:
+    id: app_theme_dark
+- takeScreenshot: 08_home_dark
+# AC-6: the choice survives a restart (no clearState).
+- launchApp:
+    stopApp: true
+- waitForAnimationToEnd:   # see subflows/launch_clean.yaml
+    timeout: 5000
+- extendedWaitUntil:
+    visible:
+      id: home_title
+    timeout: 60000
+- assertVisible:
+    id: app_theme_dark
+- tapOn:
+    id: home_settings_button
+- scrollUntilVisible:
+    element:
+      id: settings_theme_dark
+    direction: DOWN
+- runFlow:
+    file: ../subflows/assert_selected.yaml
+    env:
+      ID: settings_theme_dark
+# AC-7: logging out does not reset the theme.
+- scrollUntilVisible:
+    element:
+      id: settings_logout_button
+    direction: DOWN
+- tapOn:
+    id: settings_logout_button
+- extendedWaitUntil:
+    visible:
+      id: login_title
+    timeout: 20000
+- assertVisible:
+    id: app_theme_dark
+# AC-8: the error state of the login form is drawn in the dark theme too.
+- runFlow:
+    file: ../subflows/login_with.yaml
+    env:
+      EMAIL: demo@example.com
+      PASSWORD: WrongPass1
+- extendedWaitUntil:
+    visible:
+      id: login_form_error
+    timeout: 20000
+- assertVisible:
+    id: app_theme_dark
+- takeScreenshot: 08_login_error_dark

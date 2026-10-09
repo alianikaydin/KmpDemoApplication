@@ -1,11 +1,12 @@
 #!/usr/bin/env bash
 # Installs the simulator build and runs the Maestro flows on the booted simulator.
 # Env: SIM_UDID (booted simulator), APP_PATH (path to MyApplication.app),
-# OUT_DIR (default ui-results/ios).
+# OUT_DIR (default ui-results/ios), SYSTEM_APPEARANCE (light or dark, default light).
 set -euo pipefail
 
 OUT_DIR="${OUT_DIR:-ui-results/ios}"
 APP_ID="com.anksoft.myapplication.MyApplication.dev"
+SYSTEM_APPEARANCE="${SYSTEM_APPEARANCE:-light}"
 export OUT_DIR
 
 # shellcheck source=scripts/ui-tests/common.sh
@@ -19,6 +20,12 @@ mkdir -p "$OUT_DIR/video" "$OUT_DIR/maestro"
 mark_stage install
 [ -d "$APP_PATH" ] || infra_fail "App bundle not found at $APP_PATH"
 xcrun simctl install "$SIM_UDID" "$APP_PATH" || infra_fail "App could not be installed on the simulator"
+
+case "$SYSTEM_APPEARANCE" in
+  light | dark) ;;
+  *) infra_fail "SYSTEM_APPEARANCE must be light or dark, got: $SYSTEM_APPEARANCE" ;;
+esac
+xcrun simctl ui "$SIM_UDID" appearance "$SYSTEM_APPEARANCE" || infra_fail "Could not set the simulator appearance"
 
 xcrun simctl io "$SIM_UDID" recordVideo --codec h264 --force "$OUT_DIR/video/ios.mp4" &
 video_pid=$!
@@ -42,6 +49,7 @@ run_start="$(date '+%Y-%m-%d %H:%M:%S')"
 status=0
 maestro --udid "$SIM_UDID" test .maestro/ \
   -e APP_ID="$APP_ID" \
+  -e SYSTEM_APPEARANCE="$SYSTEM_APPEARANCE" \
   --format junit \
   --output "$OUT_DIR/report.xml" \
   --test-output-dir "$OUT_DIR/maestro" || status=$?

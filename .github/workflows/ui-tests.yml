@@ -12,6 +12,12 @@ on:
       - "**.md"
       - "docs/**"
   workflow_dispatch:
+    inputs:
+      appearance:
+        description: "Device appearance for the whole suite (run dark by hand to check every flow in dark mode)"
+        type: choice
+        options: [light, dark]
+        default: light
 
 # Independent from ci.yml on purpose. Master runs are never cancelled.
 concurrency:
@@ -37,6 +43,7 @@ jobs:
     timeout-minutes: 45
     env:
       OUT_DIR: ui-results/android
+      SYSTEM_APPEARANCE: ${{ inputs.appearance || 'light' }}
     steps:
       - uses: actions/checkout@v4
 
@@ -113,7 +120,7 @@ jobs:
         if: always()
         uses: actions/upload-artifact@v4
         with:
-          name: android-ui-results
+          name: android-ui-results-${{ inputs.appearance || 'light' }}
           path: ui-results/android/
           retention-days: 14
           if-no-files-found: warn
@@ -237,6 +244,7 @@ jobs:
     timeout-minutes: 60
     env:
       OUT_DIR: ui-results/ios
+      SYSTEM_APPEARANCE: ${{ inputs.appearance || 'light' }}
     steps:
       - uses: actions/checkout@v4
 
@@ -330,7 +338,7 @@ jobs:
         if: always()
         uses: actions/upload-artifact@v4
         with:
-          name: ios-ui-results
+          name: ios-ui-results-${{ inputs.appearance || 'light' }}
           path: ui-results/ios/
           retention-days: 14
           if-no-files-found: warn
