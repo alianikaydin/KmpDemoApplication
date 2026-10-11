@@ -5,6 +5,10 @@ import assertk.assertions.isEqualTo
 import assertk.assertions.isInstanceOf
 import assertk.assertions.isNotEqualTo
 import assertk.assertions.isNotNull
+import assertk.assertions.isNull
+import com.anksoft.kmpdemo.contract.app.AppPlatforms
+import com.anksoft.kmpdemo.contract.app.VersionPolicyDto
+import com.anksoft.kmpdemo.contract.app.VersionPolicyPaths
 import com.anksoft.kmpdemo.contract.auth.AuthPaths
 import com.anksoft.kmpdemo.contract.auth.AuthResponseDto
 import com.anksoft.kmpdemo.contract.auth.LoginRequestDto
@@ -27,10 +31,12 @@ import com.anksoft.myapplication.features.auth.domain.model.User
 import com.anksoft.myapplication.features.consent.data.datasource.ConsentLocalDataSource
 import com.anksoft.myapplication.features.consent.data.datasource.ConsentRemoteDataSource
 import com.anksoft.myapplication.features.consent.domain.model.ConsentChoice
+import com.anksoft.myapplication.features.update.data.datasource.VersionPolicyRemoteDataSource
 import com.russhwolf.settings.MapSettings
 import io.ktor.client.HttpClient
 import io.ktor.client.call.body
 import io.ktor.client.request.get
+import io.ktor.client.request.parameter
 import io.ktor.client.request.post
 import io.ktor.client.request.put
 import io.ktor.client.request.setBody
@@ -45,8 +51,9 @@ import kotlinx.coroutines.test.runTest
 class MockAuthServerTest {
 
     private val sessionManager = SessionManager(MapSettings())
+    private val server = MockAuthServer()
     private val httpClient = createHttpClient(
-        engine = createMockEngine(MockAuthServer()),
+        engine = createMockEngine(server),
         config = TestAppConfigs.demo(),
         sessionManager = sessionManager,
         logger = NoOpLogger
@@ -450,5 +457,70 @@ class MockAuthServerTest {
         assertThat(result).isEqualTo(Result.Failure(DataError.Remote.UNPROCESSABLE))
         assertThat(repository.login("fresh@example.com", "Secret123"))
             .isEqualTo(Result.Failure(DataError.Remote.UNAUTHORIZED))
+    }
+
+    private val versionPolicySource = VersionPolicyRemoteDataSource(httpClient, NoOpLogger)
+
+    // AC-19
+    @Test
+    fun theVersionPolicyDefaultsToNoUpdate() = runTest {
+        val policy = versionPolicySource.getVersionPolicy(AppPlatforms.ANDROID).dataOrFail()
+
+        assertThat(policy).isEqualTo(VersionPolicyDto("0.0.0", "0.0.0"))
+    }
+
+    // AC-19
+    @Test
+    fun theRequiredPolicyAnswersAMinimumNoInstalledVersionReaches() = runTest {
+        server.useVersionPolicy(DemoVersionPolicy.REQUIRED)
+
+        val policy = versionPolicySource.getVersionPolicy(AppPlatforms.IOS).dataOrFail()
+
+        assertThat(policy).isEqualTo(VersionPolicyDto("999.0.0", "999.0.0"))
+    }
+
+    // AC-19
+    @Test
+    fun theOptionalPolicyAnswersANewerLatestWithNoMinimum() = runTest {
+        server.useVersionPolicy(DemoVersionPolicy.OPTIONAL)
+
+        val policy = versionPolicySource.getVersionPolicy(AppPlatforms.ANDROID).dataOrFail()
+
+        assertThat(policy).isEqualTo(VersionPolicyDto("0.0.0", "999.0.0"))
+    }
+
+    // AC-19
+    @Test
+    fun theVersionPolicyNeedsNoSessionAndNoToken() = runTest {
+        assertThat(sessionManager.getToken()).isNull()
+
+        assertThat(versionPolicySource.getVersionPolicy(AppPlatforms.ANDROID)).isInstanceOf(Result.Success::class)
+    }
+
+    // AC-19
+    @Test
+    fun aMissingOrUnknownPlatformIsRefusedLikeTheRealServer() = runTest {
+        val missing = httpClient.get(VersionPolicyPaths.VERSION_POLICY)
+        val web = httpClient.get(VersionPolicyPaths.VERSION_POLICY) {
+            parameter(VersionPolicyPaths.PLATFORM_PARAM, "web")
+        }
+        val wrongCase = httpClient.get(VersionPolicyPaths.VERSION_POLICY) {
+            parameter(VersionPolicyPaths.PLATFORM_PARAM, "Android")
+        }
+
+        assertThat(missing.status).isEqualTo(HttpStatusCode.BadRequest)
+        assertThat(web.status).isEqualTo(HttpStatusCode.BadRequest)
+        assertThat(wrongCase.status).isEqualTo(HttpStatusCode.BadRequest)
+    }
+
+    // AC-19
+    @Test
+    fun demoVersionPolicyParsingIsCaseInsensitiveAndFallsBackToNone() {
+        assertThat(DemoVersionPolicy.parse("required")).isEqualTo(DemoVersionPolicy.REQUIRED)
+        assertThat(DemoVersionPolicy.parse("REQUIRED")).isEqualTo(DemoVersionPolicy.REQUIRED)
+        assertThat(DemoVersionPolicy.parse("Optional")).isEqualTo(DemoVersionPolicy.OPTIONAL)
+        assertThat(DemoVersionPolicy.parse(null)).isEqualTo(DemoVersionPolicy.NONE)
+        assertThat(DemoVersionPolicy.parse("x")).isEqualTo(DemoVersionPolicy.NONE)
+        assertThat(DemoVersionPolicy.parse("")).isEqualTo(DemoVersionPolicy.NONE)
     }
 }

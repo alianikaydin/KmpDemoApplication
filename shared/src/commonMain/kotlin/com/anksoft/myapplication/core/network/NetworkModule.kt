@@ -1,5 +1,6 @@
 package com.anksoft.myapplication.core.network
 
+import com.anksoft.kmpdemo.contract.app.VersionPolicyPaths
 import com.anksoft.kmpdemo.contract.auth.AuthPaths
 import com.anksoft.kmpdemo.contract.auth.RefreshTokenRequestDto
 import com.anksoft.kmpdemo.contract.consent.ConsentPaths
@@ -45,7 +46,7 @@ private val NO_REFRESH_PATHS = listOf(AuthPaths.LOGIN, AuthPaths.REGISTER, AuthP
  * Public endpoints: never get the Authorization header and never trigger re-authorization
  * (AC-21; analysis R1, R2).
  */
-private val PUBLIC_PATHS = listOf(ConsentPaths.TEXTS)
+private val PUBLIC_PATHS = listOf(ConsentPaths.TEXTS, VersionPolicyPaths.VERSION_POLICY)
 
 /** True for [PUBLIC_PATHS]; matched by suffix because the base URL carries the `api/v1/` prefix. */
 internal fun isPublicPath(encodedPath: String): Boolean = PUBLIC_PATHS.any { encodedPath.endsWith(it) }

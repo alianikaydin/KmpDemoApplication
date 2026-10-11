@@ -7,6 +7,7 @@ import assertk.assertions.isEqualTo
 import assertk.assertions.isFalse
 import assertk.assertions.isNull
 import assertk.assertions.isTrue
+import com.anksoft.kmpdemo.contract.app.VersionPolicyPaths
 import com.anksoft.kmpdemo.contract.consent.ConsentPaths
 import com.anksoft.myapplication.core.config.TestAppConfigs
 import com.anksoft.myapplication.core.logging.NoOpLogger
@@ -42,7 +43,7 @@ class PublicEndpointAuthTest {
         val path = request.url.encodedPath
         received += path to request.headers[HttpHeaders.Authorization]
         when {
-            path.endsWith(ConsentPaths.TEXTS) ->
+            path.endsWith(ConsentPaths.TEXTS) || path.endsWith(VersionPolicyPaths.VERSION_POLICY) ->
                 respond("", publicAnswer, headersOf(HttpHeaders.WWWAuthenticate, "Bearer"))
             else -> respondOk()
         }
@@ -105,5 +106,36 @@ class PublicEndpointAuthTest {
 
         assertThat(received.mapNotNull { it.second }).isEmpty()
         assertThat(received.firstOrNull()?.second).isNull()
+    }
+
+    // AC-21
+    @Test
+    fun versionPolicyRequestCarriesNoAuthorizationHeaderEvenWithASession() = runTest {
+        client.get(VersionPolicyPaths.VERSION_POLICY)
+
+        assertThat(received).containsExactly("/api/v1/${VersionPolicyPaths.VERSION_POLICY}" to null)
+    }
+
+    // AC-6, AC-14
+    @Test
+    fun unauthorizedAnswerFromTheVersionPolicyIsNotRetriedAndLeavesTheSessionAlone() = runTest {
+        publicAnswer = HttpStatusCode.Unauthorized
+
+        val response = client.get(VersionPolicyPaths.VERSION_POLICY)
+
+        assertThat(response.status).isEqualTo(HttpStatusCode.Unauthorized)
+        // One request only: no refresh call and no resend carrying the token.
+        assertThat(received.map { it.first }).containsExactly("/api/v1/${VersionPolicyPaths.VERSION_POLICY}")
+        assertThat(received.map { it.second }).containsExactly(null)
+        assertThat(expiredCount).isEqualTo(0)
+        assertThat(session.getToken()).isEqualTo("access-1")
+        assertThat(session.getRefreshToken()).isEqualTo("refresh-1")
+    }
+
+    // AC-21
+    @Test
+    fun versionPolicyPathIsPublicWhateverThePrefixOfTheBaseUrl() {
+        assertThat(isPublicPath("/api/v1/${VersionPolicyPaths.VERSION_POLICY}")).isTrue()
+        assertThat(isPublicPath("/${VersionPolicyPaths.VERSION_POLICY}")).isTrue()
     }
 }
