@@ -55,6 +55,9 @@ class KoinSessionWiringTest {
     private val sessionStorage = MapSettings()
     private val sessionOverride = module { single<Settings> { sessionStorage } }
 
+    // The analytics tracker reads the app language at start, which needs the preferences storage.
+    private val preferencesOverride = module { single<Settings>(AppPreferencesSettings) { MapSettings() } }
+
     private val demoUser = MockAuthServer.DEMO_USER
     private val consentUser = MockAuthServer.CONSENT_PENDING_USER
 
@@ -65,7 +68,7 @@ class KoinSessionWiringTest {
 
     private fun startApp(): Koin = initKoin(
         config = TestAppConfigs.demo(),
-        platformModules = listOf(consoleOverride, sessionOverride)
+        platformModules = listOf(consoleOverride, preferencesOverride, sessionOverride)
     ).koin
 
     /** The consent manager fetches on another thread, so this waits in real time, not virtual time. */
