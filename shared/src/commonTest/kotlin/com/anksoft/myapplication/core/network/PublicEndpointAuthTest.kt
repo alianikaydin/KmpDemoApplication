@@ -97,8 +97,9 @@ class PublicEndpointAuthTest {
         assertThat(isPublicPath("")).isFalse()
     }
 
+    // AC-21 (a repeated public request, after the first one, still never carries a token)
     @Test
-    fun noPublicRequestLeavesTheEngineWithAnyToken() = runTest {
+    fun repeatedPublicRequestsNeverCarryAToken() = runTest {
         client.get(ConsentPaths.TEXTS)
         client.get(ConsentPaths.TEXTS)
 

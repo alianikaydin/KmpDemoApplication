@@ -41,14 +41,14 @@ import org.jetbrains.compose.resources.stringResource
 fun ForceUpdateContent(
     state: AppUpdateState.Required,
     onEvent: (AppUpdateEvent) -> Unit,
-    modifier: Modifier = Modifier
+    modifier: Modifier = Modifier,
 ) {
-    Scaffold(modifier = modifier.testTag(UpdateTestTags.FORCE_UPDATE_SCREEN)) { padding ->
+    Scaffold(modifier = modifier.testTag(UpdateTestTags.FORCE_UPDATE_SCREEN)) { innerPadding ->
         Box(
             modifier = Modifier
                 .fillMaxSize()
-                .padding(padding),
-            contentAlignment = Alignment.Center
+                .padding(innerPadding),
+            contentAlignment = Alignment.Center,
         ) {
             Column(
                 modifier = Modifier
@@ -56,16 +56,16 @@ fun ForceUpdateContent(
                     .fillMaxWidth()
                     .verticalScroll(rememberScrollState())
                     .padding(16.dp),
-                verticalArrangement = Arrangement.spacedBy(16.dp)
+                verticalArrangement = Arrangement.spacedBy(16.dp),
             ) {
                 Text(
                     text = stringResource(Res.string.force_update_title),
                     style = MaterialTheme.typography.headlineSmall,
-                    modifier = Modifier.semantics { heading() }
+                    modifier = Modifier.semantics { heading() },
                 )
                 Text(
                     text = stringResource(Res.string.force_update_message),
-                    style = MaterialTheme.typography.bodyLarge
+                    style = MaterialTheme.typography.bodyLarge,
                 )
                 state.storeError?.let { error ->
                     Text(
@@ -75,7 +75,7 @@ fun ForceUpdateContent(
                         modifier = Modifier
                             .fillMaxWidth()
                             .semantics { liveRegion = LiveRegionMode.Polite }
-                            .testTag(UpdateTestTags.UPDATE_STORE_ERROR)
+                            .testTag(UpdateTestTags.UPDATE_STORE_ERROR),
                     )
                 }
                 Button(
@@ -84,7 +84,7 @@ fun ForceUpdateContent(
                     modifier = Modifier
                         .fillMaxWidth()
                         .heightIn(min = 48.dp)
-                        .testTag(UpdateTestTags.FORCE_UPDATE_OPEN_STORE)
+                        .testTag(UpdateTestTags.FORCE_UPDATE_OPEN_STORE),
                 ) {
                     Text(stringResource(Res.string.update_open_store))
                 }
@@ -107,7 +107,7 @@ private fun ForceUpdateStoreErrorPreview() {
     MaterialTheme {
         ForceUpdateContent(
             state = AppUpdateState.Required(storeError = UiText.Resource(Res.string.update_store_unavailable)),
-            onEvent = {}
+            onEvent = {},
         )
     }
 }

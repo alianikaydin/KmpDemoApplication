@@ -30,6 +30,7 @@ internal class PlayStoreAppStore(private val context: Context) : AppStore {
             // No Play Store on this device (emulator image without it).
             false
         } catch (_: SecurityException) {
+            // Play Store is disabled or restricted by device policy (for example a managed profile).
             false
         }
     }

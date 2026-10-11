@@ -12,6 +12,7 @@ import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.flow.getAndUpdate
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 import myapplication.shared.generated.resources.Res
@@ -53,14 +54,9 @@ class AppUpdateController(
     }
 
     private fun openStore() {
-        var accepted = false
-        _state.update { current ->
-            // The lambda may run more than once; the flag always reflects the last run.
-            val opening = current.startOpeningStore()
-            accepted = opening != null
-            opening ?: current
-        }
-        if (!accepted) return
+        // The update function may run more than once, so the decision is made on the returned previous state.
+        val previous = _state.getAndUpdate { current -> current.startOpeningStore() ?: current }
+        if (previous.startOpeningStore() == null) return
         scope.launch {
             val opened = appStore?.openAppPage() ?: false
             if (!opened) logger.warn(LogTags.UPDATE) { "Store page could not be opened" }

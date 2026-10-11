@@ -39,7 +39,7 @@ import org.jetbrains.compose.resources.stringResource
 fun UpdatePromptDialog(
     state: AppUpdateState.Optional,
     onEvent: (AppUpdateEvent) -> Unit,
-    modifier: Modifier = Modifier
+    modifier: Modifier = Modifier,
 ) {
     AlertDialog(
         onDismissRequest = { onEvent(AppUpdateEvent.DismissPrompt) },
@@ -49,13 +49,13 @@ fun UpdatePromptDialog(
         title = {
             Text(
                 text = stringResource(Res.string.update_prompt_title),
-                modifier = Modifier.semantics { heading() }
+                modifier = Modifier.semantics { heading() },
             )
         },
         text = {
             Column(
                 modifier = Modifier.verticalScroll(rememberScrollState()),
-                verticalArrangement = Arrangement.spacedBy(8.dp)
+                verticalArrangement = Arrangement.spacedBy(8.dp),
             ) {
                 Text(text = stringResource(Res.string.update_prompt_message))
                 state.storeError?.let { error ->
@@ -66,7 +66,7 @@ fun UpdatePromptDialog(
                         modifier = Modifier
                             .fillMaxWidth()
                             .semantics { liveRegion = LiveRegionMode.Polite }
-                            .testTag(UpdateTestTags.UPDATE_STORE_ERROR)
+                            .testTag(UpdateTestTags.UPDATE_STORE_ERROR),
                     )
                 }
             }
@@ -77,7 +77,7 @@ fun UpdatePromptDialog(
                 enabled = !state.isOpeningStore,
                 modifier = Modifier
                     .heightIn(min = 48.dp)
-                    .testTag(UpdateTestTags.UPDATE_PROMPT_OPEN_STORE)
+                    .testTag(UpdateTestTags.UPDATE_PROMPT_OPEN_STORE),
             ) {
                 Text(stringResource(Res.string.update_open_store))
             }
@@ -87,11 +87,11 @@ fun UpdatePromptDialog(
                 onClick = { onEvent(AppUpdateEvent.DismissPrompt) },
                 modifier = Modifier
                     .heightIn(min = 48.dp)
-                    .testTag(UpdateTestTags.UPDATE_PROMPT_LATER)
+                    .testTag(UpdateTestTags.UPDATE_PROMPT_LATER),
             ) {
                 Text(stringResource(Res.string.update_prompt_later))
             }
-        }
+        },
     )
 }
 
@@ -112,9 +112,9 @@ private fun UpdatePromptStoreErrorPreview() {
         UpdatePromptDialog(
             state = AppUpdateState.Optional(
                 previewLatest,
-                storeError = UiText.Resource(Res.string.update_store_unavailable)
+                storeError = UiText.Resource(Res.string.update_store_unavailable),
             ),
-            onEvent = {}
+            onEvent = {},
         )
     }
 }
