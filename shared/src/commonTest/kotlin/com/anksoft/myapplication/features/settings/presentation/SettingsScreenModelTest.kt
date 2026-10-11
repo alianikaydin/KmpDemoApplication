@@ -1,12 +1,17 @@
 package com.anksoft.myapplication.features.settings.presentation
 
 import assertk.assertThat
+import assertk.assertions.containsExactly
+import assertk.assertions.hasSize
 import assertk.assertions.isEqualTo
 import assertk.assertions.isFalse
 import assertk.assertions.isNotNull
 import assertk.assertions.isNull
 import assertk.assertions.isTrue
 import cafe.adriel.voyager.core.model.screenModelScope
+import com.anksoft.myapplication.core.analytics.AnalyticsTracker
+import com.anksoft.myapplication.core.analytics.FakeAnalytics
+import com.anksoft.myapplication.core.analytics.testTracker
 import com.anksoft.myapplication.core.config.AppConfig
 import com.anksoft.myapplication.core.config.AppEnvironment
 import com.anksoft.myapplication.core.consent.OptionalDataConsent
@@ -28,6 +33,8 @@ import com.anksoft.myapplication.features.consent.domain.usecase.ObserveConsentT
 import kotlinx.coroutines.CompletableDeferred
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.SupervisorJob
+import kotlinx.coroutines.cancel
 import kotlinx.coroutines.cancelChildren
 import kotlinx.coroutines.test.UnconfinedTestDispatcher
 import kotlinx.coroutines.test.resetMain
@@ -45,6 +52,9 @@ class SettingsScreenModelTest {
     private lateinit var preferences: FakeAppPreferences
     private lateinit var consent: FakeConsentRepository
 
+    // Owned by the test; the trackers here never call start(), the scope only satisfies the constructor.
+    private val trackerScope = CoroutineScope(SupervisorJob())
+
     @BeforeTest
     fun setUp() {
         // screenModelScope is Main-dispatched, so Main must be replaced.
@@ -56,6 +66,7 @@ class SettingsScreenModelTest {
 
     @AfterTest
     fun tearDown() {
+        trackerScope.cancel()
         Dispatchers.resetMain()
     }
 
@@ -67,7 +78,8 @@ class SettingsScreenModelTest {
 
     private fun createModel(
         environment: AppEnvironment = AppEnvironment.PROD,
-        manager: AccountConsentManager = createManager()
+        manager: AccountConsentManager = createManager(),
+        analytics: AnalyticsTracker = testTracker(scope = trackerScope)
     ) = SettingsScreenModel(
         authRepository = repository,
         appConfig = AppConfig.create(
@@ -79,7 +91,8 @@ class SettingsScreenModelTest {
         ),
         appPreferences = preferences,
         consentManager = manager,
-        observeConsentTexts = ObserveConsentTextsUseCase(consent, ContentLanguage(preferences) { "en" })
+        observeConsentTexts = ObserveConsentTextsUseCase(consent, ContentLanguage(preferences) { "en" }),
+        analytics = analytics
     )
 
     // AC-7
@@ -139,6 +152,34 @@ class SettingsScreenModelTest {
         model.onEvent(SettingsEvent.LanguageSelect(AppLanguage.SYSTEM))
 
         assertThat(model.state.value.selectedLanguage).isEqualTo(AppLanguage.SYSTEM)
+    }
+
+    // AC-12, AC-22
+    @Test
+    fun openingSettingsTracksOneScreenView() = runTest {
+        val analytics = FakeAnalytics()
+
+        createModel(analytics = testTracker(scope = trackerScope, analytics = analytics))
+
+        assertThat(analytics.events).containsExactly(
+            FakeAnalytics.Call.Event(
+                "screen_view",
+                mapOf("screen_name" to "settings", "screen_class" to "settings", "language" to "en")
+            )
+        )
+    }
+
+    // AC-12
+    @Test
+    fun changingTheLanguageOnSettingsDoesNotTrackAgain() = runTest {
+        val analytics = FakeAnalytics()
+        val tracker = testTracker(scope = trackerScope, analytics = analytics, preferences = preferences)
+        val model = createModel(analytics = tracker)
+
+        model.onEvent(SettingsEvent.LanguageSelect(AppLanguage.TURKISH))
+
+        assertThat(model.state.value.selectedLanguage).isEqualTo(AppLanguage.TURKISH)
+        assertThat(analytics.events).hasSize(1)
     }
 
     // AC-6

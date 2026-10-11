@@ -61,7 +61,7 @@
     <string name="consent_state_on">Açık</string>
     <string name="consent_state_off">Kapalı</string>
     <string name="settings_privacy_title">Gizlilik</string>
-    <string name="settings_consent_toggle_label">İsteğe bağlı veri toplama</string>
+    <string name="settings_consent_toggle_label">İsteğe bağlı veri toplama (çökme raporları, kullanım analitiği)</string>
     <string name="consent_prompt_title">Gizlilik tercihiniz</string>
     <string name="consent_accept">Kabul et</string>
     <string name="consent_reject">Reddet</string>
