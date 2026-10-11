@@ -75,6 +75,11 @@ class SignUpConsentUiTest {
             )
         }
         onNodeWithTag(SignUpTestTags.CONSENT_CHECKBOX).performScrollTo().performClick()
-        assertEquals(listOf<SignUpEvent>(SignUpEvent.ConsentCheckedChange(true)), events)
+        // Tapping also moves focus away from the form fields (EmailFocusLost); only the consent
+        // change matters here.
+        assertEquals(
+            listOf(SignUpEvent.ConsentCheckedChange(true)),
+            events.filterIsInstance<SignUpEvent.ConsentCheckedChange>()
+        )
     }
 }
