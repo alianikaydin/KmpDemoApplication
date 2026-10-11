@@ -1,9 +1,13 @@
 package com.anksoft.myapplication.features.home.presentation
 
 import assertk.assertThat
+import assertk.assertions.containsExactly
+import assertk.assertions.hasSize
 import assertk.assertions.isEqualTo
 import assertk.assertions.isFalse
 import assertk.assertions.isTrue
+import com.anksoft.myapplication.core.analytics.FakeAnalytics
+import com.anksoft.myapplication.core.analytics.testTracker
 import com.anksoft.myapplication.core.domain.DataError
 import com.anksoft.myapplication.core.domain.Result
 import com.anksoft.myapplication.core.logging.NoOpLogger
@@ -47,7 +51,7 @@ class HomeScreenModelTest {
     // AC-7
     @Test
     fun anAccountWithoutADecisionGetsThePrompt() = runTest {
-        val model = HomeScreenModel(createManager())
+        val model = HomeScreenModel(createManager(), testTracker())
 
         assertThat(model.state.value.showConsentPrompt).isTrue()
     }
@@ -57,7 +61,7 @@ class HomeScreenModelTest {
     fun thePromptWaitsWhileTheDecisionIsStillLoading() = runTest {
         val gate = CompletableDeferred<Unit>()
         consent.fetchGate = gate
-        val model = HomeScreenModel(createManager())
+        val model = HomeScreenModel(createManager(), testTracker())
 
         assertThat(model.state.value.showConsentPrompt).isFalse()
 
@@ -71,7 +75,7 @@ class HomeScreenModelTest {
     fun noPromptWhenTheDecisionCouldNotBeLoaded() = runTest {
         consent.fetchResult = Result.Failure(DataError.Remote.NO_INTERNET)
 
-        val model = HomeScreenModel(createManager())
+        val model = HomeScreenModel(createManager(), testTracker())
 
         assertThat(model.state.value.showConsentPrompt).isFalse()
     }
@@ -80,9 +84,9 @@ class HomeScreenModelTest {
     @Test
     fun noPromptForAnAccountThatAlreadyDecided() = runTest {
         consent.fetchResult = Result.Success(AccountConsent(ConsentDecision.DENIED, textVersion = 1))
-        val deniedModel = HomeScreenModel(createManager())
+        val deniedModel = HomeScreenModel(createManager(), testTracker())
         consent.fetchResult = Result.Success(AccountConsent(ConsentDecision.GRANTED, textVersion = 1))
-        val grantedModel = HomeScreenModel(createManager())
+        val grantedModel = HomeScreenModel(createManager(), testTracker())
 
         assertThat(deniedModel.state.value.showConsentPrompt).isFalse()
         assertThat(grantedModel.state.value.showConsentPrompt).isFalse()
@@ -95,7 +99,7 @@ class HomeScreenModelTest {
             AccountConsent(ConsentDecision.GRANTED, textVersion = 1, reconsentRequired = true)
         )
 
-        val model = HomeScreenModel(createManager())
+        val model = HomeScreenModel(createManager(), testTracker())
 
         assertThat(model.state.value.showConsentPrompt).isTrue()
     }
@@ -104,11 +108,11 @@ class HomeScreenModelTest {
     @Test
     fun thePromptIsShownOnceEvenWhenTheHomeScreenIsRecreated() = runTest {
         val manager = createManager()
-        val first = HomeScreenModel(manager)
+        val first = HomeScreenModel(manager, testTracker())
         assertThat(first.state.value.showConsentPrompt).isTrue()
         first.onEvent(HomeEvent.ConsentPromptOpened)
 
-        val second = HomeScreenModel(manager)
+        val second = HomeScreenModel(manager, testTracker())
 
         assertThat(first.state.value.showConsentPrompt).isFalse()
         assertThat(second.state.value.showConsentPrompt).isFalse()
@@ -117,10 +121,38 @@ class HomeScreenModelTest {
     // AC-7
     @Test
     fun openingThePromptClearsTheRequest() = runTest {
-        val model = HomeScreenModel(createManager())
+        val model = HomeScreenModel(createManager(), testTracker())
 
         model.onEvent(HomeEvent.ConsentPromptOpened)
 
         assertThat(model.state.value).isEqualTo(HomeState(showConsentPrompt = false))
+    }
+
+    // AC-12, AC-22
+    @Test
+    fun openingHomeTracksOneScreenView() = runTest {
+        val analytics = FakeAnalytics()
+
+        HomeScreenModel(createManager(), testTracker(analytics = analytics))
+
+        assertThat(analytics.events).containsExactly(
+            FakeAnalytics.Call.Event(
+                "screen_view",
+                mapOf("screen_name" to "home", "screen_class" to "home", "language" to "en")
+            )
+        )
+    }
+
+    // AC-12, AC-22
+    @Test
+    fun consentPromptEventsDoNotTrackHomeAgain() = runTest {
+        val analytics = FakeAnalytics()
+        val model = HomeScreenModel(createManager(), testTracker(analytics = analytics))
+        assertThat(model.state.value.showConsentPrompt).isTrue()
+
+        model.onEvent(HomeEvent.ConsentPromptOpened)
+
+        assertThat(model.state.value.showConsentPrompt).isFalse()
+        assertThat(analytics.events).hasSize(1)
     }
 }
