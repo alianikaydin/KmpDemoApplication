@@ -1,5 +1,6 @@
 package com.anksoft.myapplication.core.di
 
+import com.anksoft.myapplication.core.analytics.AnalyticsTracker
 import com.anksoft.myapplication.core.config.AppConfig
 import com.anksoft.myapplication.core.logging.AppLogger
 import com.anksoft.myapplication.core.logging.LogTags
@@ -14,7 +15,8 @@ import org.koin.dsl.module
 /**
  * Starts Koin. [config] has no default on purpose: a forgotten call must not compile instead of
  * silently falling back to the mock or prod backend. [platformModules] are loaded last so a
- * platform can add or override bindings.
+ * platform can add or override bindings. A platform with an analytics vendor binds its `Analytics`
+ * under `named(PLATFORM_ANALYTICS)`; without one, analytics stays a no-op.
  */
 fun initKoin(
     config: AppConfig,
@@ -29,12 +31,15 @@ fun initKoin(
         storageModule,
         applicationScopeModule,
         sessionModule,
+        analyticsModule,
         repositoryModule,
         useCaseModule,
         viewModelModule
     )
     modules(platformModules)
 }.also { app ->
+    // Before any screen exists: collection is switched to the current consent first.
+    app.koin.get<AnalyticsTracker>().start()
     // Single startup line for every platform, including iOS.
     app.koin.get<AppLogger>().info(LogTags.APP) {
         "Started env=${config.environment} version=${config.versionName}"

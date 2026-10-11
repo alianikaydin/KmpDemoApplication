@@ -1,8 +1,12 @@
 # Privacy and consent
 
-Optional data collection (crash reports now, analytics later) is allowed only with the account's
+Optional data collection (crash reports and product analytics) is allowed only with the account's
 consent. The decision belongs to the account, not to the device: it is stored by the backend and
 the app keeps a copy in the session storage.
+
+Product analytics follows the same rule and also deletes what the vendor holds on the device
+whenever the consent is anything but `GRANTED` (withdrawal, sign-out, unknown). See
+[analytics-events.md](analytics-events.md).
 
 ## The rule for every capability
 

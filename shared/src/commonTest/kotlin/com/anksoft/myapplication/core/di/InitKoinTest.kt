@@ -2,9 +2,16 @@ package com.anksoft.myapplication.core.di
 
 import assertk.assertThat
 import assertk.assertions.contains
+import assertk.assertions.containsExactly
+import assertk.assertions.isEmpty
 import assertk.assertions.isEqualTo
 import assertk.assertions.isInstanceOf
 import assertk.assertions.isTrue
+import com.anksoft.myapplication.core.analytics.Analytics
+import com.anksoft.myapplication.core.analytics.AnalyticsEvent
+import com.anksoft.myapplication.core.analytics.AnalyticsScreen
+import com.anksoft.myapplication.core.analytics.AnalyticsTracker
+import com.anksoft.myapplication.core.analytics.FakeAnalytics
 import com.anksoft.myapplication.core.config.AppConfig
 import com.anksoft.myapplication.core.consent.ConsentManager
 import com.anksoft.myapplication.core.consent.OptionalDataConsent
@@ -49,7 +56,8 @@ class InitKoinTest {
     private val sessionStorage = MapSettings()
     private val sessionOverride = module { single<Settings> { sessionStorage } }
 
-    // Host tests have no Android context, so the platform's preferences storage is replaced too.
+    // Host tests have no Android context, so the platform's preferences storage is replaced too. Every
+    // start needs it: the analytics tracker reads the app language and is created at start.
     private val preferencesStorage = MapSettings()
     private val preferencesOverride = module { single<Settings>(AppPreferencesSettings) { preferencesStorage } }
 
@@ -62,7 +70,7 @@ class InitKoinTest {
     fun demoConfigWiresMockBackendEndToEnd() = runTest {
         val koin = initKoin(
             config = TestAppConfigs.demo(),
-            platformModules = listOf(consoleOverride, sessionOverride)
+            platformModules = listOf(consoleOverride, preferencesOverride, sessionOverride)
         ).koin
 
         val demoUser = MockAuthServer.DEMO_USER
@@ -76,7 +84,10 @@ class InitKoinTest {
     fun koinProvidesTheGivenConfig() {
         val config = TestAppConfigs.remote("https://configured.test/api/")
 
-        val koin = initKoin(config = config, platformModules = listOf(consoleOverride, sessionOverride)).koin
+        val koin = initKoin(
+            config = config,
+            platformModules = listOf(consoleOverride, preferencesOverride, sessionOverride)
+        ).koin
 
         assertThat(koin.get<AppConfig>()).isEqualTo(config)
     }
@@ -88,7 +99,7 @@ class InitKoinTest {
 
         val koin = initKoin(
             config = TestAppConfigs.demo(),
-            platformModules = listOf(consoleOverride, sessionOverride, platformModule)
+            platformModules = listOf(consoleOverride, preferencesOverride, sessionOverride, platformModule)
         ).koin
 
         assertThat(koin.get<String>(named("platform"))).isEqualTo("from-platform")
@@ -97,7 +108,10 @@ class InitKoinTest {
     // AC-1
     @Test
     fun startupLogsOneAppEntryWithEnvironmentAndVersion() {
-        initKoin(config = TestAppConfigs.demo(), platformModules = listOf(consoleOverride, sessionOverride))
+        initKoin(
+            config = TestAppConfigs.demo(),
+            platformModules = listOf(consoleOverride, preferencesOverride, sessionOverride)
+        )
 
         val entry = recorder.entries.single { it.tag == LogTags.APP }
         assertThat(entry.severity).isEqualTo(LogSeverity.INFO)
@@ -110,7 +124,7 @@ class InitKoinTest {
     fun loggerIsProvidedFromOnePlaceAndSharedAcrossConsumers() {
         val koin = initKoin(
             config = TestAppConfigs.demo(),
-            platformModules = listOf(consoleOverride, sessionOverride)
+            platformModules = listOf(consoleOverride, preferencesOverride, sessionOverride)
         ).koin
 
         assertThat(koin.get<AppLogger>() === koin.get<AppLogger>()).isTrue()
@@ -151,6 +165,7 @@ class InitKoinTest {
             config = TestAppConfigs.demo(),
             platformModules = listOf(
                 consoleOverride,
+                preferencesOverride,
                 sessionOverride,
                 module { single<SessionObserver> { observer } }
             )
@@ -173,7 +188,7 @@ class InitKoinTest {
     fun sessionExpiryIsOneSharedInstance() {
         val koin = initKoin(
             config = TestAppConfigs.demo(),
-            platformModules = listOf(consoleOverride, sessionOverride)
+            platformModules = listOf(consoleOverride, preferencesOverride, sessionOverride)
         ).koin
 
         assertThat(koin.get<SessionExpiry>() === koin.get<SessionExpiry>()).isTrue()
@@ -184,7 +199,7 @@ class InitKoinTest {
     fun theConsentFacadeAndTheSessionObserverAreTheSameAccountConsentManager() {
         val koin = initKoin(
             config = TestAppConfigs.demo(),
-            platformModules = listOf(consoleOverride, sessionOverride)
+            platformModules = listOf(consoleOverride, preferencesOverride, sessionOverride)
         ).koin
 
         val manager = koin.get<AccountConsentManager>()
@@ -209,6 +224,7 @@ class InitKoinTest {
             config = TestAppConfigs.demo(),
             platformModules = listOf(
                 consoleOverride,
+                preferencesOverride,
                 sessionOverride,
                 module { single<ConsentRepository> { spyRepository } }
             )
@@ -222,7 +238,7 @@ class InitKoinTest {
     fun withoutASessionTheConsentFacadeSaysUnknown() {
         val koin = initKoin(
             config = TestAppConfigs.demo(),
-            platformModules = listOf(consoleOverride, sessionOverride)
+            platformModules = listOf(consoleOverride, preferencesOverride, sessionOverride)
         ).koin
 
         assertThat(koin.get<ConsentManager>().optionalDataConsent.value).isEqualTo(OptionalDataConsent.UNKNOWN)
@@ -239,9 +255,73 @@ class InitKoinTest {
 
         val koin = initKoin(
             config = TestAppConfigs.demo(),
-            platformModules = listOf(consoleOverride, sessionOverride)
+            platformModules = listOf(consoleOverride, preferencesOverride, sessionOverride)
         ).koin
 
         assertThat(koin.get<ConsentManager>().optionalDataConsent.value).isEqualTo(OptionalDataConsent.GRANTED)
+    }
+
+    // AC-2, AC-3
+    @Test
+    fun appStartsWithoutAnAnalyticsVendorAndTrackingIsSafe() {
+        val koin = initKoin(
+            config = TestAppConfigs.demo(),
+            platformModules = listOf(consoleOverride, preferencesOverride, sessionOverride)
+        ).koin
+
+        // An explicit choice, so the device language (a platform call) is not needed.
+        koin.get<AppPreferences>().setLanguage(AppLanguage.ENGLISH)
+        koin.get<AnalyticsTracker>().track(AnalyticsEvent.ScreenView(AnalyticsScreen.HOME))
+
+        // The call reached the tracker (dev writes its debug line) and nothing else was needed.
+        assertThat(recorder.entries.filter { it.tag == LogTags.ANALYTICS }.map { it.message })
+            .contains("event=screen_view screen_name=home screen_class=home language=en forwarded=false")
+    }
+
+    // AC-7: nothing is signed in at start, so the bound vendor is switched off and wiped.
+    @Test
+    fun aBoundPlatformAnalyticsIsTurnedOffAndResetAtStartWithoutConsent() {
+        val vendor = FakeAnalytics()
+
+        initKoin(
+            config = TestAppConfigs.demo(),
+            platformModules = listOf(
+                consoleOverride,
+                preferencesOverride,
+                sessionOverride,
+                module { single<Analytics>(named(PLATFORM_ANALYTICS)) { vendor } }
+            )
+        )
+
+        assertThat(vendor.calls).containsExactly(
+            FakeAnalytics.Call.SetCollection(false),
+            FakeAnalytics.Call.Reset
+        )
+    }
+
+    // AC-10: a dev build never forwards, not even with a cached grant.
+    @Test
+    fun aDevBuildWithACachedGrantStillSendsNothingToTheBoundVendor() {
+        SessionManager(sessionStorage).apply {
+            saveToken("access-123")
+            saveUserId("demo-1")
+            saveConsent("granted", 1)
+        }
+        val vendor = FakeAnalytics()
+        val koin = initKoin(
+            config = TestAppConfigs.demo(),
+            platformModules = listOf(
+                consoleOverride,
+                preferencesOverride,
+                sessionOverride,
+                module { single<Analytics>(named(PLATFORM_ANALYTICS)) { vendor } }
+            )
+        ).koin
+
+        // An explicit choice, so the device language (a platform call) is not needed.
+        koin.get<AppPreferences>().setLanguage(AppLanguage.ENGLISH)
+        koin.get<AnalyticsTracker>().track(AnalyticsEvent.ScreenView(AnalyticsScreen.HOME))
+
+        assertThat(vendor.events).isEmpty()
     }
 }

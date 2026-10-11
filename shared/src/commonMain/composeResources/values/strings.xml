@@ -61,7 +61,7 @@
     <string name="consent_state_on">On</string>
     <string name="consent_state_off">Off</string>
     <string name="settings_privacy_title">Privacy</string>
-    <string name="settings_consent_toggle_label">Optional data collection</string>
+    <string name="settings_consent_toggle_label">Optional data collection (crash reports, usage analytics)</string>
     <string name="consent_prompt_title">Your privacy choice</string>
     <string name="consent_accept">Accept</string>
     <string name="consent_reject">Reject</string>

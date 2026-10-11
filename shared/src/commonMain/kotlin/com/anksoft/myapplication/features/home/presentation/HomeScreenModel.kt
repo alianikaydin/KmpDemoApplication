@@ -2,6 +2,9 @@ package com.anksoft.myapplication.features.home.presentation
 
 import cafe.adriel.voyager.core.model.StateScreenModel
 import cafe.adriel.voyager.core.model.screenModelScope
+import com.anksoft.myapplication.core.analytics.AnalyticsEvent
+import com.anksoft.myapplication.core.analytics.AnalyticsScreen
+import com.anksoft.myapplication.core.analytics.AnalyticsTracker
 import com.anksoft.myapplication.features.consent.domain.AccountConsentManager
 import com.anksoft.myapplication.features.consent.domain.model.needsPrompt
 import kotlinx.coroutines.flow.update
@@ -17,10 +20,14 @@ sealed interface HomeEvent {
 }
 
 class HomeScreenModel(
-    private val consentManager: AccountConsentManager
+    private val consentManager: AccountConsentManager,
+    analytics: AnalyticsTracker
 ) : StateScreenModel<HomeState>(HomeState()) {
 
     init {
+        // The model lives as long as the screen is on the back stack, so this fires once per opening,
+        // not on back navigation or a language change.
+        analytics.track(AnalyticsEvent.ScreenView(AnalyticsScreen.HOME))
         screenModelScope.launch {
             // Only a known "no current decision" asks (AC-7); Loading and Unavailable never do (AC-12).
             // claimPrompt() hands the prompt out once per session, so a second emission shows nothing (AC-10).
