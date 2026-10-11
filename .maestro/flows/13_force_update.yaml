@@ -1,0 +1,38 @@
+# A version below the minimum shows the required-update screen instead of the app (AC-1), the store
+# button reports a store that cannot be opened and keeps the screen (AC-4), and on Android leaving with
+# Back and coming back shows the screen again (AC-2).
+# CI has no store to open: the Android emulator image has no Play Store and the iOS dev build has no
+# App Store ID (docs/app-updates.md). On a device with the store, the store button opens it instead.
+appId: ${APP_ID}
+---
+- runFlow:
+    file: ../subflows/launch_with_version_policy.yaml
+    env:
+      VERSION_POLICY: required
+      EXPECT_ID: force_update_screen
+- assertNotVisible:
+    id: login_title
+- tapOn:
+    id: force_update_open_store
+- extendedWaitUntil:
+    visible:
+      id: update_store_error
+    timeout: 20000
+- assertVisible:
+    id: force_update_screen
+- runFlow:
+    when:
+      platform: Android
+    commands:
+      # Back must not get past the screen: the app goes to the background and returns to the same screen.
+      - back
+      - launchApp:
+          arguments:
+            kmpDemoVersionPolicy: required
+      - extendedWaitUntil:
+          visible:
+            id: force_update_screen
+          timeout: 20000
+      - assertNotVisible:
+          id: login_title
+- takeScreenshot: 13_force_update_screen

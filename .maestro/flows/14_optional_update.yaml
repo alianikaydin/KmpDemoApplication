@@ -1,0 +1,44 @@
+# A newer version than the installed one shows a dismissible prompt over the app (AC-7). The store button
+# reports a store that cannot be opened and keeps the prompt (AC-10, error path). "Later" closes it (AC-8)
+# and it does not come back after a restart (AC-8).
+# CI has no store to open, see 13_force_update.yaml. The success path of the store button needs a real
+# store page and is checked by hand.
+appId: ${APP_ID}
+---
+- runFlow:
+    file: ../subflows/launch_with_version_policy.yaml
+    env:
+      VERSION_POLICY: optional
+      EXPECT_ID: update_prompt
+- assertVisible:
+    id: login_title
+- tapOn:
+    id: update_prompt_open_store
+- extendedWaitUntil:
+    visible:
+      id: update_store_error
+    timeout: 20000
+- assertVisible:
+    id: update_prompt
+- tapOn:
+    id: update_prompt_later
+- extendedWaitUntil:
+    notVisible:
+      id: update_prompt
+    timeout: 20000
+- assertVisible:
+    id: login_title
+# Restart without clearing: the dismissed version is kept, so the prompt stays away.
+- launchApp:
+    stopApp: true
+    arguments:
+      kmpDemoVersionPolicy: optional
+- extendedWaitUntil:
+    visible:
+      id: login_title
+    timeout: 30000
+- waitForAnimationToEnd:
+    timeout: 5000
+- assertNotVisible:
+    id: update_prompt
+- takeScreenshot: 14_login_after_later

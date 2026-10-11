@@ -88,6 +88,16 @@ iOS physical device: the phone can reach the Mac as `http://<mac-name>.local:808
 `127.0.0.1` only, so its port binding must be changed to allow LAN access
 first. Android physical devices should use `adb reverse` as above.
 
+## Endpoints the client sends no token to
+
+| Endpoint | Used for |
+|----------|----------|
+| `GET consent/texts` | the consent text on the sign-up form |
+| `GET app/version-policy?platform=android\|ios` | the update check (`docs/app-updates.md`) |
+
+These are public: the HTTP client sends no `Authorization` header to them, and a `401` from them is not a
+reason to refresh the token or end the session. The client matches them by path in `NetworkModule.kt`.
+
 ## Sessions and token refresh
 
 The access token is short-lived. When a protected request gets `401`, the client
