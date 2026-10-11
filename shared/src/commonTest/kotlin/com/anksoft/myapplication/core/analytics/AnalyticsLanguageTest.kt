@@ -1,8 +1,8 @@
 package com.anksoft.myapplication.core.analytics
 
 import assertk.assertThat
-import assertk.assertions.isFalse
 import assertk.assertions.isEqualTo
+import assertk.assertions.isFalse
 import com.anksoft.myapplication.core.preferences.AppLanguage
 import kotlin.test.Test
 
