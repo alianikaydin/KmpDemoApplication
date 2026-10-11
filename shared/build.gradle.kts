@@ -109,6 +109,7 @@ kotlin {
             implementation(libs.turbine)
             implementation(libs.assertk)
             implementation(libs.multiplatform.settings.test)
+            implementation(libs.compose.uiTest)
         }
         iosMain.dependencies {
             implementation(libs.ktor.client.darwin)

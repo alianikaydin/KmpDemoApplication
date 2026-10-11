@@ -34,19 +34,23 @@ Seed users of the mock backend:
 | `consent@example.com` | `Demo1234` | none, so the prompt shows after login (flows 10 and 11) |
 
 The consent controls expose their state to accessibility services through `toggleable(role = ...)` plus a
-localized `stateDescription` ("Selected" / "Not selected" for the sign-up checkbox, "On" / "Off" for the
-Settings switch; Turkish: "Seçili" / "Seçili değil", "Açık" / "Kapalı"). On Android Maestro reads it as
-`checked:`, and flows 08 to 11 assert it there.
+localized `stateDescription` ("Checked" / "Not checked" for the sign-up checkbox, "On" / "Off" for the
+Settings switch; Turkish: "İşaretli" / "İşaretli değil", "Açık" / "Kapalı"). On Android Maestro reads the
+toggleable state as `checked:` (the `stateDescription` is what TalkBack speaks), and flows 08 to 11 assert it
+there. In flows 10 and 11 the wait after tapping the switch also requires `enabled: true`, because the switch
+is disabled while the decision is being saved.
 
 On iOS Compose does not expose the checked state to XCUITest: with a plain `toggleable` the hierarchy shows
 only `id`, `accessibilityText` and `enabled`, and `checked: true` never matches (see the `ios-ui` run of
 PR #21, commit `0c2b681`, where marking the row as selected changed nothing). Whether Compose Multiplatform
-maps `stateDescription` to `accessibilityValue` is not verified yet, and the flows do not depend on it. There
-is deliberately no test-only marker in the UI. On iOS flows 08 to 11 assert the outcome instead: the screens
-that follow, and whether the one-time prompt shows or not (flows 10 and 11 also log out and in again). The
-exact toggle state on iOS is covered by the ScreenModel unit tests. If a later CI run shows the
-`stateDescription` in the iOS hierarchy, assert it there with a `platform: iOS` step. The sign-up flows submit
-with the keyboard's Done key on iOS (`submit_signup`), because the keyboard covers the submit button.
+maps `stateDescription` to `accessibilityValue` is not verified. There is deliberately no test-only marker in
+the UI. On iOS Maestro checks navigation and that the one-time prompt does not come back; it does not check
+the decision value. The decision logic behind the controls (initial value, what is sent on sign-up, prompt and
+switch changes, the disabled state while saving) is covered by `SignUpScreenModelTest`,
+`SettingsScreenModelTest` and `ConsentPromptScreenModelTest`, and the rendered state (on/off and the
+`stateDescription` text for both states, and toggling) by the Compose UI tests `SignUpConsentUiTest` and
+`SettingsConsentUiTest`; all of them run on Android host tests and on iOS (`ios-test`). The sign-up flows
+submit with the keyboard's Done key on iOS (`submit_signup`), because the keyboard covers the submit button.
 
 `dismiss_consent_prompt` is a safety step after each login: if the prompt is on screen it rejects it,
 otherwise it does nothing. The mock keeps decisions in memory only, so they are lost when the app

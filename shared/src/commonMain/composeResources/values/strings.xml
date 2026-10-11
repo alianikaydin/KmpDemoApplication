@@ -56,8 +56,8 @@
     <string name="consent_privacy_policy_link">Privacy policy</string>
     <string name="consent_texts_load_failed">Couldn\'t load the consent text.</string>
     <string name="consent_error_text_updated">The consent text was updated. Please review it and try again.</string>
-    <string name="consent_state_checked">Selected</string>
-    <string name="consent_state_unchecked">Not selected</string>
+    <string name="consent_state_checked">Checked</string>
+    <string name="consent_state_unchecked">Not checked</string>
     <string name="consent_state_on">On</string>
     <string name="consent_state_off">Off</string>
     <string name="settings_privacy_title">Privacy</string>
