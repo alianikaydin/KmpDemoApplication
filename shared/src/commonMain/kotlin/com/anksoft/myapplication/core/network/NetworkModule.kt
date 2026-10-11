@@ -30,6 +30,7 @@ import io.ktor.http.ContentType
 import io.ktor.http.HttpHeaders
 import io.ktor.http.HttpStatusCode
 import io.ktor.http.contentType
+import io.ktor.http.encodedPath
 import io.ktor.serialization.kotlinx.json.json
 import org.koin.dsl.module
 import io.ktor.client.plugins.logging.Logger as KtorLogger
