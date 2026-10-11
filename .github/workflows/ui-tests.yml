@@ -74,7 +74,7 @@ jobs:
           path: |
             ~/.android/avd/*
             ~/.android/adb*
-          key: avd-34-x86_64-google_apis-pixel_6
+          key: avd-34-x86_64-google_apis-pixel_6-4cpu-4gb
 
       - name: Mark emulator boot stage
         run: echo boot > "$OUT_DIR/stage"
@@ -87,6 +87,10 @@ jobs:
           target: google_apis
           arch: x86_64
           profile: pixel_6
+          # The default 2 cores leave the launcher starved under software rendering
+          # ("Pixel Launcher isn't responding" covering the app). Use the runner's 4 vCPUs.
+          cores: 4
+          ram-size: 4096M
           force-avd-creation: false
           emulator-boot-timeout: 600
           emulator-options: -no-window -gpu swiftshader_indirect -noaudio -no-boot-anim -camera-back none
@@ -102,6 +106,10 @@ jobs:
           target: google_apis
           arch: x86_64
           profile: pixel_6
+          # The default 2 cores leave the launcher starved under software rendering
+          # ("Pixel Launcher isn't responding" covering the app). Use the runner's 4 vCPUs.
+          cores: 4
+          ram-size: 4096M
           force-avd-creation: false
           disable-animations: true
           emulator-boot-timeout: 600
@@ -192,7 +200,7 @@ jobs:
           path: |
             ~/.android/avd/*
             ~/.android/adb*
-          key: avd-34-x86_64-google_apis-pixel_6
+          key: avd-34-x86_64-google_apis-pixel_6-4cpu-4gb
 
       - name: Mark emulator boot stage
         run: echo boot > "$OUT_DIR/stage"
@@ -205,6 +213,10 @@ jobs:
           target: google_apis
           arch: x86_64
           profile: pixel_6
+          # The default 2 cores leave the launcher starved under software rendering
+          # ("Pixel Launcher isn't responding" covering the app). Use the runner's 4 vCPUs.
+          cores: 4
+          ram-size: 4096M
           force-avd-creation: false
           emulator-boot-timeout: 600
           emulator-options: -no-window -gpu swiftshader_indirect -noaudio -no-boot-anim -camera-back none
@@ -222,6 +234,10 @@ jobs:
           target: google_apis
           arch: x86_64
           profile: pixel_6
+          # The default 2 cores leave the launcher starved under software rendering
+          # ("Pixel Launcher isn't responding" covering the app). Use the runner's 4 vCPUs.
+          cores: 4
+          ram-size: 4096M
           force-avd-creation: false
           disable-animations: true
           emulator-boot-timeout: 600
