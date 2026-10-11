@@ -1,4 +1,5 @@
-# A newer version than the installed one shows a dismissible prompt over the app (AC-7). The store button
+# A newer version than the installed one shows a dismissible prompt over the app (AC-7; the app underneath
+# is checked once the prompt is closed). The store button
 # reports a store that cannot be opened and keeps the prompt (AC-10, error path). "Later" closes it (AC-8)
 # and it does not come back after a restart (AC-8).
 # CI has no store to open, see 13_force_update.yaml. The success path of the store button needs a real
@@ -10,8 +11,10 @@ appId: ${APP_ID}
     env:
       VERSION_POLICY: optional
       EXPECT_ID: update_prompt
-- assertVisible:
-    id: login_title
+# The app behind the dialog is not asserted here: the dialog is its own window and takes the focus, so
+# Maestro on Android reads only the dialog's elements while it is open. That the app runs behind the
+# prompt (AC-7) is shown by Login being visible as soon as "Later" has closed it, below.
+- takeScreenshot: 14_update_prompt
 - tapOn:
     id: update_prompt_open_store
 - extendedWaitUntil:

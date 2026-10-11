@@ -68,6 +68,10 @@ The two flows start through `launch_with_version_policy`, which launches the app
 launch argument on iOS) and waits for the screen it expects. The mock backend reads the argument only in
 demo mode (`docs/app-updates.md`); the other flows start without it and see "no update".
 
+While the update prompt (a dialog, so its own window) is open, Maestro on Android sees only the dialog's
+elements, not the screen behind it. Flow 14 therefore checks that the app runs behind the prompt by asserting
+the Login screen right after "Later" has closed it.
+
 The store button is deterministic in CI because there is nothing to open: the emulator image
 (`target: default`) has no Play Store, so the intent fails, and the iOS dev build has an empty
 `KMP_APP_STORE_ID`. Both flows therefore assert the "Couldn't open the store." message. On a local emulator
