@@ -11,9 +11,6 @@ internal object SettingsTestTags {
     const val CONSENT_TOGGLE = "settings_consent_toggle"
     const val PRIVACY_POLICY = "settings_privacy_policy"
     const val CONSENT_RETRY = "settings_consent_retry"
-    /** Exactly one of these is on screen: it tells UI automation whether the switch is on. */
-    const val CONSENT_STATE_ON = "settings_consent_state_on"
-    const val CONSENT_STATE_OFF = "settings_consent_state_off"
     const val THEME_SYSTEM = "settings_theme_system"
     const val THEME_LIGHT = "settings_theme_light"
     const val THEME_DARK = "settings_theme_dark"

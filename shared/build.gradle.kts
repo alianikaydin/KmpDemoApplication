@@ -114,6 +114,11 @@ kotlin {
         iosMain.dependencies {
             implementation(libs.ktor.client.darwin)
         }
+        // Compose UI tests run on iOS only: Android checks the rendered state with
+        // Maestro (checked:), and Compose UI tests on the Android host need Robolectric.
+        iosTest.dependencies {
+            implementation(libs.compose.uiTest)
+        }
         jsMain.dependencies {
             implementation(libs.wrappers.browser)
         }
