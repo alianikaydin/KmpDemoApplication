@@ -274,7 +274,7 @@ class InitKoinTest {
     fun appStartsWithNoCrashVendorAndErrorsAreSafeToLog() {
         val koin = initKoin(
             config = TestAppConfigs.demo(),
-            platformModules = listOf(consoleOverride, sessionOverride)
+            platformModules = listOf(consoleOverride, preferencesOverride, sessionOverride)
         ).koin
 
         koin.get<AppLogger>().error(LogTags.APP, RuntimeException("boom")) { "caught" }
@@ -295,7 +295,7 @@ class InitKoinTest {
 
         val koin = initKoin(
             config = AppConfig.create(AppEnvironment.STAGE, null, false, "1.0", 1),
-            platformModules = listOf(consoleOverride, sessionOverride, vendorModule)
+            platformModules = listOf(consoleOverride, preferencesOverride, sessionOverride, vendorModule)
         ).koin
 
         assertThat(koin.get<CrashGate>().isOpen).isTrue()
