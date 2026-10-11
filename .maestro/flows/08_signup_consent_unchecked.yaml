@@ -48,6 +48,7 @@ appId: ${APP_ID}
     element:
       id: settings_consent_toggle
     direction: DOWN
+    centerElement: true   # the state marker sits below the switch; keep both clear of the bottom edge
 - assertVisible:
     id: settings_consent_state_off
 - runFlow:
