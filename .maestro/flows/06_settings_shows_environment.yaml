@@ -12,12 +12,14 @@ appId: ${APP_ID}
     visible:
       id: home_title
     timeout: 20000
+- runFlow: ../subflows/dismiss_consent_prompt.yaml
 - tapOn:
     id: home_settings_button
-- extendedWaitUntil:
-    visible:
+# The privacy section can push the environment line below the fold.
+- scrollUntilVisible:
+    element:
       id: settings_environment
-    timeout: 20000
+    direction: DOWN
 - assertVisible:
     id: settings_environment
     text: ".*DEV.*"

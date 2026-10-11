@@ -1,5 +1,6 @@
 package com.anksoft.myapplication.core.storage
 
+import com.anksoft.myapplication.core.concurrency.createReentrantLock
 import com.russhwolf.settings.Settings
 
 /**
@@ -12,8 +13,39 @@ import com.russhwolf.settings.Settings
  *
  * Storage failures (e.g. a Keychain error) are treated as "no value" so a broken
  * store sends the user to Login instead of crashing the app.
+ *
+ * Every access goes through one re-entrant lock, and [withSessionLock] lets a caller run a
+ * compound change (check, then write; clear, then notify) as one step against the other threads
+ * that touch the session.
  */
 class SessionManager(private val settings: Settings) {
+
+    private val lock = createReentrantLock()
+
+    /**
+     * Runs [block] while holding the session lock. The lock is re-entrant, so [block] may call
+     * the other methods of this class. Keep it short and never suspend inside it.
+     */
+    fun <T> withSessionLock(block: () -> T): T = lock.withLock(block)
+
+    /**
+     * Stores a rotated token pair, but only if the stored refresh token is still
+     * [expectedRefreshToken]. Returns false (and writes nothing) when the session changed since
+     * the caller read it, for example because the user logged out and signed in again.
+     */
+    fun replaceTokensIfRefreshTokenIs(
+        expectedRefreshToken: String,
+        accessToken: String,
+        refreshToken: String
+    ): Boolean = withSessionLock {
+        if (getRefreshToken() == expectedRefreshToken) {
+            saveToken(accessToken)
+            saveRefreshToken(refreshToken)
+            true
+        } else {
+            false
+        }
+    }
 
     fun saveToken(token: String) {
         write(KEY_TOKEN, token)
@@ -45,20 +77,60 @@ class SessionManager(private val settings: Settings) {
 
     fun getUserName(): String? = read(KEY_USER_NAME)
 
+    /**
+     * Caches the account's consent decision for the current session: the status string and the
+     * text version, nothing that identifies the user (AC-27). A null [textVersion] removes the version.
+     */
+    fun saveConsent(status: String, textVersion: Int?) {
+        withSessionLock {
+            write(KEY_CONSENT_STATUS, status)
+            if (textVersion == null) {
+                delete(KEY_CONSENT_TEXT_VERSION)
+            } else {
+                write(KEY_CONSENT_TEXT_VERSION, textVersion.toString())
+            }
+        }
+    }
+
+    /**
+     * Like [saveConsent], but only while the session of [userId] is still the stored one. A consent
+     * answer that arrives after a logout, or after another account signed in, is thrown away
+     * instead of being cached for the wrong session. Returns whether it was stored.
+     */
+    fun saveConsentForUser(userId: String, status: String, textVersion: Int?): Boolean = withSessionLock {
+        if (getToken() != null && getUserId() == userId) {
+            saveConsent(status, textVersion)
+            true
+        } else {
+            false
+        }
+    }
+
+    fun getConsentStatus(): String? = read(KEY_CONSENT_STATUS)
+
+    fun getConsentTextVersion(): Int? = read(KEY_CONSENT_TEXT_VERSION)?.toIntOrNull()
+
+    fun clearConsent() {
+        withSessionLock {
+            delete(KEY_CONSENT_STATUS)
+            delete(KEY_CONSENT_TEXT_VERSION)
+        }
+    }
+
     /** Wipes every session key. Called on logout and on refresh failure (AC-5.3). */
     fun clear() {
-        SESSION_KEYS.forEach(::delete)
+        withSessionLock { SESSION_KEYS.forEach(::delete) }
     }
 
     private fun read(key: String): String? =
-        runCatching { settings.getStringOrNull(key) }.getOrNull()
+        withSessionLock { runCatching { settings.getStringOrNull(key) }.getOrNull() }
 
     private fun write(key: String, value: String) {
-        runCatching { settings.putString(key, value) }
+        withSessionLock { runCatching { settings.putString(key, value) } }
     }
 
     private fun delete(key: String) {
-        runCatching { settings.remove(key) }
+        withSessionLock { runCatching { settings.remove(key) } }
     }
 
     companion object {
@@ -67,6 +139,8 @@ class SessionManager(private val settings: Settings) {
         internal const val KEY_USER_ID = "user_id"
         internal const val KEY_USER_EMAIL = "user_email"
         internal const val KEY_USER_NAME = "user_name"
+        internal const val KEY_CONSENT_STATUS = "consent_status"
+        internal const val KEY_CONSENT_TEXT_VERSION = "consent_text_version"
 
         /** Every key this class owns; used by [SessionStorageMigrator]. */
         internal val SESSION_KEYS = listOf(
@@ -75,6 +149,8 @@ class SessionManager(private val settings: Settings) {
             KEY_USER_ID,
             KEY_USER_EMAIL,
             KEY_USER_NAME,
+            KEY_CONSENT_STATUS,
+            KEY_CONSENT_TEXT_VERSION,
         )
     }
 }

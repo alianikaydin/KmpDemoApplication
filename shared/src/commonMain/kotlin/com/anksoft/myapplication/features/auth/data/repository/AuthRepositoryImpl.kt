@@ -18,11 +18,16 @@ import com.anksoft.myapplication.features.auth.data.datasource.AuthRemoteDataSou
 import com.anksoft.myapplication.features.auth.data.mapper.toUser
 import com.anksoft.myapplication.features.auth.domain.model.User
 import com.anksoft.myapplication.features.auth.domain.repository.AuthRepository
+import com.anksoft.myapplication.features.consent.data.datasource.ConsentLocalDataSource
+import com.anksoft.myapplication.features.consent.data.mapper.toDomain
+import com.anksoft.myapplication.features.consent.data.mapper.toDto
+import com.anksoft.myapplication.features.consent.domain.model.ConsentChoice
 
 class AuthRepositoryImpl(
     private val remoteDataSource: AuthRemoteDataSource,
     private val sessionManager: SessionManager,
     private val tokenCache: AuthTokenCache,
+    private val consentLocal: ConsentLocalDataSource,
     private val sessionObservers: List<SessionObserver>,
     private val logger: AppLogger
 ) : AuthRepository {
@@ -30,13 +35,20 @@ class AuthRepositoryImpl(
     override suspend fun login(email: String, password: String): Result<User, DataError> =
         remoteDataSource.login(email, password).map { it.persistSession() }.logOutcome("login")
 
-    override suspend fun register(email: String, password: String): Result<User, DataError> =
-        remoteDataSource.register(email, password).map { it.persistSession() }.logOutcome("register")
+    override suspend fun register(
+        email: String,
+        password: String,
+        consent: ConsentChoice?
+    ): Result<User, DataError> =
+        remoteDataSource.register(email, password, consent?.toDto()).map { it.persistSession() }.logOutcome("register")
 
     override suspend fun logout() {
-        sessionManager.clear()
-        tokenCache.clear()
-        sessionObservers.forEach { it.onSignedOut(SignOutReason.USER_LOGOUT) }
+        // One step against token refresh and session expiry running on other threads.
+        sessionManager.withSessionLock {
+            sessionManager.clear()
+            tokenCache.clear()
+            sessionObservers.forEach { it.onSignedOut(SignOutReason.USER_LOGOUT) }
+        }
     }
 
     override suspend fun getCurrentUser(): User? {
@@ -55,16 +67,23 @@ class AuthRepositoryImpl(
      * next launch. The password is never stored (AC-1.8).
      */
     private fun AuthResponseDto.persistSession(): User {
-        // Drop the previous account's cached bearer token before the new one is stored.
-        tokenCache.clear()
-        sessionManager.saveToken(accessToken)
-        refreshToken?.let(sessionManager::saveRefreshToken)
         val domainUser = user.toUser()
-        sessionManager.saveUserId(domainUser.id)
-        sessionManager.saveUserEmail(domainUser.email)
-        domainUser.name?.let(sessionManager::saveUserName)
-        // Observers run last, so they see the stored session.
-        sessionObservers.forEach { it.onSignedIn() }
+        // One step against token refresh and session expiry running on other threads.
+        sessionManager.withSessionLock {
+            // Drop the previous account's cached bearer token before the new one is stored.
+            tokenCache.clear()
+            sessionManager.saveToken(accessToken)
+            refreshToken?.let(sessionManager::saveRefreshToken)
+            sessionManager.saveUserId(domainUser.id)
+            sessionManager.saveUserEmail(domainUser.email)
+            domainUser.name?.let(sessionManager::saveUserName)
+            // Only the register response carries a decision; a login starts from an empty cache and
+            // the consent manager fetches the account's decision once it hears about the sign-in.
+            consentLocal.clear()
+            consent?.toDomain()?.let(consentLocal::write)
+            // Observers run last, so they see the stored session.
+            sessionObservers.forEach { it.onSignedIn() }
+        }
         return domainUser
     }
 }

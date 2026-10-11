@@ -4,6 +4,7 @@ import com.anksoft.kmpdemo.contract.auth.AuthPaths
 import com.anksoft.kmpdemo.contract.auth.AuthResponseDto
 import com.anksoft.kmpdemo.contract.auth.LoginRequestDto
 import com.anksoft.kmpdemo.contract.auth.RegisterRequestDto
+import com.anksoft.kmpdemo.contract.consent.ConsentDecisionDto
 import com.anksoft.myapplication.core.domain.DataError
 import com.anksoft.myapplication.core.domain.Result
 import com.anksoft.myapplication.core.logging.AppLogger
@@ -28,10 +29,15 @@ class AuthRemoteDataSource(
             }
         }
 
-    suspend fun register(email: String, password: String): Result<AuthResponseDto, DataError.Remote> =
+    /** A null [consent] is not sent at all (the JSON encoder omits defaults), like an older client. */
+    suspend fun register(
+        email: String,
+        password: String,
+        consent: ConsentDecisionDto?
+    ): Result<AuthResponseDto, DataError.Remote> =
         safeCall(logger, PATH_REGISTER) {
             httpClient.post(PATH_REGISTER) {
-                setBody(RegisterRequestDto(email = email, password = password))
+                setBody(RegisterRequestDto(email = email, password = password, consent = consent))
             }
         }
 

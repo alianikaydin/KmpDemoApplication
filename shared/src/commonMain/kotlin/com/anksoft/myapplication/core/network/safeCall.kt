@@ -70,6 +70,7 @@ internal fun DataError.Remote.logSeverity(): LogSeverity = when (this) {
     DataError.Remote.REQUEST_TIMEOUT,
     DataError.Remote.UNAUTHORIZED,
     DataError.Remote.CONFLICT,
+    DataError.Remote.UNPROCESSABLE,
     DataError.Remote.TOO_MANY_REQUESTS -> LogSeverity.WARN
     DataError.Remote.SERVER_ERROR,
     DataError.Remote.SERIALIZATION,
@@ -89,6 +90,7 @@ suspend inline fun <reified T> HttpResponse.toResult(): Result<T, DataError.Remo
         401 -> Result.Failure(DataError.Remote.UNAUTHORIZED)
         408 -> Result.Failure(DataError.Remote.REQUEST_TIMEOUT)
         409 -> Result.Failure(DataError.Remote.CONFLICT)
+        422 -> Result.Failure(DataError.Remote.UNPROCESSABLE)
         429 -> Result.Failure(DataError.Remote.TOO_MANY_REQUESTS)
         in 500..599 -> Result.Failure(DataError.Remote.SERVER_ERROR)
         else -> Result.Failure(DataError.Remote.UNKNOWN)

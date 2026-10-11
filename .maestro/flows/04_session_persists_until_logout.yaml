@@ -13,6 +13,7 @@ appId: ${APP_ID}
     visible:
       id: home_title
     timeout: 20000
+- runFlow: ../subflows/dismiss_consent_prompt.yaml
 - launchApp:
     stopApp: true
 - waitForAnimationToEnd:   # see subflows/launch_clean.yaml

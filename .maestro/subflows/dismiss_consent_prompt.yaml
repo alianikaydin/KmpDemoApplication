@@ -1,0 +1,15 @@
+# Safety step after a login: if the one-time consent prompt is on screen, reject it and wait for Home.
+# Does nothing when the prompt is not shown (the demo user is seeded with a decision, so it is not).
+appId: ${APP_ID}
+---
+- runFlow:
+    when:
+      visible:
+        id: consent_screen
+    commands:
+      - tapOn:
+          id: consent_reject
+      - extendedWaitUntil:
+          visible:
+            id: home_title
+          timeout: 20000

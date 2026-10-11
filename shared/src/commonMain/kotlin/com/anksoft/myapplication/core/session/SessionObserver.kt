@@ -12,7 +12,8 @@ enum class SignOutReason {
 /**
  * Listens to session changes. Callbacks run synchronously on the calling thread right after the
  * session was stored or cleared, so an observer already sees the new state when the triggering
- * call returns. Keep them short; start longer work in your own scope.
+ * call returns. They run while the session lock is held (see SessionManager.withSessionLock), so
+ * a callback must not block or wait for another thread; start longer work in your own scope.
  */
 interface SessionObserver {
     fun onSignedIn()

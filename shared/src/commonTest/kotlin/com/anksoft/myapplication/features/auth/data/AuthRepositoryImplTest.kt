@@ -23,11 +23,13 @@ import com.anksoft.myapplication.core.storage.SessionManager
 import com.anksoft.myapplication.features.auth.data.datasource.AuthRemoteDataSource
 import com.anksoft.myapplication.features.auth.data.repository.AuthRepositoryImpl
 import com.anksoft.myapplication.features.auth.domain.model.User
+import com.anksoft.myapplication.features.consent.data.datasource.ConsentLocalDataSource
+import com.anksoft.myapplication.features.consent.domain.model.ConsentChoice
 import com.russhwolf.settings.MapSettings
 import io.ktor.client.HttpClient
 import io.ktor.client.engine.mock.MockEngine
 import io.ktor.client.engine.mock.respond
-import io.ktor.client.engine.mock.respondError
+import io.ktor.client.engine.mock.toByteArray
 import io.ktor.client.plugins.contentnegotiation.ContentNegotiation
 import io.ktor.client.plugins.defaultRequest
 import io.ktor.http.ContentType
@@ -41,6 +43,9 @@ import kotlinx.serialization.json.Json
 import kotlin.test.Test
 
 class AuthRepositoryImplTest {
+
+    /** Bodies of the requests the repository sent, in order. */
+    private val sentBodies = mutableListOf<String>()
 
     private val successBody = """
         {
@@ -57,7 +62,8 @@ class AuthRepositoryImplTest {
         tokenCache: AuthTokenCache = FakeAuthTokenCache(),
         observers: List<SessionObserver> = emptyList()
     ): Pair<AuthRepositoryImpl, SessionManager> {
-        val engine = MockEngine {
+        val engine = MockEngine { request ->
+            sentBodies += request.body.toByteArray().decodeToString()
             respond(
                 content = body,
                 status = status,
@@ -74,7 +80,15 @@ class AuthRepositoryImplTest {
             }
         }
         val sessionManager = SessionManager(MapSettings())
-        return AuthRepositoryImpl(AuthRemoteDataSource(client, logger), sessionManager, tokenCache, observers, logger) to sessionManager
+        val repository = AuthRepositoryImpl(
+            AuthRemoteDataSource(client, logger),
+            sessionManager,
+            tokenCache,
+            ConsentLocalDataSource(sessionManager),
+            observers,
+            logger
+        )
+        return repository to sessionManager
     }
 
     @Test
@@ -106,7 +120,7 @@ class AuthRepositoryImplTest {
     fun conflictOnRegisterMapsToConflict() = runTest {
         val (repository, _) = repositoryReturning(HttpStatusCode.Conflict, "{}")
 
-        val result = repository.register("taken@example.com", "Password1")
+        val result = repository.register("taken@example.com", "Password1", consent = null)
 
         assertThat(result).isEqualTo(Result.Failure(DataError.Remote.CONFLICT))
     }
@@ -222,7 +236,7 @@ class AuthRepositoryImplTest {
         val (logger, writer) = recordingLogger()
         val (repository, _) = repositoryReturning(HttpStatusCode.Conflict, "{}", logger)
 
-        repository.register("taken@example.com", "Password1")
+        repository.register("taken@example.com", "Password1", consent = null)
 
         assertThat(writer.entries.single { it.tag == LogTags.AUTH }.message)
             .contains("register failed error=CONFLICT")
@@ -237,7 +251,7 @@ class AuthRepositoryImplTest {
         repository.login("user@example.com", "Password1")
         assertThat(cache.clearCount).isEqualTo(1)
 
-        repository.register("user@example.com", "Password1")
+        repository.register("user@example.com", "Password1", consent = null)
         assertThat(cache.clearCount).isEqualTo(2)
     }
 
@@ -283,7 +297,7 @@ class AuthRepositoryImplTest {
         val observer = FakeSessionObserver()
         val (repository, _) = repositoryReturning(HttpStatusCode.OK, successBody, observers = listOf(observer))
 
-        repository.register("user@example.com", "Password1")
+        repository.register("user@example.com", "Password1", consent = null)
 
         assertThat(observer.events).isEqualTo(listOf(FakeSessionObserver.Event.SignedIn))
     }
@@ -314,5 +328,111 @@ class AuthRepositoryImplTest {
         assertThat(observer.events)
             .isEqualTo(listOf(FakeSessionObserver.Event.SignedOut(SignOutReason.USER_LOGOUT)))
         assertThat(tokenSeenByObserver).isNull()
+    }
+
+    private val registerBodyWithConsent = """
+        {
+          "access_token": "access-123",
+          "refresh_token": "refresh-456",
+          "user": { "id": "u1", "email": "user@example.com" },
+          "consent": { "status": "granted", "text_version": 2, "text_language": "tr",
+                       "decided_at": "2026-10-09T10:00:00Z", "reconsent_required": false }
+        }
+    """.trimIndent()
+
+    // AC-2, AC-3, AC-22
+    @Test
+    fun registerSendsTheChoiceWithTheVersionAndLanguageOfTheTextThatWasShown() = runTest {
+        val (repository, _) = repositoryReturning(HttpStatusCode.OK, successBody)
+
+        repository.register("user@example.com", "Password1", ConsentChoice(true, textVersion = 2, textLanguage = "tr"))
+
+        assertThat(sentBodies.single()).contains(
+            """"consent":{"status":"granted","text_version":2,"text_language":"tr"}"""
+        )
+    }
+
+    // AC-2
+    @Test
+    fun registerSendsDeniedWhenTheBoxWasLeftUnchecked() = runTest {
+        val (repository, _) = repositoryReturning(HttpStatusCode.OK, successBody)
+
+        repository.register("user@example.com", "Password1", ConsentChoice(false, textVersion = 1, textLanguage = "en"))
+
+        assertThat(sentBodies.single()).contains(""""status":"denied"""")
+    }
+
+    // AC-4
+    @Test
+    fun registerWithoutAChoiceSendsNoConsentField() = runTest {
+        val (repository, _) = repositoryReturning(HttpStatusCode.OK, successBody)
+
+        repository.register("user@example.com", "Password1", consent = null)
+
+        assertThat(sentBodies.single()).doesNotContain("consent")
+    }
+
+    // AC-3, AC-27
+    @Test
+    fun theDecisionInTheRegisterResponseIsCachedWithOnlyStatusAndVersion() = runTest {
+        val (repository, session) = repositoryReturning(HttpStatusCode.OK, registerBodyWithConsent)
+
+        repository.register("user@example.com", "Password1", ConsentChoice(true, 2, "tr"))
+
+        assertThat(session.getConsentStatus()).isEqualTo("granted")
+        assertThat(session.getConsentTextVersion()).isEqualTo(2)
+    }
+
+    // AC-6, AC-18
+    @Test
+    fun loginStartsWithoutACachedDecisionSoTheManagerFetchesTheAccountsOwn() = runTest {
+        val (repository, session) = repositoryReturning(HttpStatusCode.OK, successBody)
+        session.saveConsent("granted", 1)
+
+        repository.login("user@example.com", "Password1")
+
+        assertThat(session.getConsentStatus()).isNull()
+        assertThat(session.getConsentTextVersion()).isNull()
+    }
+
+    // AC-18
+    @Test
+    fun aRegisterResponseWithoutADecisionClearsTheOldCache() = runTest {
+        val (repository, session) = repositoryReturning(HttpStatusCode.OK, successBody)
+        session.saveConsent("granted", 1)
+
+        repository.register("user@example.com", "Password1", consent = null)
+
+        assertThat(session.getConsentStatus()).isNull()
+        assertThat(session.getConsentTextVersion()).isNull()
+    }
+
+    // AC-18, AC-27
+    @Test
+    fun logoutRemovesTheCachedDecision() = runTest {
+        val (repository, session) = repositoryReturning(HttpStatusCode.OK, registerBodyWithConsent)
+        repository.register("user@example.com", "Password1", ConsentChoice(true, 2, "tr"))
+
+        repository.logout()
+
+        assertThat(session.getConsentStatus()).isNull()
+        assertThat(session.getConsentTextVersion()).isNull()
+    }
+
+    // AC-3
+    @Test
+    fun theObserverSeesTheCachedDecisionWhenItHearsAboutTheRegistration() = runTest {
+        val observer = FakeSessionObserver()
+        val (repository, session) = repositoryReturning(
+            HttpStatusCode.OK,
+            registerBodyWithConsent,
+            observers = listOf(observer)
+        )
+        var statusSeenByObserver: String? = null
+        observer.onEvent = { statusSeenByObserver = session.getConsentStatus() }
+
+        repository.register("user@example.com", "Password1", ConsentChoice(true, 2, "tr"))
+
+        assertThat(statusSeenByObserver).isEqualTo("granted")
     }
 }
