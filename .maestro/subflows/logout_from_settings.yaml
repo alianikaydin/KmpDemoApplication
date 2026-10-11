@@ -1,0 +1,16 @@
+# From the Settings screen: scroll the logout button to the middle of the screen, tap it and
+# wait for Login. Centering keeps the tap clear of the iOS home indicator and the Android
+# navigation bar now that Settings is taller than one screen.
+appId: ${APP_ID}
+---
+- scrollUntilVisible:
+    element:
+      id: settings_logout_button
+    direction: DOWN
+    centerElement: true
+- tapOn:
+    id: settings_logout_button
+- extendedWaitUntil:
+    visible:
+      id: login_title
+    timeout: ${LOGOUT_TIMEOUT || 20000}

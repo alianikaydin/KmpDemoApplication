@@ -46,16 +46,10 @@ appId: ${APP_ID}
 - tapOn:
     id: home_settings_button
 # Settings is taller than a small screen; the button may start below the fold.
-- scrollUntilVisible:
-    element:
-      id: settings_logout_button
-    direction: DOWN
-- tapOn:
-    id: settings_logout_button
-- extendedWaitUntil:
-    visible:
-      id: login_title
-    timeout: 30000
+- runFlow:
+    file: ../../.maestro/subflows/logout_from_settings.yaml
+    env:
+      LOGOUT_TIMEOUT: 30000
 - runFlow:
     file: ../../.maestro/subflows/login_with.yaml
     env:
