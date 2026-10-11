@@ -1,4 +1,5 @@
 # Sign up with the consent box checked: no prompt afterwards and the Settings switch is on (AC-3, AC-14).
+# The on/off state is asserted with `checked:` on Android only; on iOS Compose does not expose it (docs/ui-tests.md), so iOS asserts the outcome: the screens and the prompt (or no prompt) that follow.
 appId: ${APP_ID}
 ---
 - runFlow: ../subflows/launch_clean.yaml
@@ -9,8 +10,6 @@ appId: ${APP_ID}
     element:
       id: signup_consent_checkbox
     direction: DOWN
-- assertVisible:
-    id: signup_consent_state_off
 - runFlow:
     when:
       platform: Android
@@ -23,8 +22,6 @@ appId: ${APP_ID}
 # Check the box first: later the keyboard is up and covers the lower part of the form.
 - tapOn:
     id: signup_consent_checkbox
-- assertVisible:
-    id: signup_consent_state_on
 - runFlow:
     when:
       platform: Android
@@ -60,8 +57,6 @@ appId: ${APP_ID}
     element:
       id: settings_consent_toggle
     direction: DOWN
-- assertVisible:
-    id: settings_consent_state_on
 - runFlow:
     when:
       platform: Android

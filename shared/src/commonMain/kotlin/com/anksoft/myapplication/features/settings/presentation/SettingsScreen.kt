@@ -20,6 +20,7 @@ import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.semantics.heading
 import androidx.compose.ui.semantics.liveRegion
 import androidx.compose.ui.semantics.semantics
+import androidx.compose.ui.semantics.stateDescription
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import cafe.adriel.voyager.core.screen.Screen
@@ -29,11 +30,12 @@ import cafe.adriel.voyager.navigator.currentOrThrow
 import com.anksoft.myapplication.core.preferences.AppLanguage
 import com.anksoft.myapplication.core.presentation.asString
 import com.anksoft.myapplication.features.auth.presentation.login.LoginScreen
-import com.anksoft.myapplication.features.consent.presentation.ConsentStateMarker
 import com.anksoft.myapplication.features.consent.presentation.PrivacyPolicyLink
 import myapplication.shared.generated.resources.Res
 import myapplication.shared.generated.resources.common_back
 import myapplication.shared.generated.resources.common_retry
+import myapplication.shared.generated.resources.consent_state_off
+import myapplication.shared.generated.resources.consent_state_on
 import myapplication.shared.generated.resources.consent_status_load_failed
 import myapplication.shared.generated.resources.language_system_default
 import myapplication.shared.generated.resources.settings_environment
@@ -203,6 +205,9 @@ private fun PrivacySection(
 
         // The backend's own label once it is loaded; the app's generic one otherwise.
         val label = privacy.label ?: stringResource(Res.string.settings_consent_toggle_label)
+        val stateDescription = stringResource(
+            if (privacy.isChecked) Res.string.consent_state_on else Res.string.consent_state_off
+        )
         Row(
             modifier = Modifier
                 .fillMaxWidth()
@@ -213,6 +218,7 @@ private fun PrivacySection(
                     role = Role.Switch,
                     onValueChange = { onEvent(SettingsEvent.ConsentToggle(it)) }
                 )
+                .semantics { this.stateDescription = stateDescription }
                 .testTag(SettingsTestTags.CONSENT_TOGGLE),
             verticalAlignment = Alignment.CenterVertically
         ) {
@@ -221,12 +227,6 @@ private fun PrivacySection(
             // The row owns the interaction; the switch only draws the state.
             Switch(checked = privacy.isChecked, onCheckedChange = null)
         }
-
-        ConsentStateMarker(
-            checked = privacy.isChecked,
-            onTag = SettingsTestTags.CONSENT_STATE_ON,
-            offTag = SettingsTestTags.CONSENT_STATE_OFF
-        )
 
         PrivacyPolicyLink(url = privacy.policyUrl, testTag = SettingsTestTags.PRIVACY_POLICY)
 
