@@ -2,6 +2,9 @@ package com.anksoft.myapplication.features.settings.presentation
 
 import cafe.adriel.voyager.core.model.StateScreenModel
 import cafe.adriel.voyager.core.model.screenModelScope
+import com.anksoft.myapplication.core.analytics.AnalyticsEvent
+import com.anksoft.myapplication.core.analytics.AnalyticsScreen
+import com.anksoft.myapplication.core.analytics.AnalyticsTracker
 import com.anksoft.myapplication.core.config.AppConfig
 import com.anksoft.myapplication.core.crash.TestCrashTrigger
 import com.anksoft.myapplication.core.domain.DataError
@@ -67,6 +70,7 @@ class SettingsScreenModel(
     private val appPreferences: AppPreferences,
     private val consentManager: AccountConsentManager,
     observeConsentTexts: ObserveConsentTextsUseCase,
+    analytics: AnalyticsTracker,
     /** Bound only in dev and stage builds; null hides the test crash action. */
     private val testCrashTrigger: TestCrashTrigger? = null
 ) : StateScreenModel<SettingsState>(
@@ -89,6 +93,7 @@ class SettingsScreenModel(
     private var latestTexts: ConsentTexts? = null
 
     init {
+        analytics.track(AnalyticsEvent.ScreenView(AnalyticsScreen.SETTINGS))
         // Opening Settings looks at the account's decision again (AC-12).
         consentManager.refresh()
         screenModelScope.launch {

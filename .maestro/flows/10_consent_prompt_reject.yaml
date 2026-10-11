@@ -1,6 +1,7 @@
 # The consent-pending user is asked once after login. Rejecting leaves the switch off; switching on in
 # Settings works; the prompt does not come back at the next login (AC-7, AC-9, AC-15, AC-18).
 # The mock keeps decisions in memory only, so the app is not restarted between the steps.
+# On iOS this flow checks navigation and that the prompt does not come back; it does not check the decision value (Compose does not expose it to XCUITest, see docs/ui-tests.md). On Android `checked:` is asserted.
 appId: ${APP_ID}
 ---
 - runFlow: ../subflows/launch_clean.yaml
@@ -32,8 +33,6 @@ appId: ${APP_ID}
     element:
       id: settings_consent_toggle
     direction: DOWN
-- assertVisible:
-    id: settings_consent_state_off
 - runFlow:
     when:
       platform: Android
@@ -43,17 +42,26 @@ appId: ${APP_ID}
           checked: false
 - tapOn:
     id: settings_consent_toggle
-- extendedWaitUntil:
-    visible:
-      id: settings_consent_state_on
-    timeout: 20000
 - runFlow:
     when:
       platform: Android
     commands:
-      - assertVisible:
-          id: settings_consent_toggle
-          checked: true
+      - extendedWaitUntil:
+          visible:
+            id: settings_consent_toggle
+            checked: true
+            enabled: true
+          timeout: 20000
+- runFlow:
+    when:
+      platform: iOS
+    commands:
+      # The switch is disabled while the decision is being saved.
+      - extendedWaitUntil:
+          visible:
+            id: settings_consent_toggle
+            enabled: true
+          timeout: 20000
 - scrollUntilVisible:
     element:
       id: settings_logout_button

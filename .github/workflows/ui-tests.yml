@@ -74,7 +74,7 @@ jobs:
           path: |
             ~/.android/avd/*
             ~/.android/adb*
-          key: avd-34-x86_64-google_apis-pixel_6
+          key: avd-34-x86_64-default-pixel_6-4cpu-4gb
 
       - name: Mark emulator boot stage
         run: echo boot > "$OUT_DIR/stage"
@@ -84,9 +84,15 @@ jobs:
         uses: reactivecircus/android-emulator-runner@v2
         with:
           api-level: 34
-          target: google_apis
+          # AOSP image: the google_apis image's Pixel Launcher kept going ANR and its
+          # dialog covered the app. The flows need no Google apps.
+          target: default
           arch: x86_64
           profile: pixel_6
+          # The default 2 cores leave the launcher starved under software rendering
+          # ("Pixel Launcher isn't responding" covering the app). Use the runner's 4 vCPUs.
+          cores: 4
+          ram-size: 4096M
           force-avd-creation: false
           emulator-boot-timeout: 600
           emulator-options: -no-window -gpu swiftshader_indirect -noaudio -no-boot-anim -camera-back none
@@ -99,9 +105,15 @@ jobs:
           APK: androidApp/build/outputs/apk/dev/debug/androidApp-dev-debug.apk
         with:
           api-level: 34
-          target: google_apis
+          # AOSP image: the google_apis image's Pixel Launcher kept going ANR and its
+          # dialog covered the app. The flows need no Google apps.
+          target: default
           arch: x86_64
           profile: pixel_6
+          # The default 2 cores leave the launcher starved under software rendering
+          # ("Pixel Launcher isn't responding" covering the app). Use the runner's 4 vCPUs.
+          cores: 4
+          ram-size: 4096M
           force-avd-creation: false
           disable-animations: true
           emulator-boot-timeout: 600
@@ -192,7 +204,7 @@ jobs:
           path: |
             ~/.android/avd/*
             ~/.android/adb*
-          key: avd-34-x86_64-google_apis-pixel_6
+          key: avd-34-x86_64-default-pixel_6-4cpu-4gb
 
       - name: Mark emulator boot stage
         run: echo boot > "$OUT_DIR/stage"
@@ -202,9 +214,15 @@ jobs:
         uses: reactivecircus/android-emulator-runner@v2
         with:
           api-level: 34
-          target: google_apis
+          # AOSP image: the google_apis image's Pixel Launcher kept going ANR and its
+          # dialog covered the app. The flows need no Google apps.
+          target: default
           arch: x86_64
           profile: pixel_6
+          # The default 2 cores leave the launcher starved under software rendering
+          # ("Pixel Launcher isn't responding" covering the app). Use the runner's 4 vCPUs.
+          cores: 4
+          ram-size: 4096M
           force-avd-creation: false
           emulator-boot-timeout: 600
           emulator-options: -no-window -gpu swiftshader_indirect -noaudio -no-boot-anim -camera-back none
@@ -219,9 +237,15 @@ jobs:
           FLOWS: .maestro-e2e/
         with:
           api-level: 34
-          target: google_apis
+          # AOSP image: the google_apis image's Pixel Launcher kept going ANR and its
+          # dialog covered the app. The flows need no Google apps.
+          target: default
           arch: x86_64
           profile: pixel_6
+          # The default 2 cores leave the launcher starved under software rendering
+          # ("Pixel Launcher isn't responding" covering the app). Use the runner's 4 vCPUs.
+          cores: 4
+          ram-size: 4096M
           force-avd-creation: false
           disable-animations: true
           emulator-boot-timeout: 600

@@ -10,7 +10,7 @@ import org.koin.dsl.module
 val viewModelModule = module {
     factory { LoginScreenModel(get(), get(), get(), get()) }
     factory { SignUpScreenModel(get(), get(), get()) }
-    factory { HomeScreenModel(get()) }
+    factory { HomeScreenModel(get(), get()) }
     factory { ConsentPromptScreenModel(get(), get()) }
-    factory { SettingsScreenModel(get(), get(), get(), get(), get(), getOrNull()) }
+    factory { SettingsScreenModel(get(), get(), get(), get(), get(), get(), getOrNull()) }
 }

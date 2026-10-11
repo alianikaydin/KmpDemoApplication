@@ -31,8 +31,8 @@ The minimum level comes from `AppConfig.environment` (see `docs/environments.md`
 
 ## Tags
 
-Fixed constants in `LogTags`: `App`, `Network`, `Http`, `Auth`, `Session`, `Consent`, `Crash`. Do not derive tags from
-class names (minified JS would mangle them).
+Fixed constants in `LogTags`: `App`, `Network`, `Http`, `Auth`, `Session`, `Consent`, `Crash`,
+`Analytics`. Do not derive tags from class names (minified JS would mangle them).
 
 ## What must never be logged
 
