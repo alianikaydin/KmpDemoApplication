@@ -128,6 +128,28 @@ dependencies {
     androidRuntimeClasspath(libs.compose.uiTooling)
 }
 
+// Stops an App Store archive of the prod app that has no numeric App Store ID (AC-20). Xcode runs this
+// through its "Compile Kotlin Framework" step (embedAndSignAppleFrameworkForXcode) and passes the build
+// settings as environment variables; ACTION is "install" only for an archive. Simulator builds and debug
+// builds are not affected.
+val verifyAppStoreReleaseConfig by tasks.registering {
+    val xcodeAction = providers.environmentVariable("ACTION")
+    val environment = providers.environmentVariable("KMP_ENVIRONMENT")
+    val appStoreId = providers.environmentVariable("KMP_APP_STORE_ID")
+    doLast {
+        val isProdArchive = xcodeAction.orNull == "install" && environment.orNull == "PROD"
+        if (isProdArchive && !Regex("[0-9]+").matches(appStoreId.orNull.orEmpty())) {
+            throw GradleException(
+                "KMP_APP_STORE_ID must be the numeric App Store ID for a prod archive (iosApp/Configuration/Prod.xcconfig)"
+            )
+        }
+    }
+}
+
+tasks.matching { it.name == "embedAndSignAppleFrameworkForXcode" }.configureEach {
+    dependsOn(verifyAppStoreReleaseConfig)
+}
+
 // Print assertion messages in CI logs instead of only the exception class.
 tasks.withType<AbstractTestTask>().configureEach {
     testLogging {

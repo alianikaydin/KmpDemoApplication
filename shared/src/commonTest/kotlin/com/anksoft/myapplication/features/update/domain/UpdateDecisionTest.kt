@@ -12,7 +12,7 @@ class UpdateDecisionTest {
     private fun v(raw: String): AppVersion = requireNotNull(AppVersion.parse(raw)) { "bad test version $raw" }
 
     private fun decide(installed: String, min: String, latest: String, dismissed: String? = null) =
-        decideUpdate(v(installed), VersionPolicy(v(min), v(latest)), dismissed?.let(::v))
+        decideUpdate(v(installed), VersionPolicy(v(min), v(latest)), dismissed?.let { v(it) })
 
     // AC-1
     @Test
