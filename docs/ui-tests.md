@@ -49,7 +49,9 @@ the decision value. The decision logic behind the controls (initial value, what 
 switch changes, the disabled state while saving) is covered by `SignUpScreenModelTest`,
 `SettingsScreenModelTest` and `ConsentPromptScreenModelTest`, and the rendered state (on/off and the
 `stateDescription` text for both states, and toggling) by the Compose UI tests `SignUpConsentUiTest` and
-`SettingsConsentUiTest`; all of them run on Android host tests and on iOS (`ios-test`). The sign-up flows
+`SettingsConsentUiTest`. The ScreenModel tests run on Android host tests and on iOS (`ios-test`); the Compose
+UI tests live in `iosTest` and run only on iOS, since Android already checks the rendered state with Maestro
+(`checked:`). The sign-up flows
 submit with the keyboard's Done key on iOS (`submit_signup`), because the keyboard covers the submit button.
 
 `dismiss_consent_prompt` is a safety step after each login: if the prompt is on screen it rejects it,
