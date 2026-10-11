@@ -11,7 +11,7 @@ independent from `ci.yml`.
 | Path | Purpose |
 |------|---------|
 | `.maestro/flows/` | One file per flow, named `NN_what_it_checks.yaml` |
-| `.maestro/subflows/` | Reusable steps (`launch_clean`, `login_with`, `submit_signup`, `dismiss_consent_prompt`, `assert_selected`) |
+| `.maestro/subflows/` | Reusable steps (`launch_clean`, `login_with`, `submit_signup`, `dismiss_consent_prompt`, `assert_selected`, `assert_not_selected`) |
 | `.maestro/config.yaml` | Flow selection and execution order |
 | `scripts/ui-tests/` | Install, run, boot and classify scripts used by CI (and locally) |
 
@@ -86,7 +86,7 @@ with the old NSUserDefaults `createSecureSettings()` restored. Then
 5. To check which theme is drawn, assert the marker `app_theme_light` or `app_theme_dark`
    (see `docs/theming.md`), never colors. To check a radio option in Settings, use
    `runFlow: ../subflows/assert_selected.yaml` with `env: ID: <option id>`; it asserts
-   `checked` on Android and `selected` on iOS.
+   `checked` on Android and `selected` on iOS; `assert_not_selected.yaml` is the opposite check.
 
 ## Running locally
 

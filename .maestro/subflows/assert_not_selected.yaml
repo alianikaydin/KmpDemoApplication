@@ -1,0 +1,22 @@
+# Asserts that the radio option with the given id is on screen and is NOT the selected one.
+# Requires the ID env var. Counterpart of assert_selected.yaml: `checked` on Android,
+# `selected` on iOS. The assertVisible first makes sure the option exists, because
+# assertNotVisible alone would also pass for a missing element.
+appId: ${APP_ID}
+---
+- assertVisible:
+    id: ${ID}
+- runFlow:
+    when:
+      platform: Android
+    commands:
+      - assertNotVisible:
+          id: ${ID}
+          checked: true
+- runFlow:
+    when:
+      platform: iOS
+    commands:
+      - assertNotVisible:
+          id: ${ID}
+          selected: true

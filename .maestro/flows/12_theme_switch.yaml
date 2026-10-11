@@ -29,6 +29,15 @@ appId: ${APP_ID}
     file: ../subflows/assert_selected.yaml
     env:
       ID: settings_theme_system
+# AC-13: the other options are not selected.
+- runFlow:
+    file: ../subflows/assert_not_selected.yaml
+    env:
+      ID: settings_theme_light
+- runFlow:
+    file: ../subflows/assert_not_selected.yaml
+    env:
+      ID: settings_theme_dark
 # AC-5, AC-13: Dark applies at once.
 - tapOn:
     id: settings_theme_dark
@@ -40,6 +49,14 @@ appId: ${APP_ID}
     file: ../subflows/assert_selected.yaml
     env:
       ID: settings_theme_dark
+- runFlow:
+    file: ../subflows/assert_not_selected.yaml
+    env:
+      ID: settings_theme_system
+- runFlow:
+    file: ../subflows/assert_not_selected.yaml
+    env:
+      ID: settings_theme_light
 - takeScreenshot: 12_settings_dark
 - tapOn:
     id: settings_theme_light
