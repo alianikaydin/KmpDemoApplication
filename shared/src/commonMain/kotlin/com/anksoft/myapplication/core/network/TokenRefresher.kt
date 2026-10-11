@@ -98,18 +98,23 @@ internal class TokenRefresher(
         call: suspend (refreshToken: String) -> HttpResponse
     ): BearerTokens? {
         val result = safeCall<AuthResponseDto>(logger, AuthPaths.REFRESH) { call(storedRefresh) }
-        if (sessionManager.getRefreshToken() != storedRefresh) {
-            // The user logged out or in while the request was in flight; do not touch the new state.
-            logger.debug(LogTags.SESSION) { "refresh result dropped: session changed" }
-            return null
-        }
         return when (result) {
             is Result.Success -> {
                 val response = result.data
                 // Store before returning: the retried request and any later call read from here.
+                // Compare and write happen as one step, so a login on another thread is never
+                // overwritten with the old account's tokens.
                 val newRefresh = response.refreshToken ?: storedRefresh
-                sessionManager.saveToken(response.accessToken)
-                sessionManager.saveRefreshToken(newRefresh)
+                val stored = sessionManager.replaceTokensIfRefreshTokenIs(
+                    expectedRefreshToken = storedRefresh,
+                    accessToken = response.accessToken,
+                    refreshToken = newRefresh
+                )
+                if (!stored) {
+                    // The user logged out or in while the request was in flight; leave the new state alone.
+                    logger.debug(LogTags.SESSION) { "refresh result dropped: session changed" }
+                    return null
+                }
                 knownAccessTokens += storedAccess
                 knownAccessTokens += response.accessToken
                 lineageRefreshToken = newRefresh
@@ -120,11 +125,20 @@ internal class TokenRefresher(
             is Result.Failure -> {
                 // safeCall already logged the failure; only the consequence is logged here.
                 if (result.error == DataError.Remote.UNAUTHORIZED) {
-                    // Revoked, expired or reused: this session can never be refreshed again.
-                    logger.warn(LogTags.SESSION) { "refresh rejected: session expired" }
-                    knownAccessTokens.clear()
-                    lineageRefreshToken = null
-                    onSessionExpired()
+                    // Revoked, expired or reused: this session can never be refreshed again. A
+                    // session that was replaced in the meantime is not this one's to end.
+                    val expired = sessionManager.withSessionLock {
+                        val unchanged = sessionManager.getRefreshToken() == storedRefresh
+                        if (unchanged) onSessionExpired()
+                        unchanged
+                    }
+                    if (expired) {
+                        logger.warn(LogTags.SESSION) { "refresh rejected: session expired" }
+                        knownAccessTokens.clear()
+                        lineageRefreshToken = null
+                    } else {
+                        logger.debug(LogTags.SESSION) { "refresh result dropped: session changed" }
+                    }
                 }
                 // Network errors, timeouts and 5xx keep the session so a retry can succeed later.
                 null

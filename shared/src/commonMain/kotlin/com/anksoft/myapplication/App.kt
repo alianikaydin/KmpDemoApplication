@@ -7,6 +7,8 @@ import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.remember
 import androidx.compose.ui.tooling.preview.Preview
+import androidx.lifecycle.Lifecycle
+import androidx.lifecycle.compose.LifecycleEventEffect
 import cafe.adriel.voyager.navigator.Navigator
 import cafe.adriel.voyager.transitions.SlideTransition
 import com.anksoft.myapplication.core.preferences.AppPreferences
@@ -18,6 +20,7 @@ import com.anksoft.myapplication.core.session.SessionExpiry
 import com.anksoft.myapplication.core.storage.SessionManager
 import com.anksoft.myapplication.features.auth.presentation.login.LoginScreen
 import com.anksoft.myapplication.features.auth.presentation.signup.SignUpScreen
+import com.anksoft.myapplication.features.consent.domain.AccountConsentManager
 import com.anksoft.myapplication.features.home.presentation.HomeScreen
 import org.koin.compose.koinInject
 
@@ -27,6 +30,7 @@ fun App() {
     val sessionManager = koinInject<SessionManager>()
     val sessionExpiry = koinInject<SessionExpiry>()
     val appPreferences = koinInject<AppPreferences>()
+    val accountConsentManager = koinInject<AccountConsentManager>()
     val language by appPreferences.language.collectAsState()
     val themeMode by appPreferences.themeMode.collectAsState()
     // Read above ProvideAppLocale so it is the real system configuration.
@@ -38,6 +42,9 @@ fun App() {
     val initialScreen = remember {
         if (sessionManager.getToken() != null) HomeScreen() else LoginScreen()
     }
+
+    // Look at the account's decision again when the app comes back (AC-12); the manager rate-limits it.
+    LifecycleEventEffect(Lifecycle.Event.ON_RESUME) { accountConsentManager.onAppResumed() }
 
     ProvideAppLocale(language) {
         // No key() on the theme: a theme change only recomposes, the back stack survives (AC-5).

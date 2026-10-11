@@ -1,0 +1,60 @@
+# Sign up with the consent box left unchecked: no prompt afterwards and the Settings switch is off (AC-1, AC-2, AC-14).
+appId: ${APP_ID}
+---
+- runFlow: ../subflows/launch_clean.yaml
+- tapOn:
+    id: login_sign_up_link
+# The consent box sits between the form and the submit button; it is optional and unchecked by default.
+- scrollUntilVisible:
+    element:
+      id: signup_consent_checkbox
+    direction: DOWN
+- assertVisible:
+    id: signup_consent_state_off
+- runFlow:
+    when:
+      platform: Android
+    commands:
+      - assertVisible:
+          id: signup_consent_checkbox
+          checked: false
+- assertVisible:
+    id: signup_privacy_policy
+- scrollUntilVisible:
+    element:
+      id: signup_email_input
+    direction: UP
+- tapOn:
+    id: signup_email_input
+- inputText: fresh1@example.com
+- tapOn:
+    id: signup_password_input
+- inputText: Secret123
+- tapOn:
+    id: signup_confirm_password_input
+- inputText: Secret123
+- runFlow: ../subflows/submit_signup.yaml
+- extendedWaitUntil:
+    visible:
+      id: home_title
+    timeout: 20000
+# A new account that answered the box is not asked again.
+- waitForAnimationToEnd
+- assertNotVisible:
+    id: consent_screen
+- tapOn:
+    id: home_settings_button
+- scrollUntilVisible:
+    element:
+      id: settings_consent_toggle
+    direction: DOWN
+- assertVisible:
+    id: settings_consent_state_off
+- runFlow:
+    when:
+      platform: Android
+    commands:
+      - assertVisible:
+          id: settings_consent_toggle
+          checked: false
+- takeScreenshot: fresh1_settings

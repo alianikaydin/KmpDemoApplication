@@ -13,6 +13,7 @@ appId: ${APP_ID}
     env:
       EMAIL: demo@example.com
       PASSWORD: Demo1234
+- runFlow: ../subflows/dismiss_consent_prompt.yaml
 - extendedWaitUntil:
     visible:
       id: home_title
@@ -39,7 +40,7 @@ appId: ${APP_ID}
     file: ../subflows/assert_selected.yaml
     env:
       ID: settings_theme_dark
-- takeScreenshot: 08_settings_dark
+- takeScreenshot: 12_settings_dark
 - tapOn:
     id: settings_theme_light
 - extendedWaitUntil:
@@ -67,7 +68,7 @@ appId: ${APP_ID}
     timeout: 10000
 - assertVisible:
     id: app_theme_dark
-- takeScreenshot: 08_home_dark
+- takeScreenshot: 12_home_dark
 # AC-6: the choice survives a restart (no clearState).
 - launchApp:
     stopApp: true
@@ -115,4 +116,4 @@ appId: ${APP_ID}
     timeout: 20000
 - assertVisible:
     id: app_theme_dark
-- takeScreenshot: 08_login_error_dark
+- takeScreenshot: 12_login_error_dark

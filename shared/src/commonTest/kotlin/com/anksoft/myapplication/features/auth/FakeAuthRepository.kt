@@ -4,6 +4,7 @@ import com.anksoft.myapplication.core.domain.DataError
 import com.anksoft.myapplication.core.domain.Result
 import com.anksoft.myapplication.features.auth.domain.model.User
 import com.anksoft.myapplication.features.auth.domain.repository.AuthRepository
+import com.anksoft.myapplication.features.consent.domain.model.ConsentChoice
 import kotlinx.coroutines.CompletableDeferred
 
 class FakeAuthRepository : AuthRepository {
@@ -18,7 +19,11 @@ class FakeAuthRepository : AuthRepository {
     var loginGate: CompletableDeferred<Unit>? = null
 
     val loginCalls = mutableListOf<Pair<String, String>>()
-    val registerCalls = mutableListOf<Pair<String, String>>()
+    /** Email, password and the consent choice that came with each registration (null: none was sent). */
+    val registerCalls = mutableListOf<Triple<String, String, ConsentChoice?>>()
+
+    /** Set to suspend registration so in-flight behaviour can be asserted. */
+    var registerGate: CompletableDeferred<Unit>? = null
     var logoutCallCount = 0
 
     override suspend fun login(email: String, password: String): Result<User, DataError> {
@@ -27,8 +32,13 @@ class FakeAuthRepository : AuthRepository {
         return loginResult
     }
 
-    override suspend fun register(email: String, password: String): Result<User, DataError> {
-        registerCalls += email to password
+    override suspend fun register(
+        email: String,
+        password: String,
+        consent: ConsentChoice?
+    ): Result<User, DataError> {
+        registerCalls += Triple(email, password, consent)
+        registerGate?.await()
         return registerResult
     }
 

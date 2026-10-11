@@ -48,6 +48,7 @@ class DataErrorToUiTextTest {
         val others = listOf(
             DataError.Remote.UNAUTHORIZED,
             DataError.Remote.CONFLICT,
+            DataError.Remote.UNPROCESSABLE,
             DataError.Remote.SERIALIZATION,
             DataError.Remote.UNKNOWN,
             DataError.Local.DISK_FULL,
