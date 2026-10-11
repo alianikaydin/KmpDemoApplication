@@ -66,4 +66,13 @@
     <string name="consent_accept">Accept</string>
     <string name="consent_reject">Reject</string>
     <string name="consent_status_load_failed">Couldn\'t load your privacy choice.</string>
+
+    <!-- App update -->
+    <string name="force_update_title">Update required</string>
+    <string name="force_update_message">This version of the app is no longer supported. Update the app to keep using it.</string>
+    <string name="update_open_store">Update</string>
+    <string name="update_prompt_title">Update available</string>
+    <string name="update_prompt_message">A new version of the app is available.</string>
+    <string name="update_prompt_later">Later</string>
+    <string name="update_store_unavailable">Couldn\'t open the store.</string>
 </resources>
