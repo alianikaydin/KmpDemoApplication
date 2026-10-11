@@ -18,6 +18,7 @@ import androidx.compose.ui.semantics.LiveRegionMode
 import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.semantics.liveRegion
 import androidx.compose.ui.semantics.semantics
+import androidx.compose.ui.semantics.stateDescription
 import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.input.PasswordVisualTransformation
@@ -32,12 +33,13 @@ import com.anksoft.myapplication.core.presentation.asString
 import com.anksoft.myapplication.features.consent.domain.model.ConsentTexts
 import com.anksoft.myapplication.features.consent.domain.usecase.ConsentTextsLoad
 import com.anksoft.myapplication.features.consent.presentation.ConsentDescription
-import com.anksoft.myapplication.features.consent.presentation.ConsentStateMarker
 import com.anksoft.myapplication.features.consent.presentation.ConsentTextsError
 import com.anksoft.myapplication.features.consent.presentation.PrivacyPolicyLink
 import com.anksoft.myapplication.features.home.presentation.HomeScreen
 import myapplication.shared.generated.resources.Res
 import myapplication.shared.generated.resources.common_back
+import myapplication.shared.generated.resources.consent_state_checked
+import myapplication.shared.generated.resources.consent_state_unchecked
 import myapplication.shared.generated.resources.login_email_label
 import myapplication.shared.generated.resources.login_password_label
 import myapplication.shared.generated.resources.signup_button
@@ -222,6 +224,9 @@ fun SignUpContent(
 private fun ConsentSection(state: SignUpState, onEvent: (SignUpEvent) -> Unit) {
     when (val load = state.consentTexts) {
         is ConsentTextsLoad.Loaded -> {
+            val stateDescription = stringResource(
+                if (state.consentChecked) Res.string.consent_state_checked else Res.string.consent_state_unchecked
+            )
             Row(
                 modifier = Modifier
                     .fillMaxWidth()
@@ -232,6 +237,7 @@ private fun ConsentSection(state: SignUpState, onEvent: (SignUpEvent) -> Unit) {
                         role = Role.Checkbox,
                         onValueChange = { onEvent(SignUpEvent.ConsentCheckedChange(it)) }
                     )
+                    .semantics { this.stateDescription = stateDescription }
                     .testTag(SignUpTestTags.CONSENT_CHECKBOX),
                 verticalAlignment = Alignment.CenterVertically
             ) {
@@ -240,11 +246,6 @@ private fun ConsentSection(state: SignUpState, onEvent: (SignUpEvent) -> Unit) {
                 Spacer(modifier = Modifier.width(12.dp))
                 ConsentDescription(texts = load.texts, modifier = Modifier.weight(1f))
             }
-            ConsentStateMarker(
-                checked = state.consentChecked,
-                onTag = SignUpTestTags.CONSENT_STATE_ON,
-                offTag = SignUpTestTags.CONSENT_STATE_OFF
-            )
             PrivacyPolicyLink(url = load.texts.safePolicyUrl, testTag = SignUpTestTags.PRIVACY_POLICY)
         }
 

@@ -33,15 +33,26 @@ Seed users of the mock backend:
 | `demo@example.com` | `Demo1234` | granted, so the prompt never shows in the other flows |
 | `consent@example.com` | `Demo1234` | none, so the prompt shows after login (flows 10 and 11) |
 
-Maestro cannot read the on/off state of the consent controls on iOS: Compose does not expose the state
-of a checkbox or switch to XCUITest (the iOS hierarchy shows only `id`, `accessibilityText` and `enabled`, and
-`checked: true` never matches; see the `ios-ui` run of PR #21, commit `0c2b681`, where marking the row as
-selected changed nothing). Next to each consent control there is therefore an invisible 1dp marker with no
-text and no description (so a screen reader announces nothing) whose tag says the state:
-`signup_consent_state_on` / `signup_consent_state_off` and `settings_consent_state_on` /
-`settings_consent_state_off`. Exactly one of each pair is on screen. Flows 08 to 11 assert the marker on both
-platforms and also assert `checked:` on Android. The sign-up flows submit with the keyboard's Done key on iOS
-(`submit_signup`), because the keyboard covers the submit button.
+The consent controls expose their state to accessibility services through `toggleable(role = ...)` plus a
+localized `stateDescription` ("Checked" / "Not checked" for the sign-up checkbox, "On" / "Off" for the
+Settings switch; Turkish: "İşaretli" / "İşaretli değil", "Açık" / "Kapalı"). On Android Maestro reads the
+toggleable state as `checked:` (the `stateDescription` is what TalkBack speaks), and flows 08 to 11 assert it
+there. In flows 10 and 11 the wait after tapping the switch also requires `enabled: true`, because the switch
+is disabled while the decision is being saved.
+
+On iOS Compose does not expose the checked state to XCUITest: with a plain `toggleable` the hierarchy shows
+only `id`, `accessibilityText` and `enabled`, and `checked: true` never matches (see the `ios-ui` run of
+PR #21, commit `0c2b681`, where marking the row as selected changed nothing). Whether Compose Multiplatform
+maps `stateDescription` to `accessibilityValue` is not verified. There is deliberately no test-only marker in
+the UI. On iOS Maestro checks navigation and that the one-time prompt does not come back; it does not check
+the decision value. The decision logic behind the controls (initial value, what is sent on sign-up, prompt and
+switch changes, the disabled state while saving) is covered by `SignUpScreenModelTest`,
+`SettingsScreenModelTest` and `ConsentPromptScreenModelTest`, and the rendered state (on/off and the
+`stateDescription` text for both states, and toggling) by the Compose UI tests `SignUpConsentUiTest` and
+`SettingsConsentUiTest`. The ScreenModel tests run on Android host tests and on iOS (`ios-test`); the Compose
+UI tests live in `iosTest` and run only on iOS, since Android already checks the rendered state with Maestro
+(`checked:`). The sign-up flows
+submit with the keyboard's Done key on iOS (`submit_signup`), because the keyboard covers the submit button.
 
 `dismiss_consent_prompt` is a safety step after each login: if the prompt is on screen it rejects it,
 otherwise it does nothing. The mock keeps decisions in memory only, so they are lost when the app
