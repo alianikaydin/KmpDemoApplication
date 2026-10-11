@@ -13,6 +13,7 @@ on:
       - ".maestro/storage/**"
       - ".maestro/subflows/**"
       - "scripts/ui-tests/check-ios-session-storage.sh"
+      - "scripts/ui-tests/verify-ios-project.sh"
       - ".github/workflows/ios-session-storage.yml"
   workflow_dispatch:
 

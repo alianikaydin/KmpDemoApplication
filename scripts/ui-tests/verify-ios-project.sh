@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# Validates the hand-edited Xcode project and the committed SPM lock file.
+# Validates the Xcode project and the committed SPM lock file.
 # Needs Xcode on PATH. Usage: verify-ios-project.sh <cloned-source-packages-dir>
 set -euo pipefail
 
