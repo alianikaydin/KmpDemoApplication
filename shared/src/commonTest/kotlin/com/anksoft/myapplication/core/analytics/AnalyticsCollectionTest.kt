@@ -14,7 +14,15 @@ import kotlinx.coroutines.test.UnconfinedTestDispatcher
 import kotlinx.coroutines.test.runTest
 import kotlin.test.Test
 
-/** `start()`: the vendor's collection flag and data reset follow the consent. */
+/**
+ * `start()`: the vendor's collection flag and data reset follow the consent.
+ *
+ * The three tests of what `start()` does by itself use a plain `runTest` (StandardTestDispatcher):
+ * a launch there is only queued, so they assert right after `start()` without `runCurrent()` and
+ * would fail if the collector were not started UNDISPATCHED. Under an unconfined test dispatcher
+ * even a default launch runs at once, which would prove nothing. The change tests below use the
+ * unconfined one so a new consent value reaches the collector immediately.
+ */
 class AnalyticsCollectionTest {
 
     private val homeView = AnalyticsEvent.ScreenView(AnalyticsScreen.HOME)
@@ -23,7 +31,7 @@ class AnalyticsCollectionTest {
 
     // AC-7
     @Test
-    fun startWithUnknownTurnsCollectionOffAndResetsBeforeReturning() = runTest(UnconfinedTestDispatcher()) {
+    fun startWithUnknownTurnsCollectionOffAndResetsBeforeReturning() = runTest {
         val analytics = FakeAnalytics()
         val tracker = testTracker(analytics = analytics, consent = FakeConsentManager(UNKNOWN), scope = backgroundScope)
 
@@ -34,7 +42,7 @@ class AnalyticsCollectionTest {
 
     // AC-4
     @Test
-    fun startWithGrantedInStageTurnsCollectionOnWithoutReset() = runTest(UnconfinedTestDispatcher()) {
+    fun startWithGrantedInStageTurnsCollectionOnWithoutReset() = runTest {
         val analytics = FakeAnalytics()
         val tracker = testTracker(analytics = analytics, consent = FakeConsentManager(GRANTED), scope = backgroundScope)
 
@@ -110,7 +118,7 @@ class AnalyticsCollectionTest {
 
     // AC-10
     @Test
-    fun devKeepsCollectionOffAndResetsEvenWhenGranted() = runTest(UnconfinedTestDispatcher()) {
+    fun devKeepsCollectionOffAndResetsEvenWhenGranted() = runTest {
         val analytics = FakeAnalytics()
         val tracker = testTracker(
             analytics = analytics,

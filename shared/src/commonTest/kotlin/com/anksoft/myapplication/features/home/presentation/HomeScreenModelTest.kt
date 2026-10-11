@@ -51,7 +51,7 @@ class HomeScreenModelTest {
     // AC-7
     @Test
     fun anAccountWithoutADecisionGetsThePrompt() = runTest {
-        val model = HomeScreenModel(createManager(), testTracker())
+        val model = HomeScreenModel(createManager(), testTracker(scope = backgroundScope))
 
         assertThat(model.state.value.showConsentPrompt).isTrue()
     }
@@ -61,7 +61,7 @@ class HomeScreenModelTest {
     fun thePromptWaitsWhileTheDecisionIsStillLoading() = runTest {
         val gate = CompletableDeferred<Unit>()
         consent.fetchGate = gate
-        val model = HomeScreenModel(createManager(), testTracker())
+        val model = HomeScreenModel(createManager(), testTracker(scope = backgroundScope))
 
         assertThat(model.state.value.showConsentPrompt).isFalse()
 
@@ -75,7 +75,7 @@ class HomeScreenModelTest {
     fun noPromptWhenTheDecisionCouldNotBeLoaded() = runTest {
         consent.fetchResult = Result.Failure(DataError.Remote.NO_INTERNET)
 
-        val model = HomeScreenModel(createManager(), testTracker())
+        val model = HomeScreenModel(createManager(), testTracker(scope = backgroundScope))
 
         assertThat(model.state.value.showConsentPrompt).isFalse()
     }
@@ -84,9 +84,9 @@ class HomeScreenModelTest {
     @Test
     fun noPromptForAnAccountThatAlreadyDecided() = runTest {
         consent.fetchResult = Result.Success(AccountConsent(ConsentDecision.DENIED, textVersion = 1))
-        val deniedModel = HomeScreenModel(createManager(), testTracker())
+        val deniedModel = HomeScreenModel(createManager(), testTracker(scope = backgroundScope))
         consent.fetchResult = Result.Success(AccountConsent(ConsentDecision.GRANTED, textVersion = 1))
-        val grantedModel = HomeScreenModel(createManager(), testTracker())
+        val grantedModel = HomeScreenModel(createManager(), testTracker(scope = backgroundScope))
 
         assertThat(deniedModel.state.value.showConsentPrompt).isFalse()
         assertThat(grantedModel.state.value.showConsentPrompt).isFalse()
@@ -99,7 +99,7 @@ class HomeScreenModelTest {
             AccountConsent(ConsentDecision.GRANTED, textVersion = 1, reconsentRequired = true)
         )
 
-        val model = HomeScreenModel(createManager(), testTracker())
+        val model = HomeScreenModel(createManager(), testTracker(scope = backgroundScope))
 
         assertThat(model.state.value.showConsentPrompt).isTrue()
     }
@@ -108,11 +108,11 @@ class HomeScreenModelTest {
     @Test
     fun thePromptIsShownOnceEvenWhenTheHomeScreenIsRecreated() = runTest {
         val manager = createManager()
-        val first = HomeScreenModel(manager, testTracker())
+        val first = HomeScreenModel(manager, testTracker(scope = backgroundScope))
         assertThat(first.state.value.showConsentPrompt).isTrue()
         first.onEvent(HomeEvent.ConsentPromptOpened)
 
-        val second = HomeScreenModel(manager, testTracker())
+        val second = HomeScreenModel(manager, testTracker(scope = backgroundScope))
 
         assertThat(first.state.value.showConsentPrompt).isFalse()
         assertThat(second.state.value.showConsentPrompt).isFalse()
@@ -121,7 +121,7 @@ class HomeScreenModelTest {
     // AC-7
     @Test
     fun openingThePromptClearsTheRequest() = runTest {
-        val model = HomeScreenModel(createManager(), testTracker())
+        val model = HomeScreenModel(createManager(), testTracker(scope = backgroundScope))
 
         model.onEvent(HomeEvent.ConsentPromptOpened)
 
@@ -133,7 +133,7 @@ class HomeScreenModelTest {
     fun openingHomeTracksOneScreenView() = runTest {
         val analytics = FakeAnalytics()
 
-        HomeScreenModel(createManager(), testTracker(analytics = analytics))
+        HomeScreenModel(createManager(), testTracker(scope = backgroundScope, analytics = analytics))
 
         assertThat(analytics.events).containsExactly(
             FakeAnalytics.Call.Event(
@@ -147,7 +147,7 @@ class HomeScreenModelTest {
     @Test
     fun consentPromptEventsDoNotTrackHomeAgain() = runTest {
         val analytics = FakeAnalytics()
-        val model = HomeScreenModel(createManager(), testTracker(analytics = analytics))
+        val model = HomeScreenModel(createManager(), testTracker(scope = backgroundScope, analytics = analytics))
         assertThat(model.state.value.showConsentPrompt).isTrue()
 
         model.onEvent(HomeEvent.ConsentPromptOpened)

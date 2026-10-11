@@ -14,6 +14,7 @@ import com.anksoft.myapplication.core.logging.LogTags
 import com.anksoft.myapplication.core.logging.recordingLogger
 import com.anksoft.myapplication.core.preferences.AppLanguage
 import com.anksoft.myapplication.core.preferences.FakeAppPreferences
+import kotlinx.coroutines.test.runTest
 import kotlin.test.Test
 
 /** The send gate and the parameters of a sent event. */
@@ -23,9 +24,9 @@ class AnalyticsTrackerTest {
 
     // AC-4, AC-12, AC-15
     @Test
-    fun grantedInStageSendsScreenViewWithNameClassAndLanguage() {
+    fun grantedInStageSendsScreenViewWithNameClassAndLanguage() = runTest {
         val analytics = FakeAnalytics()
-        val tracker = testTracker(analytics = analytics, environment = AppEnvironment.STAGE)
+        val tracker = testTracker(scope = backgroundScope, analytics = analytics, environment = AppEnvironment.STAGE)
 
         tracker.track(homeView)
 
@@ -39,19 +40,23 @@ class AnalyticsTrackerTest {
 
     // AC-11
     @Test
-    fun grantedInProdSends() {
+    fun grantedInProdSends() = runTest {
         val analytics = FakeAnalytics()
 
-        testTracker(analytics = analytics, environment = AppEnvironment.PROD).track(homeView)
+        testTracker(scope = backgroundScope, analytics = analytics, environment = AppEnvironment.PROD).track(homeView)
 
         assertThat(analytics.events).hasSize(1)
     }
 
     // AC-5
     @Test
-    fun deniedSendsNothing() {
+    fun deniedSendsNothing() = runTest {
         val analytics = FakeAnalytics()
-        val tracker = testTracker(analytics = analytics, consent = FakeConsentManager(OptionalDataConsent.DENIED))
+        val tracker = testTracker(
+            scope = backgroundScope,
+            analytics = analytics,
+            consent = FakeConsentManager(OptionalDataConsent.DENIED)
+        )
 
         tracker.track(homeView)
 
@@ -60,9 +65,13 @@ class AnalyticsTrackerTest {
 
     // AC-6
     @Test
-    fun unknownSendsNothing() {
+    fun unknownSendsNothing() = runTest {
         val analytics = FakeAnalytics()
-        val tracker = testTracker(analytics = analytics, consent = FakeConsentManager(OptionalDataConsent.UNKNOWN))
+        val tracker = testTracker(
+            scope = backgroundScope,
+            analytics = analytics,
+            consent = FakeConsentManager(OptionalDataConsent.UNKNOWN)
+        )
 
         tracker.track(homeView)
 
@@ -71,10 +80,10 @@ class AnalyticsTrackerTest {
 
     // AC-6, AC-9
     @Test
-    fun eventWithoutConsentIsNotSentWhenConsentArrivesLater() {
+    fun eventWithoutConsentIsNotSentWhenConsentArrivesLater() = runTest {
         val analytics = FakeAnalytics()
         val consent = FakeConsentManager(OptionalDataConsent.UNKNOWN)
-        val tracker = testTracker(analytics = analytics, consent = consent)
+        val tracker = testTracker(scope = backgroundScope, analytics = analytics, consent = consent)
 
         tracker.track(homeView)
         consent.optionalDataConsent.value = OptionalDataConsent.GRANTED
@@ -88,10 +97,15 @@ class AnalyticsTrackerTest {
 
     // AC-10
     @Test
-    fun devNeverSendsEvenWhenGrantedButWritesADebugLine() {
+    fun devNeverSendsEvenWhenGrantedButWritesADebugLine() = runTest {
         val analytics = FakeAnalytics()
         val (logger, writer) = recordingLogger()
-        val tracker = testTracker(analytics = analytics, environment = AppEnvironment.DEV, logger = logger)
+        val tracker = testTracker(
+            scope = backgroundScope,
+            analytics = analytics,
+            environment = AppEnvironment.DEV,
+            logger = logger
+        )
 
         tracker.track(homeView)
 
@@ -105,9 +119,9 @@ class AnalyticsTrackerTest {
 
     // AC-10, AC-15
     @Test
-    fun theDebugLineIsWrittenAlsoWhenTheEventIsForwarded() {
+    fun theDebugLineIsWrittenAlsoWhenTheEventIsForwarded() = runTest {
         val (logger, writer) = recordingLogger()
-        val tracker = testTracker(logger = logger, environment = AppEnvironment.STAGE)
+        val tracker = testTracker(scope = backgroundScope, logger = logger, environment = AppEnvironment.STAGE)
 
         tracker.track(AnalyticsEvent.ScreenView(AnalyticsScreen.SETTINGS))
 
@@ -118,10 +132,10 @@ class AnalyticsTrackerTest {
 
     // AC-13
     @Test
-    fun languageFollowsTheInAppChoiceWithoutRestart() {
+    fun languageFollowsTheInAppChoiceWithoutRestart() = runTest {
         val analytics = FakeAnalytics()
         val preferences = FakeAppPreferences(AppLanguage.ENGLISH)
-        val tracker = testTracker(analytics = analytics, preferences = preferences)
+        val tracker = testTracker(scope = backgroundScope, analytics = analytics, preferences = preferences)
 
         tracker.track(homeView)
         preferences.setLanguage(AppLanguage.TURKISH)
@@ -132,9 +146,9 @@ class AnalyticsTrackerTest {
 
     // A6
     @Test
-    fun systemLanguageUsesASupportedDeviceLanguage() {
+    fun systemLanguageUsesASupportedDeviceLanguage() = runTest {
         val analytics = FakeAnalytics()
-        val tracker = testTracker(
+        val tracker = testTracker(scope = backgroundScope, 
             analytics = analytics,
             preferences = FakeAppPreferences(AppLanguage.SYSTEM),
             deviceLanguage = { "tr" }
@@ -147,9 +161,9 @@ class AnalyticsTrackerTest {
 
     // A6, AC-14
     @Test
-    fun systemLanguageFallsBackToEnglishForAnUnsupportedDeviceLanguage() {
+    fun systemLanguageFallsBackToEnglishForAnUnsupportedDeviceLanguage() = runTest {
         val analytics = FakeAnalytics()
-        val tracker = testTracker(
+        val tracker = testTracker(scope = backgroundScope, 
             analytics = analytics,
             preferences = FakeAppPreferences(AppLanguage.SYSTEM),
             deviceLanguage = { "de" }
@@ -162,10 +176,10 @@ class AnalyticsTrackerTest {
 
     // AC-21
     @Test
-    fun aThrowingVendorOnLogEventDoesNotCrashAndIsLogged() {
+    fun aThrowingVendorOnLogEventDoesNotCrashAndIsLogged() = runTest {
         val analytics = FakeAnalytics(throwOn = setOf(Call.Event::class))
         val (logger, writer) = recordingLogger()
-        val tracker = testTracker(analytics = analytics, logger = logger)
+        val tracker = testTracker(scope = backgroundScope, analytics = analytics, logger = logger)
 
         tracker.track(homeView)
 

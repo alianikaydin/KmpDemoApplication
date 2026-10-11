@@ -33,6 +33,8 @@ import com.anksoft.myapplication.features.consent.domain.usecase.ObserveConsentT
 import kotlinx.coroutines.CompletableDeferred
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.SupervisorJob
+import kotlinx.coroutines.cancel
 import kotlinx.coroutines.cancelChildren
 import kotlinx.coroutines.test.UnconfinedTestDispatcher
 import kotlinx.coroutines.test.resetMain
@@ -50,6 +52,9 @@ class SettingsScreenModelTest {
     private lateinit var preferences: FakeAppPreferences
     private lateinit var consent: FakeConsentRepository
 
+    // Owned by the test; the trackers here never call start(), the scope only satisfies the constructor.
+    private val trackerScope = CoroutineScope(SupervisorJob())
+
     @BeforeTest
     fun setUp() {
         // screenModelScope is Main-dispatched, so Main must be replaced.
@@ -61,6 +66,7 @@ class SettingsScreenModelTest {
 
     @AfterTest
     fun tearDown() {
+        trackerScope.cancel()
         Dispatchers.resetMain()
     }
 
@@ -73,7 +79,7 @@ class SettingsScreenModelTest {
     private fun createModel(
         environment: AppEnvironment = AppEnvironment.PROD,
         manager: AccountConsentManager = createManager(),
-        analytics: AnalyticsTracker = testTracker()
+        analytics: AnalyticsTracker = testTracker(scope = trackerScope)
     ) = SettingsScreenModel(
         authRepository = repository,
         appConfig = AppConfig.create(
@@ -153,7 +159,7 @@ class SettingsScreenModelTest {
     fun openingSettingsTracksOneScreenView() = runTest {
         val analytics = FakeAnalytics()
 
-        createModel(analytics = testTracker(analytics = analytics))
+        createModel(analytics = testTracker(scope = trackerScope, analytics = analytics))
 
         assertThat(analytics.events).containsExactly(
             FakeAnalytics.Call.Event(
@@ -167,7 +173,8 @@ class SettingsScreenModelTest {
     @Test
     fun changingTheLanguageOnSettingsDoesNotTrackAgain() = runTest {
         val analytics = FakeAnalytics()
-        val model = createModel(analytics = testTracker(analytics = analytics, preferences = preferences))
+        val tracker = testTracker(scope = trackerScope, analytics = analytics, preferences = preferences)
+        val model = createModel(analytics = tracker)
 
         model.onEvent(SettingsEvent.LanguageSelect(AppLanguage.TURKISH))
 
