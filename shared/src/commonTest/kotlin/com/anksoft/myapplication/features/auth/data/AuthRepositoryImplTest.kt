@@ -2,6 +2,7 @@ package com.anksoft.myapplication.features.auth.data
 
 import assertk.assertThat
 import assertk.assertions.contains
+import assertk.assertions.containsExactly
 import assertk.assertions.doesNotContain
 import assertk.assertions.isEqualTo
 import assertk.assertions.isEmpty
@@ -25,6 +26,8 @@ import com.anksoft.myapplication.features.auth.data.repository.AuthRepositoryImp
 import com.anksoft.myapplication.features.auth.domain.model.User
 import com.anksoft.myapplication.features.consent.data.datasource.ConsentLocalDataSource
 import com.anksoft.myapplication.features.consent.domain.model.ConsentChoice
+import com.anksoft.myapplication.features.profile.FakeProfileRepository
+import com.anksoft.myapplication.features.profile.domain.model.AccountProfile
 import com.russhwolf.settings.MapSettings
 import io.ktor.client.HttpClient
 import io.ktor.client.engine.mock.MockEngine
@@ -60,7 +63,9 @@ class AuthRepositoryImplTest {
         body: String,
         logger: AppLogger = NoOpLogger,
         tokenCache: AuthTokenCache = FakeAuthTokenCache(),
-        observers: List<SessionObserver> = emptyList()
+        observers: List<SessionObserver> = emptyList(),
+        profiles: FakeProfileRepository = FakeProfileRepository(),
+        settings: MapSettings = MapSettings()
     ): Pair<AuthRepositoryImpl, SessionManager> {
         val engine = MockEngine { request ->
             sentBodies += request.body.toByteArray().decodeToString()
@@ -79,12 +84,13 @@ class AuthRepositoryImplTest {
                 contentType(ContentType.Application.Json)
             }
         }
-        val sessionManager = SessionManager(MapSettings())
+        val sessionManager = SessionManager(settings)
         val repository = AuthRepositoryImpl(
             AuthRemoteDataSource(client, logger),
             sessionManager,
             tokenCache,
             ConsentLocalDataSource(sessionManager),
+            profiles,
             observers,
             logger
         )
@@ -93,7 +99,8 @@ class AuthRepositoryImplTest {
 
     @Test
     fun successfulLoginReturnsUserAndPersistsSession() = runTest {
-        val (repository, session) = repositoryReturning(HttpStatusCode.OK, successBody)
+        val settings = MapSettings()
+        val (repository, session) = repositoryReturning(HttpStatusCode.OK, successBody, settings = settings)
 
         val result = repository.login("user@example.com", "Password1")
 
@@ -103,7 +110,9 @@ class AuthRepositoryImplTest {
         assertThat(session.getToken()).isEqualTo("access-123")
         assertThat(session.getRefreshToken()).isEqualTo("refresh-456")
         assertThat(session.getUserId()).isEqualTo("u1")
-        assertThat(session.getUserEmail()).isEqualTo("user@example.com")
+        // AC-14: the e-mail and the name are not part of the session any more.
+        assertThat(settings.getStringOrNull(SessionManager.KEY_USER_EMAIL)).isNull()
+        assertThat(settings.getStringOrNull(SessionManager.KEY_USER_NAME)).isNull()
     }
 
     @Test
@@ -183,20 +192,52 @@ class AuthRepositoryImplTest {
         assertThat(session.getUserId()).isNull()
     }
 
+    // AC-2
     @Test
-    fun getCurrentUserRehydratesFromStoredSession() = runTest {
-        val (repository, _) = repositoryReturning(HttpStatusCode.OK, successBody)
+    fun successfulLoginHandsTheProfileOfTheResponseToTheProfileRepository() = runTest {
+        val profiles = FakeProfileRepository()
+        val (repository, _) = repositoryReturning(HttpStatusCode.OK, successBody, profiles = profiles)
+
         repository.login("user@example.com", "Password1")
 
-        assertThat(repository.getCurrentUser())
-            .isEqualTo(User(id = "u1", email = "user@example.com", name = "Test User"))
+        assertThat(profiles.savedProfiles)
+            .containsExactly(AccountProfile(userId = "u1", email = "user@example.com", name = "Test User"))
     }
 
+    // AC-2
     @Test
-    fun getCurrentUserIsNullWithNoSession() = runTest {
-        val (repository, _) = repositoryReturning(HttpStatusCode.OK, successBody)
+    fun successfulRegistrationHandsTheProfileOfTheResponseToTheProfileRepository() = runTest {
+        val profiles = FakeProfileRepository()
+        val (repository, _) = repositoryReturning(HttpStatusCode.OK, successBody, profiles = profiles)
 
-        assertThat(repository.getCurrentUser()).isNull()
+        repository.register("user@example.com", "Password1", consent = null)
+
+        assertThat(profiles.savedProfiles)
+            .containsExactly(AccountProfile(userId = "u1", email = "user@example.com", name = "Test User"))
+    }
+
+    // AC-2
+    @Test
+    fun aBlankNameIsHandedOverAsNoName() = runTest {
+        val profiles = FakeProfileRepository()
+        val body = successBody.replace("\"Test User\"", "\"  \"")
+        val (repository, _) = repositoryReturning(HttpStatusCode.OK, body, profiles = profiles)
+
+        repository.login("user@example.com", "Password1")
+
+        assertThat(profiles.savedProfiles.single().name).isNull()
+    }
+
+    // AC-2
+    @Test
+    fun failedLoginAndRegistrationSaveNoProfile() = runTest {
+        val profiles = FakeProfileRepository()
+        val (repository, _) = repositoryReturning(HttpStatusCode.Unauthorized, "{}", profiles = profiles)
+
+        repository.login("user@example.com", "wrong")
+        repository.register("user@example.com", "Password1", consent = null)
+
+        assertThat(profiles.savedProfiles).isEmpty()
     }
 
     // AC-1

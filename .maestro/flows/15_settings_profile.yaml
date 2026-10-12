@@ -1,0 +1,67 @@
+# Settings shows the signed-in account's own e-mail and name, never a fixed placeholder, and a second account
+# never sees the first one's details (AC-1, AC-10, AC-12, AC-21, AC-28).
+# The demo backend answers GET auth/me. Offline behaviour has no automated flow: it is covered by unit
+# tests and by the manual check in docs/ui-tests.md ("Offline profile check (manual)").
+# E-mail and name are the account's data and do not change with the app language, so they are matched
+# with id and text together.
+appId: ${APP_ID}
+---
+- runFlow: ../subflows/launch_clean.yaml
+- runFlow:
+    file: ../subflows/login_with.yaml
+    env:
+      EMAIL: demo@example.com
+      PASSWORD: Demo1234
+- extendedWaitUntil:
+    visible:
+      id: home_title
+    timeout: 20000
+- runFlow: ../subflows/dismiss_consent_prompt.yaml
+- tapOn:
+    id: home_settings_button
+- extendedWaitUntil:
+    visible:
+      id: settings_profile_email
+      text: "demo@example.com"
+    timeout: 15000
+- assertVisible:
+    id: settings_profile_name
+    text: "Demo User"
+- assertNotVisible:
+    text: "mock@example.com"
+- takeScreenshot: 15_settings_profile_demo
+- scrollUntilVisible:
+    element:
+      id: settings_logout_button
+    direction: DOWN
+- tapOn:
+    id: settings_logout_button
+- extendedWaitUntil:
+    visible:
+      id: login_title
+    timeout: 20000
+# Another account on the same device: the first account's details must not show up at any point.
+- runFlow:
+    file: ../subflows/login_with.yaml
+    env:
+      EMAIL: consent@example.com
+      PASSWORD: Demo1234
+- extendedWaitUntil:
+    visible:
+      id: consent_screen
+    timeout: 20000
+- runFlow: ../subflows/dismiss_consent_prompt.yaml
+- extendedWaitUntil:
+    visible:
+      id: home_title
+    timeout: 20000
+- tapOn:
+    id: home_settings_button
+- extendedWaitUntil:
+    visible:
+      id: settings_profile_email
+      text: "consent@example.com"
+    timeout: 15000
+- assertNotVisible:
+    text: "demo@example.com"
+- takeScreenshot: 15_settings_profile_other_account

@@ -11,4 +11,10 @@ internal object SettingsTestTags {
     const val CONSENT_TOGGLE = "settings_consent_toggle"
     const val PRIVACY_POLICY = "settings_privacy_policy"
     const val CONSENT_RETRY = "settings_consent_retry"
+    const val PROFILE_LOADING = "settings_profile_loading"
+    const val PROFILE_NAME = "settings_profile_name"
+    const val PROFILE_EMAIL = "settings_profile_email"
+    const val PROFILE_STALE_NOTE = "settings_profile_stale_note"
+    const val PROFILE_UNAVAILABLE = "settings_profile_unavailable"
+    const val PROFILE_RETRY = "settings_profile_retry"
 }

@@ -1,0 +1,11 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+  Android 11 and older (see data_extraction_rules.xml for newer versions). The local database is a
+  re-downloadable cache (docs/local-database.md), so it stays out of backups.
+-->
+<full-backup-content>
+    <exclude domain="database" path="app.db" />
+    <exclude domain="database" path="app.db-journal" />
+    <exclude domain="database" path="app.db-wal" />
+    <exclude domain="database" path="app.db-shm" />
+</full-backup-content>

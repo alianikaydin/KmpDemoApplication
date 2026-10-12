@@ -19,6 +19,8 @@ import com.anksoft.myapplication.features.consent.domain.model.ConsentStatus
 import com.anksoft.myapplication.features.consent.domain.model.ConsentTexts
 import com.anksoft.myapplication.features.consent.domain.usecase.ConsentTextsLoad
 import com.anksoft.myapplication.features.consent.domain.usecase.ObserveConsentTextsUseCase
+import com.anksoft.myapplication.features.profile.domain.model.ProfileState
+import com.anksoft.myapplication.features.profile.domain.repository.ProfileRepository
 import kotlinx.coroutines.flow.MutableSharedFlow
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.combine
@@ -44,8 +46,8 @@ data class PrivacyState(
 data class SettingsState(
     val isLoading: Boolean = false,
     val isLoggedOut: Boolean = false,
-    val userName: String = "Mock User",
-    val userEmail: String = "mock@example.com",
+    /** The account's profile as the profile area shows it (AC-1..AC-9). */
+    val profile: ProfileState = ProfileState.Loading,
     val environmentName: String,
     val versionName: String,
     val versionCode: Int,
@@ -58,10 +60,12 @@ sealed interface SettingsEvent {
     data class LanguageSelect(val language: AppLanguage) : SettingsEvent
     data class ConsentToggle(val enabled: Boolean) : SettingsEvent
     data object RetryConsent : SettingsEvent
+    data object RetryProfile : SettingsEvent
 }
 
 class SettingsScreenModel(
     private val authRepository: AuthRepository,
+    private val profileRepository: ProfileRepository,
     appConfig: AppConfig,
     private val appPreferences: AppPreferences,
     private val consentManager: AccountConsentManager,
@@ -89,6 +93,11 @@ class SettingsScreenModel(
         analytics.track(AnalyticsEvent.ScreenView(AnalyticsScreen.SETTINGS))
         // Opening Settings looks at the account's decision again (AC-12).
         consentManager.refresh()
+        // Opening Settings shows the stored profile at once and refreshes it in the background (AC-3).
+        profileRepository.refresh()
+        screenModelScope.launch {
+            profileRepository.state.collect { profile -> mutableState.update { it.copy(profile = profile) } }
+        }
         screenModelScope.launch {
             combine(
                 consentManager.status,
@@ -111,6 +120,7 @@ class SettingsScreenModel(
             SettingsEvent.Logout -> logout()
             is SettingsEvent.LanguageSelect -> appPreferences.setLanguage(event.language)
             is SettingsEvent.ConsentToggle -> toggleConsent(event.enabled)
+            SettingsEvent.RetryProfile -> profileRepository.refresh()
             SettingsEvent.RetryConsent -> {
                 consentError.value = null
                 consentManager.refresh()
