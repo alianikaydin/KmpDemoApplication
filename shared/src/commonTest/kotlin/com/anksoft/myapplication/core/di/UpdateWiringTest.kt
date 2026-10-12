@@ -49,7 +49,7 @@ class UpdateWiringTest {
 
     private fun start(config: AppConfig = TestAppConfigs.demo()): Koin = initKoin(
         config = config,
-        platformModules = listOf<Module>(consoleOverride, sessionOverride, preferencesOverride, appStoreOverride)
+        platformModules = listOf<Module>(consoleOverride, sessionOverride, preferencesOverride, appStoreOverride),
     ).koin
 
     @AfterTest
@@ -134,7 +134,7 @@ class UpdateWiringTest {
             engine = createMockEngine(koin.get<MockAuthServer>()),
             config = TestAppConfigs.demo(),
             sessionManager = koin.get(),
-            logger = NoOpLogger
+            logger = NoOpLogger,
         )
         try {
             val answer = VersionPolicyRemoteDataSource(client, NoOpLogger).getVersionPolicy(AppPlatforms.ANDROID)

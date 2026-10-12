@@ -162,7 +162,7 @@ class MockAuthServer(seedUsers: List<SeedUser> = listOf(DEMO_USER, CONSENT_PENDI
         val policy = selectedVersionPolicy.value
         return scope.respondJson(
             VersionPolicyDto.serializer(),
-            VersionPolicyDto(minSupportedVersion = policy.minSupported, latestVersion = policy.latest)
+            VersionPolicyDto(minSupportedVersion = policy.minSupported, latestVersion = policy.latest),
         )
     }
 
@@ -255,7 +255,7 @@ class MockAuthServer(seedUsers: List<SeedUser> = listOf(DEMO_USER, CONSENT_PENDI
         respond(
             content = appJson.encodeToString(serializer, value),
             status = HttpStatusCode.OK,
-            headers = headersOf(HttpHeaders.ContentType, ContentType.Application.Json.toString())
+            headers = headersOf(HttpHeaders.ContentType, ContentType.Application.Json.toString()),
         )
 
     private fun MockRequestHandleScope.respondUnknownConsentVersion(): HttpResponseData =

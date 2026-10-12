@@ -42,6 +42,13 @@ appId: ${APP_ID}
     timeout: 30000
 - waitForAnimationToEnd:
     timeout: 5000
+# A bounded wait gives a late prompt time to appear before the absence check. The unit tests
+# (AppUpdateControllerTest, SettingsDismissedUpdateStoreTest) are the definitive proof of persistence.
+- extendedWaitUntil:
+    visible:
+      id: update_prompt
+    timeout: 5000
+    optional: true
 - assertNotVisible:
     id: update_prompt
 - takeScreenshot: 14_login_after_later

@@ -23,7 +23,7 @@ class MainActivity : ComponentActivity() {
         // Demo builds only (Maestro passes the extra); a build with a real backend ignores it.
         DemoLaunchArguments.apply(
             koin = GlobalContext.get(),
-            versionPolicy = intent.getStringExtra(DemoLaunchArguments.VERSION_POLICY)
+            versionPolicy = intent.getStringExtra(DemoLaunchArguments.VERSION_POLICY),
         )
 
         setContent {

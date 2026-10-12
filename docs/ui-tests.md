@@ -24,8 +24,8 @@ environment and version), `07_language_switch` (in-app language change applies
 at once and the back stack is kept, AC-6), `08_signup_consent_unchecked` and
 `09_signup_consent_checked` (the optional consent box at sign-up and the Settings switch that follows),
 `10_consent_prompt_reject` and `11_consent_prompt_accept` (the one-time prompt, the Settings switch and
-no second prompt at the next login), `13_force_update` (the required-update screen, the store error and, on Android, Back and
-reopen, AC-1, AC-2, AC-4) and `14_optional_update` (the update prompt, "Later" and no prompt after a restart,
+no second prompt at the next login), `13_force_update` (the required-update screen, the store error and, on Android, Back not getting
+past the screen and the same running app showing it again when brought back without a restart, AC-1, AC-2, AC-4) and `14_optional_update` (the update prompt, "Later" and no prompt after a restart,
 AC-7, AC-8, AC-10). The app runs in demo mode (in-app mock backend), so no network is needed.
 
 Seed users of the mock backend:

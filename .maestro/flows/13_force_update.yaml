@@ -1,6 +1,7 @@
 # A version below the minimum shows the required-update screen instead of the app (AC-1), the store
-# button reports a store that cannot be opened and keeps the screen (AC-4), and on Android leaving with
-# Back and coming back shows the screen again (AC-2).
+# button reports a store that cannot be opened and keeps the screen (AC-4), and on Android Back does not
+# get past the screen (AC-2): the login screen is not shown after Back, and bringing the same running
+# app back to the front (no restart, no launch argument) shows the screen again from its in-process state.
 # CI has no store to open: the Android emulator image has no Play Store and the iOS dev build has no
 # App Store ID (docs/app-updates.md). On a device with the store, the store button opens it instead.
 appId: ${APP_ID}
@@ -24,11 +25,14 @@ appId: ${APP_ID}
     when:
       platform: Android
     commands:
-      # Back must not get past the screen: the app goes to the background and returns to the same screen.
+      # Back must not get past the screen: the app goes to the background and the app behind is not shown.
       - back
+      - assertNotVisible:
+          id: login_title
+      # stopApp: false and no arguments, so the process is not restarted and the screen has to come back
+      # from the state the app already holds.
       - launchApp:
-          arguments:
-            kmpDemoVersionPolicy: required
+          stopApp: false
       - extendedWaitUntil:
           visible:
             id: force_update_screen
