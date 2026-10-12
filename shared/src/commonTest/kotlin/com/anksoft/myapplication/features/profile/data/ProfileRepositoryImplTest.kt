@@ -127,7 +127,7 @@ class ProfileRepositoryImplTest {
 
     private suspend fun TestScope.assertStaleAfter(answer: MockHandler) {
         signIn()
-        local.rows["u1"] = alice
+        local.seed(alice)
         handler = answer
         val repository = newRepository()
         advanceUntilIdle()
@@ -143,7 +143,7 @@ class ProfileRepositoryImplTest {
     // AC-10
     @Test
     fun withoutASessionTheStateIsSignedOutAndEveryStoredRowIsDeleted() = runTest {
-        local.rows["u1"] = alice
+        local.seed(alice)
 
         val repository = newRepository()
         advanceUntilIdle()
@@ -157,7 +157,7 @@ class ProfileRepositoryImplTest {
     @Test
     fun aCachedProfileIsShownBeforeTheRequestAndLoadingIsNeverShown() = runTest {
         signIn()
-        local.rows["u1"] = alice.copy(name = "Old name")
+        local.seed(alice.copy(name = "Old name"))
         val repository = newRepository()
         advanceUntilIdle()
 
@@ -248,7 +248,7 @@ class ProfileRepositoryImplTest {
     @Test
     fun aRetryAfterAFailureWithACachedProfileClearsTheStaleNote() = runTest {
         signIn()
-        local.rows["u1"] = alice.copy(name = "Old name")
+        local.seed(alice.copy(name = "Old name"))
         handler = { error("network down") }
         val repository = newRepository()
         advanceUntilIdle()
@@ -304,7 +304,7 @@ class ProfileRepositoryImplTest {
     @Test
     fun loggingOutShowsSignedOutAtOnceAndDeletesTheStoredRow() = runTest {
         signIn()
-        local.rows["u1"] = alice
+        local.seed(alice)
         val repository = newRepository()
         advanceUntilIdle()
         assertThat(repository.state.value).isEqualTo(ProfileState.Available(alice, isStale = false))
@@ -320,7 +320,7 @@ class ProfileRepositoryImplTest {
     @Test
     fun anExpiredSessionShowsSignedOutAtOnceAndDeletesTheStoredRow() = runTest {
         signIn()
-        local.rows["u1"] = alice
+        local.seed(alice)
         val repository = newRepository()
         advanceUntilIdle()
 
@@ -405,7 +405,7 @@ class ProfileRepositoryImplTest {
     @Test
     fun aResponseForAnotherAccountIsNotStoredAndCountsAsAFailure() = runTest {
         signIn()
-        local.rows["u1"] = alice
+        local.seed(alice)
         handler = { json(HttpStatusCode.OK, userJson(id = "u2", email = "other@example.com", name = "Bob")) }
         val repository = newRepository()
         advanceUntilIdle()
@@ -440,7 +440,7 @@ class ProfileRepositoryImplTest {
     @Test
     fun anotherAccountsStoredRowIsNeverShownAndIsDeletedAtStart() = runTest {
         signIn("u2")
-        local.rows["u1"] = alice
+        local.seed(alice)
         val repository = newRepository()
         val shown = mutableListOf<ProfileState>()
         backgroundScope.launch(UnconfinedTestDispatcher(testScheduler)) { repository.state.collect { shown += it } }
@@ -459,7 +459,7 @@ class ProfileRepositoryImplTest {
     @Test
     fun aFailingReadFallsBackToTheNetwork() = runTest {
         signIn()
-        local.rows["u1"] = alice.copy(name = "Old name")
+        local.seed(alice.copy(name = "Old name"))
         local.failReads = true
         val repository = newRepository()
         advanceUntilIdle()
@@ -551,7 +551,7 @@ class ProfileRepositoryImplTest {
     @Test
     fun logLinesOfAFailedRefreshNeverContainTheUserIdOrTheEmail() = runTest {
         signIn()
-        local.rows["u1"] = alice
+        local.seed(alice)
         handler = { json(HttpStatusCode.InternalServerError, "") }
         val repository = newRepository()
         advanceUntilIdle()

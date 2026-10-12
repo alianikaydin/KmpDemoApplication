@@ -29,6 +29,7 @@ import com.anksoft.myapplication.features.auth.data.datasource.AuthRemoteDataSou
 import com.anksoft.myapplication.features.auth.data.repository.AuthRepositoryImpl
 import com.anksoft.myapplication.features.auth.domain.model.User
 import com.anksoft.myapplication.features.consent.data.datasource.ConsentLocalDataSource
+import com.anksoft.myapplication.features.profile.FakeProfileRepository
 import com.anksoft.myapplication.features.consent.data.datasource.ConsentRemoteDataSource
 import com.anksoft.myapplication.features.consent.domain.model.ConsentChoice
 import com.anksoft.myapplication.features.profile.data.datasource.ProfileRemoteDataSource
@@ -65,6 +66,7 @@ class MockAuthServerTest {
         sessionManager,
         KtorAuthTokenCache(httpClient),
         ConsentLocalDataSource(sessionManager),
+        FakeProfileRepository(),
         emptyList(),
         NoOpLogger
     )

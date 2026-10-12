@@ -15,6 +15,7 @@ import com.anksoft.myapplication.core.session.SessionObserver
 import com.anksoft.myapplication.core.session.SignOutReason
 import com.anksoft.myapplication.core.storage.SessionManager
 import com.anksoft.myapplication.features.auth.data.datasource.AuthRemoteDataSource
+import com.anksoft.myapplication.features.auth.data.mapper.toAccountProfile
 import com.anksoft.myapplication.features.auth.data.mapper.toUser
 import com.anksoft.myapplication.features.auth.domain.model.User
 import com.anksoft.myapplication.features.auth.domain.repository.AuthRepository
@@ -22,25 +23,33 @@ import com.anksoft.myapplication.features.consent.data.datasource.ConsentLocalDa
 import com.anksoft.myapplication.features.consent.data.mapper.toDomain
 import com.anksoft.myapplication.features.consent.data.mapper.toDto
 import com.anksoft.myapplication.features.consent.domain.model.ConsentChoice
+import com.anksoft.myapplication.features.profile.domain.repository.ProfileRepository
 
 class AuthRepositoryImpl(
     private val remoteDataSource: AuthRemoteDataSource,
     private val sessionManager: SessionManager,
     private val tokenCache: AuthTokenCache,
     private val consentLocal: ConsentLocalDataSource,
+    private val profileRepository: ProfileRepository,
     private val sessionObservers: List<SessionObserver>,
     private val logger: AppLogger
 ) : AuthRepository {
 
     override suspend fun login(email: String, password: String): Result<User, DataError> =
-        remoteDataSource.login(email, password).map { it.persistSession() }.logOutcome("login")
+        remoteDataSource.login(email, password)
+            .map { it.persistSession() }
+            .onSuccess { user -> profileRepository.saveSignedInProfile(user.toAccountProfile()) }
+            .logOutcome("login")
 
     override suspend fun register(
         email: String,
         password: String,
         consent: ConsentChoice?
     ): Result<User, DataError> =
-        remoteDataSource.register(email, password, consent?.toDto()).map { it.persistSession() }.logOutcome("register")
+        remoteDataSource.register(email, password, consent?.toDto())
+            .map { it.persistSession() }
+            .onSuccess { user -> profileRepository.saveSignedInProfile(user.toAccountProfile()) }
+            .logOutcome("register")
 
     override suspend fun logout() {
         // One step against token refresh and session expiry running on other threads.
@@ -51,20 +60,15 @@ class AuthRepositoryImpl(
         }
     }
 
-    override suspend fun getCurrentUser(): User? {
-        val id = sessionManager.getUserId() ?: return null
-        val email = sessionManager.getUserEmail() ?: return null
-        return User(id = id, email = email, name = sessionManager.getUserName())
-    }
-
     /** Logs only the action and the error type; never the email, user id or tokens. */
     private fun Result<User, DataError.Remote>.logOutcome(action: String) =
         onSuccess { logger.info(LogTags.AUTH) { "$action succeeded" } }
             .onFailure { error -> logger.warn(LogTags.AUTH) { "$action failed error=$error" } }
 
     /**
-     * Persists tokens and the identity needed to rehydrate getCurrentUser() on
-     * next launch. The password is never stored (AC-1.8).
+     * Persists the tokens and the user id of the session. Name and e-mail are not kept here: the
+     * profile feature stores them (see [ProfileRepository.saveSignedInProfile]). The password is
+     * never stored (AC-1.8).
      */
     private fun AuthResponseDto.persistSession(): User {
         val domainUser = user.toUser()
@@ -75,8 +79,6 @@ class AuthRepositoryImpl(
             sessionManager.saveToken(accessToken)
             refreshToken?.let(sessionManager::saveRefreshToken)
             sessionManager.saveUserId(domainUser.id)
-            sessionManager.saveUserEmail(domainUser.email)
-            domainUser.name?.let(sessionManager::saveUserName)
             // Only the register response carries a decision; a login starts from an empty cache and
             // the consent manager fetches the account's decision once it hears about the sign-in.
             consentLocal.clear()

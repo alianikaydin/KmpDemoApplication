@@ -49,7 +49,13 @@ class UpdateWiringTest {
 
     private fun start(config: AppConfig = TestAppConfigs.demo()): Koin = initKoin(
         config = config,
-        platformModules = listOf<Module>(consoleOverride, sessionOverride, preferencesOverride, appStoreOverride),
+        platformModules = listOf<Module>(
+            consoleOverride,
+            sessionOverride,
+            fakeProfileStoreModule,
+            preferencesOverride,
+            appStoreOverride,
+        ),
     ).koin
 
     @AfterTest
