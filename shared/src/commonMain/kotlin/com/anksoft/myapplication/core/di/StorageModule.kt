@@ -8,7 +8,7 @@ import com.anksoft.myapplication.core.storage.createSecureSettings
 import org.koin.dsl.module
 
 val storageModule = module {
-    includes(platformStorageModule)
+    includes(platformStorageModule, platformDatabaseModule)
 
     // Session store (unqualified Settings). Preferences use the qualified one below.
     single { createSecureSettings() }

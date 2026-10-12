@@ -8,6 +8,7 @@ plugins {
     alias(libs.plugins.composeMultiplatform)
     alias(libs.plugins.composeCompiler)
     alias(libs.plugins.kotlinSerialization)
+    alias(libs.plugins.sqldelight)
 }
 
 kotlin {
@@ -57,6 +58,7 @@ kotlin {
             implementation(libs.compose.uiTooling)
             implementation(libs.ktor.client.okhttp)
             implementation(libs.koin.android)
+            implementation(libs.sqldelight.android.driver)
         }
         commonMain.dependencies {
             implementation(libs.compose.runtime)
@@ -99,6 +101,9 @@ kotlin {
             // Console log backend (platform LogWriter) behind core/logging
             implementation(libs.kermit)
 
+            // Local database (SQLDelight); the drivers are per platform, the web has none
+            implementation(libs.sqldelight.runtime)
+
             // Kotlinx
             implementation(libs.kotlinx.serialization.json)
             implementation(libs.kotlinx.coroutines.core)
@@ -112,14 +117,29 @@ kotlin {
         }
         iosMain.dependencies {
             implementation(libs.ktor.client.darwin)
+            implementation(libs.sqldelight.native.driver)
         }
         // Compose UI tests run on iOS only: Android checks the rendered state with
         // Maestro (checked:), and Compose UI tests on the Android host need Robolectric.
         iosTest.dependencies {
             implementation(libs.compose.uiTest)
         }
+        // JDBC driver so host tests run real SQLite without Robolectric.
+        getByName("androidHostTest").dependencies {
+            implementation(libs.sqldelight.sqlite.driver)
+        }
         jsMain.dependencies {
             implementation(libs.wrappers.browser)
+        }
+    }
+}
+
+sqldelight {
+    databases {
+        create("AppDatabase") {
+            packageName.set("com.anksoft.myapplication.core.database")
+            schemaOutputDirectory.set(file("src/commonMain/sqldelight/databases"))
+            verifyMigrations.set(true)
         }
     }
 }

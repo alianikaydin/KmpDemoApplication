@@ -32,6 +32,16 @@ jobs:
       - name: Static checks
         run: scripts/ci/static-checks.sh
 
+      - name: Verify database schema
+        run: scripts/ci/verify-database-schema.sh
+
+      - name: Upload database schema snapshot
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: database-schema
+          path: shared/src/commonMain/sqldelight/databases/
+
       - name: Run shared unit tests
         run: ./gradlew :shared:testAndroidHostTest --stacktrace
 

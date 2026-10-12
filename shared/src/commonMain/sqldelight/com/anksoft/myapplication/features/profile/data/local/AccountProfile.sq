@@ -1,0 +1,18 @@
+-- Cache of the signed-in account's profile. Only these three columns (AC-14); no tokens, passwords or consent.
+CREATE TABLE account_profile (
+    user_id TEXT NOT NULL PRIMARY KEY,
+    email TEXT NOT NULL,
+    name TEXT
+);
+
+selectByUserId:
+SELECT * FROM account_profile WHERE user_id = ?;
+
+insertOrReplace:
+INSERT OR REPLACE INTO account_profile(user_id, email, name) VALUES (?, ?, ?);
+
+deleteAllExcept:
+DELETE FROM account_profile WHERE user_id != ?;
+
+deleteAll:
+DELETE FROM account_profile;
