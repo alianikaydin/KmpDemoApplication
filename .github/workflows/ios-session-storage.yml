@@ -104,6 +104,8 @@ jobs:
         env:
           APP_PATH: build/ios/Build/Products/Debug-iphonesimulator/MyApplication.app
           LEGACY_APP_PATH: build/ios-legacy/Build/Products/Debug-iphonesimulator/MyApplication.app
+          # The iOS driver can need more than the default to start on a cold runner (IOSDriverTimeoutException).
+          MAESTRO_DRIVER_STARTUP_TIMEOUT: "240000"
         run: bash scripts/ui-tests/check-ios-session-storage.sh
 
       - name: Upload results

@@ -8,3 +8,6 @@ APP_DISPLAY_NAME = MyApplication
 KOTLIN_FRAMEWORK_BUILD_TYPE = release
 // Resets any Local.xcconfig override; prod always uses the URL built into the app.
 KMP_BACKEND_URL =
+
+// Required for an App Store archive (verifyAppStoreReleaseConfig). Ali: App Store Connect > App Information > Apple ID.
+KMP_APP_STORE_ID =

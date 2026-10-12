@@ -17,6 +17,8 @@
 	<string>$(KMP_DEMO_ALLOWED)</string>
 	<key>KMPEnvironment</key>
 	<string>$(KMP_ENVIRONMENT)</string>
+	<key>KMPAppStoreID</key>
+	<string>$(KMP_APP_STORE_ID)</string>
 	<key>NSAppTransportSecurity</key>
 	<dict>
 		<key>NSAllowsLocalNetworking</key>

@@ -1,0 +1,26 @@
+# Starts the app from a clean state with the demo version policy VERSION_POLICY ("required" or "optional")
+# and waits for the element EXPECT_ID.
+# Requires APP_ID, VERSION_POLICY and EXPECT_ID (passed with `maestro test -e ...` or by the calling flow).
+# The argument reaches the mock backend only in demo mode (Android: intent extra, iOS: launch argument).
+appId: ${APP_ID}
+---
+# Same two-step start as launch_clean.yaml, for the same reasons: clearing and launching in one step
+# lets the emulator kill the fresh process, and the iOS driver can fail the first hierarchy request.
+- stopApp
+# No clearKeychain: see launch_clean.yaml.
+- clearState
+- waitForAnimationToEnd:
+    timeout: 3000
+- retry:
+    maxRetries: 2
+    commands:
+      - launchApp:
+          stopApp: true
+          arguments:
+            kmpDemoVersionPolicy: ${VERSION_POLICY}
+      - waitForAnimationToEnd:
+          timeout: 5000
+      - extendedWaitUntil:
+          visible:
+            id: ${EXPECT_ID}
+          timeout: 30000   # first launch on an emulator is slow

@@ -9,4 +9,5 @@ object LogTags {
     const val SESSION = "Session"
     const val CONSENT = "Consent"
     const val ANALYTICS = "Analytics"
+    const val UPDATE = "Update"
 }

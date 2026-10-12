@@ -38,6 +38,9 @@ jobs:
       - name: Build Android app
         run: ./gradlew :androidApp:assembleDebug --stacktrace
 
+      - name: Check App Store release config
+        run: scripts/ci/check-app-store-release-config.sh
+
       - name: Upload test reports
         if: failure()
         uses: actions/upload-artifact@v4

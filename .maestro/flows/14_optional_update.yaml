@@ -1,0 +1,54 @@
+# A newer version than the installed one shows a dismissible prompt over the app (AC-7; the app underneath
+# is checked once the prompt is closed). The store button
+# reports a store that cannot be opened and keeps the prompt (AC-10, error path). "Later" closes it (AC-8)
+# and it does not come back after a restart (AC-8).
+# CI has no store to open, see 13_force_update.yaml. The success path of the store button needs a real
+# store page and is checked by hand.
+appId: ${APP_ID}
+---
+- runFlow:
+    file: ../subflows/launch_with_version_policy.yaml
+    env:
+      VERSION_POLICY: optional
+      EXPECT_ID: update_prompt
+# The app behind the dialog is not asserted here: the dialog is its own window and takes the focus, so
+# Maestro on Android reads only the dialog's elements while it is open. That the app runs behind the
+# prompt (AC-7) is shown by Login being visible as soon as "Later" has closed it, below.
+- takeScreenshot: 14_update_prompt
+- tapOn:
+    id: update_prompt_open_store
+- extendedWaitUntil:
+    visible:
+      id: update_store_error
+    timeout: 20000
+- assertVisible:
+    id: update_prompt
+- tapOn:
+    id: update_prompt_later
+- extendedWaitUntil:
+    notVisible:
+      id: update_prompt
+    timeout: 20000
+- assertVisible:
+    id: login_title
+# Restart without clearing: the dismissed version is kept, so the prompt stays away.
+- launchApp:
+    stopApp: true
+    arguments:
+      kmpDemoVersionPolicy: optional
+- extendedWaitUntil:
+    visible:
+      id: login_title
+    timeout: 30000
+- waitForAnimationToEnd:
+    timeout: 5000
+# A bounded wait gives a late prompt time to appear before the absence check. The unit tests
+# (AppUpdateControllerTest, SettingsDismissedUpdateStoreTest) are the definitive proof of persistence.
+- extendedWaitUntil:
+    visible:
+      id: update_prompt
+    timeout: 5000
+    optional: true
+- assertNotVisible:
+    id: update_prompt
+- takeScreenshot: 14_login_after_later

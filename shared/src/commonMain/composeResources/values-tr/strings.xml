@@ -66,4 +66,13 @@
     <string name="consent_accept">Kabul et</string>
     <string name="consent_reject">Reddet</string>
     <string name="consent_status_load_failed">Gizlilik tercihiniz alınamadı.</string>
+
+    <!-- Uygulama güncellemesi -->
+    <string name="force_update_title">Güncelleme gerekli</string>
+    <string name="force_update_message">Uygulamanın bu sürümü artık desteklenmiyor. Kullanmaya devam etmek için uygulamayı güncelleyin.</string>
+    <string name="update_open_store">Güncelle</string>
+    <string name="update_prompt_title">Güncelleme var</string>
+    <string name="update_prompt_message">Uygulamanın yeni bir sürümü var.</string>
+    <string name="update_prompt_later">Daha sonra</string>
+    <string name="update_store_unavailable">Mağaza açılamadı.</string>
 </resources>
