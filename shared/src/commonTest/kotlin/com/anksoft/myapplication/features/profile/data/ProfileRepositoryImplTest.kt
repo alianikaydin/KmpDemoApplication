@@ -40,7 +40,7 @@ import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.test.TestScope
 import kotlinx.coroutines.test.UnconfinedTestDispatcher
-import kotlinx.coroutines.test.advanceUntilIdle
+import kotlinx.coroutines.test.runCurrent
 import kotlinx.coroutines.test.runTest
 import kotlinx.coroutines.withContext
 import kotlinx.coroutines.withTimeout
@@ -130,7 +130,7 @@ class ProfileRepositoryImplTest {
         local.seed(alice)
         handler = answer
         val repository = newRepository()
-        advanceUntilIdle()
+        runCurrent()
 
         repository.refresh()
         val state = repository.awaitState { it is ProfileState.Available && it.isStale }
@@ -146,7 +146,7 @@ class ProfileRepositoryImplTest {
         local.seed(alice)
 
         val repository = newRepository()
-        advanceUntilIdle()
+        runCurrent()
 
         assertThat(repository.state.value).isEqualTo(ProfileState.SignedOut)
         assertThat(local.calls).contains("retainOnly(null)")
@@ -159,7 +159,7 @@ class ProfileRepositoryImplTest {
         signIn()
         local.seed(alice.copy(name = "Old name"))
         val repository = newRepository()
-        advanceUntilIdle()
+        runCurrent()
 
         repository.state.test {
             assertThat(awaitItem()).isEqualTo(ProfileState.Available(alice.copy(name = "Old name"), isStale = false))
@@ -183,7 +183,7 @@ class ProfileRepositoryImplTest {
             json(HttpStatusCode.OK, userJson())
         }
         val repository = newRepository()
-        advanceUntilIdle()
+        runCurrent()
 
         repository.refresh()
         awaitReal(arrived)
@@ -219,7 +219,7 @@ class ProfileRepositoryImplTest {
         signIn()
         handler = { json(HttpStatusCode.InternalServerError, "") }
         val repository = newRepository()
-        advanceUntilIdle()
+        runCurrent()
 
         repository.refresh()
         val state = repository.awaitState { it == ProfileState.Unavailable }
@@ -233,7 +233,7 @@ class ProfileRepositoryImplTest {
         signIn()
         handler = { json(HttpStatusCode.InternalServerError, "") }
         val repository = newRepository()
-        advanceUntilIdle()
+        runCurrent()
         repository.refresh()
         repository.awaitState { it == ProfileState.Unavailable }
 
@@ -251,7 +251,7 @@ class ProfileRepositoryImplTest {
         local.seed(alice.copy(name = "Old name"))
         handler = { error("network down") }
         val repository = newRepository()
-        advanceUntilIdle()
+        runCurrent()
         repository.refresh()
         repository.awaitState { it is ProfileState.Available && it.isStale }
 
@@ -275,7 +275,7 @@ class ProfileRepositoryImplTest {
             json(HttpStatusCode.OK, userJson())
         }
         val repository = newRepository()
-        advanceUntilIdle()
+        runCurrent()
 
         repository.refresh()
         awaitReal(arrived)
@@ -291,10 +291,10 @@ class ProfileRepositoryImplTest {
     @Test
     fun refreshDoesNothingWithoutASession() = runTest {
         val repository = newRepository()
-        advanceUntilIdle()
+        runCurrent()
 
         repository.refresh()
-        advanceUntilIdle()
+        runCurrent()
 
         assertThat(requestPaths).isEmpty()
         assertThat(repository.state.value).isEqualTo(ProfileState.SignedOut)
@@ -306,13 +306,13 @@ class ProfileRepositoryImplTest {
         signIn()
         local.seed(alice)
         val repository = newRepository()
-        advanceUntilIdle()
+        runCurrent()
         assertThat(repository.state.value).isEqualTo(ProfileState.Available(alice, isStale = false))
 
         signOut(repository, SignOutReason.USER_LOGOUT)
 
         assertThat(repository.state.value).isEqualTo(ProfileState.SignedOut)
-        advanceUntilIdle()
+        runCurrent()
         assertThat(local.rows).isEqualTo(emptyMap<String, AccountProfile>())
     }
 
@@ -322,12 +322,12 @@ class ProfileRepositoryImplTest {
         signIn()
         local.seed(alice)
         val repository = newRepository()
-        advanceUntilIdle()
+        runCurrent()
 
         signOut(repository, SignOutReason.EXPIRED)
 
         assertThat(repository.state.value).isEqualTo(ProfileState.SignedOut)
-        advanceUntilIdle()
+        runCurrent()
         assertThat(local.rows).isEqualTo(emptyMap<String, AccountProfile>())
     }
 
@@ -343,14 +343,14 @@ class ProfileRepositoryImplTest {
             json(HttpStatusCode.OK, userJson())
         }
         val repository = newRepository()
-        advanceUntilIdle()
+        runCurrent()
         repository.refresh()
         awaitReal(arrived)
 
         signOut(repository)
-        advanceUntilIdle()
+        runCurrent()
         gate.complete(Unit)
-        advanceUntilIdle()
+        runCurrent()
 
         assertThat(repository.state.value).isEqualTo(ProfileState.SignedOut)
         assertThat(local.replaceCalls).isEmpty()
@@ -365,15 +365,15 @@ class ProfileRepositoryImplTest {
         // The first write of the repository (the cold-start cleanup) holds the database queue.
         local.writeGate = gate
         val repository = newRepository()
-        advanceUntilIdle()
+        runCurrent()
         val saving = launch { repository.saveSignedInProfile(alice) }
-        advanceUntilIdle()
+        runCurrent()
 
         signOut(repository)
         signIn()
         repository.onSignedIn()
         gate.complete(Unit)
-        advanceUntilIdle()
+        runCurrent()
         saving.join()
 
         assertThat(local.replaceCalls).isEmpty()
@@ -385,16 +385,16 @@ class ProfileRepositoryImplTest {
     fun aWriteThatIsRunningWhenTheUserLogsOutIsFollowedByTheDeletion() = runTest {
         signIn()
         val repository = newRepository()
-        advanceUntilIdle()
+        runCurrent()
         val gate = CompletableDeferred<Unit>()
         local.writeGate = gate
         val saving = launch { repository.saveSignedInProfile(alice) }
-        advanceUntilIdle()
+        runCurrent()
         assertThat(local.replaceCalls).hasSize(1)
 
         signOut(repository)
         gate.complete(Unit)
-        advanceUntilIdle()
+        runCurrent()
         saving.join()
 
         assertThat(local.rows).isEqualTo(emptyMap<String, AccountProfile>())
@@ -408,7 +408,7 @@ class ProfileRepositoryImplTest {
         local.seed(alice)
         handler = { json(HttpStatusCode.OK, userJson(id = "u2", email = "other@example.com", name = "Bob")) }
         val repository = newRepository()
-        advanceUntilIdle()
+        runCurrent()
 
         repository.refresh()
         val state = repository.awaitState { it is ProfileState.Available && it.isStale }
@@ -427,7 +427,7 @@ class ProfileRepositoryImplTest {
         signIn()
         handler = { json(HttpStatusCode.OK, userJson(id = "u2", email = "other@example.com", name = "Bob")) }
         val repository = newRepository()
-        advanceUntilIdle()
+        runCurrent()
 
         repository.refresh()
         val state = repository.awaitState { it == ProfileState.Unavailable }
@@ -445,7 +445,7 @@ class ProfileRepositoryImplTest {
         val shown = mutableListOf<ProfileState>()
         backgroundScope.launch(UnconfinedTestDispatcher(testScheduler)) { repository.state.collect { shown += it } }
 
-        advanceUntilIdle()
+        runCurrent()
         handler = { json(HttpStatusCode.OK, userJson(id = "u2", email = "bob@example.com", name = "Bob")) }
         repository.refresh()
         repository.awaitState { it is ProfileState.Available }
@@ -462,7 +462,7 @@ class ProfileRepositoryImplTest {
         local.seed(alice.copy(name = "Old name"))
         local.failReads = true
         val repository = newRepository()
-        advanceUntilIdle()
+        runCurrent()
         assertThat(repository.state.value).isEqualTo(ProfileState.Loading)
 
         repository.refresh()
@@ -477,7 +477,7 @@ class ProfileRepositoryImplTest {
         signIn()
         local.failWrites = true
         val repository = newRepository()
-        advanceUntilIdle()
+        runCurrent()
 
         repository.refresh()
         val state = repository.awaitState { it is ProfileState.Available }
@@ -490,7 +490,7 @@ class ProfileRepositoryImplTest {
     @Test
     fun aSignInProfileIsShownAtOnceAndStoredWithoutARequest() = runTest {
         val repository = newRepository()
-        advanceUntilIdle()
+        runCurrent()
         signIn()
         repository.onSignedIn()
         assertThat(repository.state.value).isEqualTo(ProfileState.Loading)
@@ -507,9 +507,9 @@ class ProfileRepositoryImplTest {
     fun aSignInProfileThatArrivesAfterALogoutIsNotStored() = runTest {
         signIn()
         val repository = newRepository()
-        advanceUntilIdle()
+        runCurrent()
         signOut(repository)
-        advanceUntilIdle()
+        runCurrent()
 
         repository.saveSignedInProfile(alice)
 
@@ -522,7 +522,7 @@ class ProfileRepositoryImplTest {
     fun theResultIsStoredOnceEvenIfTheCallerOfRefreshIsCancelled() = runTest {
         signIn()
         val repository = newRepository()
-        advanceUntilIdle()
+        runCurrent()
         val screen = CoroutineScope(UnconfinedTestDispatcher(testScheduler) + Job())
 
         screen.launch { repository.refresh() }
@@ -539,7 +539,7 @@ class ProfileRepositoryImplTest {
         // The constructor takes no consent manager and no tracker, so no consent state can matter.
         signIn()
         val repository = newRepository()
-        advanceUntilIdle()
+        runCurrent()
 
         repository.refresh()
         val state = repository.awaitState { it is ProfileState.Available }
@@ -554,12 +554,12 @@ class ProfileRepositoryImplTest {
         local.seed(alice)
         handler = { json(HttpStatusCode.InternalServerError, "") }
         val repository = newRepository()
-        advanceUntilIdle()
+        runCurrent()
 
         repository.refresh()
         repository.awaitState { it is ProfileState.Available && it.isStale }
         signOut(repository)
-        advanceUntilIdle()
+        runCurrent()
 
         assertLogsHoldNoPersonalData()
     }
