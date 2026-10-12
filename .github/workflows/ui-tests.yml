@@ -331,6 +331,8 @@ jobs:
       - name: Run Maestro flows on the simulator
         env:
           APP_PATH: build/ios/Build/Products/Debug-iphonesimulator/MyApplication.app
+          # The iOS driver can need more than the default to start on a cold runner (IOSDriverTimeoutException).
+          MAESTRO_DRIVER_STARTUP_TIMEOUT: "240000"
         run: bash scripts/ui-tests/run-ios.sh
 
       - name: Classify Maestro failure
