@@ -11,6 +11,8 @@ import java.io.File
  */
 class JdbcDatabaseDriverFactory(private val file: File) : DatabaseDriverFactory {
 
+    private val drivers = mutableListOf<SqlDriver>()
+
     var createCalls: Int = 0
         private set
 
@@ -38,7 +40,14 @@ class JdbcDatabaseDriverFactory(private val file: File) : DatabaseDriverFactory 
             driver.close()
             throw e
         }
+        drivers += driver
         return driver
+    }
+
+    /** Closes every driver this factory created, like a process that ends before the next start. */
+    fun closeDrivers() {
+        drivers.forEach { it.close() }
+        drivers.clear()
     }
 
     override fun deleteDatabaseFile() {
