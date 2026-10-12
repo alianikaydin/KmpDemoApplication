@@ -1,0 +1,19 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+  Android 12 and newer. The local database is a re-downloadable cache (docs/local-database.md), so it
+  stays out of cloud backups and device-to-device transfers. Everything else is backed up as before.
+-->
+<data-extraction-rules>
+    <cloud-backup>
+        <exclude domain="database" path="app.db" />
+        <exclude domain="database" path="app.db-journal" />
+        <exclude domain="database" path="app.db-wal" />
+        <exclude domain="database" path="app.db-shm" />
+    </cloud-backup>
+    <device-transfer>
+        <exclude domain="database" path="app.db" />
+        <exclude domain="database" path="app.db-journal" />
+        <exclude domain="database" path="app.db-wal" />
+        <exclude domain="database" path="app.db-shm" />
+    </device-transfer>
+</data-extraction-rules>

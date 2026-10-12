@@ -121,5 +121,8 @@ because a refresh token may be used only once.
   token, so a request after an account switch never carries the old account's
   token.
 
+`GET auth/me` (protected) refreshes the profile Settings shows (`docs/local-database.md`); the sign-in
+and registration responses already carry the same user.
+
 The demo mock server follows the same rules: `auth/refresh` accepts each refresh
 token once, and every `401` carries `WWW-Authenticate: Bearer`.
