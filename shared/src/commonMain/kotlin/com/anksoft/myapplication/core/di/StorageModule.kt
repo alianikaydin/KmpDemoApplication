@@ -1,5 +1,7 @@
 package com.anksoft.myapplication.core.di
 
+import com.anksoft.myapplication.core.database.AppDatabaseProvider
+import com.anksoft.myapplication.core.database.DatabaseDriverFactory
 import com.anksoft.myapplication.core.preferences.AppPreferences
 import com.anksoft.myapplication.core.preferences.ContentLanguage
 import com.anksoft.myapplication.core.preferences.SettingsAppPreferences
@@ -15,4 +17,8 @@ val storageModule = module {
     single { SessionManager(get()) }
     single<AppPreferences> { SettingsAppPreferences(get(AppPreferencesSettings), get()) }
     single { ContentLanguage(get()) }
+
+    // One connection shared by every table. The factory is bound on Android and iOS only; on the web
+    // there is none and the provider reports no database.
+    single { AppDatabaseProvider(getOrNull<DatabaseDriverFactory>(), get()) }
 }
