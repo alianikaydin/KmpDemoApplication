@@ -56,6 +56,8 @@ data class SeedUser(
  * does for a reused token. Every 401 carries `WWW-Authenticate: Bearer` like the real backend; the
  * client's single bearer provider does not depend on it, but a second auth provider would.
  *
+ * `GET auth/me` answers the user the Bearer token names, like the real backend.
+ *
  * The consent endpoints follow the consent API of the contract: `GET consent/texts` (public, one text
  * version in Turkish and English), and `GET`/`PUT account/consent` for the user the Bearer access
  * token names. Registering can carry a decision, and the response always reports it. The decision
@@ -94,6 +96,7 @@ class MockAuthServer(seedUsers: List<SeedUser> = listOf(DEMO_USER, CONSENT_PENDI
             HttpMethod.Post to AuthRemoteDataSource.PATH_LOGIN -> login(scope, request)
             HttpMethod.Post to AuthRemoteDataSource.PATH_REGISTER -> register(scope, request)
             HttpMethod.Post to AuthPaths.REFRESH -> refresh(scope, request)
+            HttpMethod.Get to AuthPaths.ME -> me(scope, request)
             HttpMethod.Get to ConsentPaths.TEXTS -> consentTexts(scope, request)
             HttpMethod.Get to ConsentPaths.ACCOUNT_CONSENT -> readConsent(scope, request)
             HttpMethod.Put to ConsentPaths.ACCOUNT_CONSENT -> writeConsent(scope, request)
@@ -121,6 +124,12 @@ class MockAuthServer(seedUsers: List<SeedUser> = listOf(DEMO_USER, CONSENT_PENDI
             if (user == null || !usedRefreshTokens.add(body.refreshToken)) null else issueTokens(user)
         } ?: return scope.respondUnauthorized()
         return scope.respondJson(response)
+    }
+
+    private suspend fun me(scope: MockRequestHandleScope, request: HttpRequestData): HttpResponseData {
+        val user = mutex.withLock { accountFor(request)?.user }
+            ?: return scope.respondUnauthorized()
+        return scope.respondJson(UserDto.serializer(), user)
     }
 
     /** Refresh tokens look like `mock-refresh-<userId>-<serial>`; unknown users and formats are rejected. */

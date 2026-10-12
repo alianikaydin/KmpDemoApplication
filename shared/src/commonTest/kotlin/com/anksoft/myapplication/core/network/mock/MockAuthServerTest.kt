@@ -31,6 +31,7 @@ import com.anksoft.myapplication.features.auth.domain.model.User
 import com.anksoft.myapplication.features.consent.data.datasource.ConsentLocalDataSource
 import com.anksoft.myapplication.features.consent.data.datasource.ConsentRemoteDataSource
 import com.anksoft.myapplication.features.consent.domain.model.ConsentChoice
+import com.anksoft.myapplication.features.profile.data.datasource.ProfileRemoteDataSource
 import com.anksoft.myapplication.features.update.data.datasource.VersionPolicyRemoteDataSource
 import com.russhwolf.settings.MapSettings
 import io.ktor.client.HttpClient
@@ -69,6 +70,7 @@ class MockAuthServerTest {
     )
 
     private val consentSource = ConsentRemoteDataSource(httpClient, NoOpLogger)
+    private val profileSource = ProfileRemoteDataSource(httpClient, NoOpLogger)
 
     private val demoUser = MockAuthServer.DEMO_USER
     private val consentUser = MockAuthServer.CONSENT_PENDING_USER
@@ -238,6 +240,53 @@ class MockAuthServerTest {
 
     private fun decision(status: String, version: Int = 1, language: String = "en") =
         ConsentDecisionDto(status = status, textVersion = version, textLanguage = language)
+
+    // region account profile
+
+    // AC-21
+    @Test
+    fun theDemoUserIsAnsweredByAuthMeWithItsEmailAndName() = runTest {
+        signIn(demoUser)
+
+        val me = profileSource.me().dataOrFail()
+
+        assertThat(me.id).isEqualTo(sessionManager.getUserId())
+        assertThat(me.email).isEqualTo("demo@example.com")
+        assertThat(me.name).isEqualTo("Demo User")
+    }
+
+    // AC-21
+    @Test
+    fun aRegisteredUserIsAnsweredByAuthMeWithoutAName() = runTest {
+        assertThat(repository.register("fresh@example.com", "Secret123", null)).isInstanceOf(Result.Success::class)
+
+        val me = profileSource.me().dataOrFail()
+
+        assertThat(me.email).isEqualTo("fresh@example.com")
+        assertThat(me.name).isNull()
+    }
+
+    // AC-21
+    @Test
+    fun authMeRefusesARequestWithoutAToken() = runTest {
+        val response = httpClient.get(AuthPaths.ME)
+
+        assertThat(response.status).isEqualTo(HttpStatusCode.Unauthorized)
+        assertThat(response.headers[HttpHeaders.WWWAuthenticate]).isEqualTo("Bearer")
+    }
+
+    // AC-21
+    @Test
+    fun authMeRefusesATokenThatNamesNoKnownUser() = runTest {
+        sessionManager.saveToken("mock-access-demo-99-1")
+        sessionManager.saveUserId("demo-99")
+
+        val result = profileSource.me()
+
+        assertThat(result).isEqualTo(Result.Failure(DataError.Remote.UNAUTHORIZED))
+    }
+
+    // endregion
 
     // region consent texts
 
