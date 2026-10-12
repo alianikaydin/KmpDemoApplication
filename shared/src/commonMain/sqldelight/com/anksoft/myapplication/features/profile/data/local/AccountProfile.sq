@@ -2,7 +2,8 @@
 CREATE TABLE account_profile (
     user_id TEXT NOT NULL PRIMARY KEY,
     email TEXT NOT NULL,
-    name TEXT
+    name TEXT,
+    avatar_url TEXT
 );
 
 selectByUserId:
