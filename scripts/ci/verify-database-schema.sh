@@ -24,6 +24,9 @@ while IFS= read -r line; do
   status=1
 done < <(git status --porcelain --untracked-files=all -- "$dir" | grep '^??' || true)
 
+# TEMP: print the Gradle-generated snapshot so it can be committed byte for byte.
+base64 -w0 "$dir/1.db" | sed 's/^/SNAPSHOT_1_DB_BASE64:/'; echo
+
 # Leave the tree as it was found.
 git checkout -- "$dir" 2>/dev/null || true
 
