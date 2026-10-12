@@ -75,4 +75,9 @@
     <string name="update_prompt_message">A new version of the app is available.</string>
     <string name="update_prompt_later">Later</string>
     <string name="update_store_unavailable">Couldn\'t open the store.</string>
+
+    <!-- Settings: account profile -->
+    <string name="settings_profile_loading">Loading profile</string>
+    <string name="settings_profile_stale_note">Couldn\'t get the latest details; showing the last saved ones.</string>
+    <string name="settings_profile_unavailable">Couldn\'t load the profile.</string>
 </resources>

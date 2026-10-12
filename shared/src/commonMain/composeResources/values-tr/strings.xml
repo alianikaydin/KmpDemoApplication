@@ -75,4 +75,9 @@
     <string name="update_prompt_message">Uygulamanın yeni bir sürümü var.</string>
     <string name="update_prompt_later">Daha sonra</string>
     <string name="update_store_unavailable">Mağaza açılamadı.</string>
+
+    <!-- Ayarlar: hesap profili -->
+    <string name="settings_profile_loading">Profil yükleniyor</string>
+    <string name="settings_profile_stale_note">Güncel bilgiler alınamadı; son kaydedilen bilgiler gösteriliyor.</string>
+    <string name="settings_profile_unavailable">Profil yüklenemedi.</string>
 </resources>
