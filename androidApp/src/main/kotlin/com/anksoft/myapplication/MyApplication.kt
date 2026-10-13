@@ -4,6 +4,7 @@ import android.app.Application
 import com.anksoft.myapplication.core.config.AppConfig
 import com.anksoft.myapplication.core.config.AppEnvironment
 import com.anksoft.myapplication.core.di.initKoin
+import com.anksoft.myapplication.crash.androidCrashModule
 import org.koin.android.ext.koin.androidContext
 
 class MyApplication : Application() {
@@ -19,7 +20,10 @@ class MyApplication : Application() {
             versionName = BuildConfig.VERSION_NAME,
             versionCode = BuildConfig.VERSION_CODE
         )
-        initKoin(config = config) {
+        initKoin(
+            config = config,
+            platformModules = listOf(androidCrashModule(this)) + flavorModules
+        ) {
             androidContext(this@MyApplication)
         }
     }

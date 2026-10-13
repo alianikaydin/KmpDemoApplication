@@ -25,6 +25,7 @@ import com.anksoft.myapplication.features.consent.domain.model.AccountConsent
 import com.anksoft.myapplication.features.consent.domain.model.ConsentChoice
 import com.anksoft.myapplication.features.consent.domain.model.ConsentDecision
 import com.anksoft.myapplication.features.consent.domain.model.ConsentStatus
+import com.anksoft.myapplication.features.consent.domain.model.toOptionalDataConsent
 import com.anksoft.myapplication.features.consent.domain.repository.ConsentRepository
 import com.russhwolf.settings.MapSettings
 import com.russhwolf.settings.Settings
@@ -71,9 +72,18 @@ class KoinSessionWiringTest {
         platformModules = listOf(consoleOverride, preferencesOverride, sessionOverride, fakeProfileStoreModule)
     ).koin
 
-    /** The consent manager fetches on another thread, so this waits in real time, not virtual time. */
+    /**
+     * The consent manager fetches on another thread, so this waits in real time, not virtual time.
+     * The fetch thread sets the status just before the facade, so it also waits for the facade to follow.
+     */
     private suspend fun AccountConsentManager.awaitStatus(matches: (ConsentStatus) -> Boolean): ConsentStatus =
-        withContext(Dispatchers.Default) { withTimeout(10.seconds) { status.first(matches) } }
+        withContext(Dispatchers.Default) {
+            withTimeout(10.seconds) {
+                val reached = status.first(matches)
+                optionalDataConsent.first { it == reached.toOptionalDataConsent() }
+                reached
+            }
+        }
 
     // N7, AC-28
     @Test

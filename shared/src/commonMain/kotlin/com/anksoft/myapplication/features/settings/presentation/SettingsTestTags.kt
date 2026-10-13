@@ -5,6 +5,7 @@ internal object SettingsTestTags {
     const val VERSION = "settings_version"
     const val BACK_BUTTON = "settings_back_button"
     const val LOGOUT_BUTTON = "settings_logout_button"
+    const val TEST_CRASH = "settings_test_crash"
     const val LANGUAGE_SYSTEM = "settings_language_system"
     const val LANGUAGE_TURKISH = "settings_language_tr"
     const val LANGUAGE_ENGLISH = "settings_language_en"

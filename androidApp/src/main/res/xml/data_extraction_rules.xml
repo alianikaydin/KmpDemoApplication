@@ -1,16 +1,20 @@
 <?xml version="1.0" encoding="utf-8"?>
 <!--
-  Android 12 and newer. The local database is a re-downloadable cache (docs/local-database.md), so it
-  stays out of cloud backups and device-to-device transfers. Everything else is backed up as before.
+  Android 12 and newer (API 31+). The crash install id is install-level data: a restore or a device
+  transfer must start with a new one. The local database is a re-downloadable cache
+  (docs/local-database.md). Both stay out of cloud backups and device-to-device transfers; everything
+  else is backed up as before.
 -->
 <data-extraction-rules>
     <cloud-backup>
+        <exclude domain="sharedpref" path="crash_reporting.xml" />
         <exclude domain="database" path="app.db" />
         <exclude domain="database" path="app.db-journal" />
         <exclude domain="database" path="app.db-wal" />
         <exclude domain="database" path="app.db-shm" />
     </cloud-backup>
     <device-transfer>
+        <exclude domain="sharedpref" path="crash_reporting.xml" />
         <exclude domain="database" path="app.db" />
         <exclude domain="database" path="app.db-journal" />
         <exclude domain="database" path="app.db-wal" />
