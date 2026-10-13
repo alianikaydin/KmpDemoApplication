@@ -14,4 +14,10 @@ MARKETING_VERSION=$(VERSION_NAME)
 // Stage.xcconfig and Prod.xcconfig reset it to empty after this file, so they ignore Local.xcconfig.
 KMP_BACKEND_URL =
 
+// Numeric App Store ID; empty = no store link (the update screen shows its store error). Set per environment once the app is registered.
+KMP_APP_STORE_ID =
+
+// The shared framework is static and the SQLDelight native driver uses the system SQLite.
+OTHER_LDFLAGS = $(inherited) -lsqlite3
+
 #include? "Local.xcconfig"

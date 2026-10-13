@@ -68,7 +68,7 @@ class KoinSessionWiringTest {
 
     private fun startApp(): Koin = initKoin(
         config = TestAppConfigs.demo(),
-        platformModules = listOf(consoleOverride, preferencesOverride, sessionOverride)
+        platformModules = listOf(consoleOverride, preferencesOverride, sessionOverride, fakeProfileStoreModule)
     ).koin
 
     /** The consent manager fetches on another thread, so this waits in real time, not virtual time. */

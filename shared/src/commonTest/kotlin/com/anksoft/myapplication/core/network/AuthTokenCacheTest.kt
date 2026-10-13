@@ -9,6 +9,7 @@ import com.anksoft.myapplication.core.storage.SessionManager
 import com.anksoft.myapplication.features.auth.data.datasource.AuthRemoteDataSource
 import com.anksoft.myapplication.features.auth.data.repository.AuthRepositoryImpl
 import com.anksoft.myapplication.features.consent.data.datasource.ConsentLocalDataSource
+import com.anksoft.myapplication.features.profile.FakeProfileRepository
 import com.russhwolf.settings.MapSettings
 import io.ktor.client.HttpClient
 import io.ktor.client.engine.mock.MockEngine
@@ -45,6 +46,7 @@ class AuthTokenCacheTest {
         sessionManager,
         KtorAuthTokenCache(client),
         ConsentLocalDataSource(sessionManager),
+        FakeProfileRepository(),
         emptyList(),
         NoOpLogger
     )

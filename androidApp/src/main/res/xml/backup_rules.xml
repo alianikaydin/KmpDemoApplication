@@ -1,5 +1,13 @@
 <?xml version="1.0" encoding="utf-8"?>
-<!-- Android 6 to 11 (API 23 to 30), full backup. Same rule as data_extraction_rules.xml. -->
+<!--
+  Android 6 to 11 (API 23 to 30), full backup. Same rules as data_extraction_rules.xml: the crash
+  install id is install-level data, and the local database is a re-downloadable cache
+  (docs/local-database.md), so both stay out of backups.
+-->
 <full-backup-content>
     <exclude domain="sharedpref" path="crash_reporting.xml" />
+    <exclude domain="database" path="app.db" />
+    <exclude domain="database" path="app.db-journal" />
+    <exclude domain="database" path="app.db-wal" />
+    <exclude domain="database" path="app.db-shm" />
 </full-backup-content>

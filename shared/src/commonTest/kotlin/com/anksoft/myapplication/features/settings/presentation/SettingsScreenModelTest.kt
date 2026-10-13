@@ -33,6 +33,9 @@ import com.anksoft.myapplication.features.consent.domain.model.ConsentChoice
 import com.anksoft.myapplication.features.consent.domain.model.ConsentDecision
 import com.anksoft.myapplication.features.consent.domain.model.ConsentStatus
 import com.anksoft.myapplication.features.consent.domain.usecase.ObserveConsentTextsUseCase
+import com.anksoft.myapplication.features.profile.FakeProfileRepository
+import com.anksoft.myapplication.features.profile.domain.model.AccountProfile
+import com.anksoft.myapplication.features.profile.domain.model.ProfileState
 import kotlinx.coroutines.CompletableDeferred
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
@@ -55,6 +58,7 @@ class SettingsScreenModelTest {
     private lateinit var repository: FakeAuthRepository
     private lateinit var preferences: FakeAppPreferences
     private lateinit var consent: FakeConsentRepository
+    private lateinit var profiles: FakeProfileRepository
 
     // Owned by the test; the trackers here never call start(), the scope only satisfies the constructor.
     private val trackerScope = CoroutineScope(SupervisorJob())
@@ -66,6 +70,7 @@ class SettingsScreenModelTest {
         repository = FakeAuthRepository()
         preferences = FakeAppPreferences()
         consent = FakeConsentRepository()
+        profiles = FakeProfileRepository()
     }
 
     @AfterTest
@@ -87,6 +92,7 @@ class SettingsScreenModelTest {
         testCrashTrigger: TestCrashTrigger? = null
     ) = SettingsScreenModel(
         authRepository = repository,
+        profileRepository = profiles,
         appConfig = AppConfig.create(
             environment = environment,
             backendUrl = null,
@@ -476,5 +482,61 @@ class SettingsScreenModelTest {
         model.onEvent(SettingsEvent.TestCrash)
 
         assertThat(model.state.value.showTestCrash).isFalse()
+    }
+
+    // AC-3, AC-8, AC-18
+    @Test
+    fun openingSettingsRefreshesTheProfileExactlyOnce() = runTest {
+        createModel()
+
+        assertThat(profiles.refreshCalls).isEqualTo(1)
+    }
+
+    // AC-4
+    @Test
+    fun theProfileStartsAsWhateverTheRepositoryReports() = runTest {
+        assertThat(createModel().state.value.profile).isEqualTo(ProfileState.Loading)
+
+        profiles.state.value = ProfileState.SignedOut
+        assertThat(createModel().state.value.profile).isEqualTo(ProfileState.SignedOut)
+    }
+
+    // AC-1, AC-4, AC-5, AC-7
+    @Test
+    fun everyProfileStateOfTheRepositoryIsMirroredInTheScreenState() = runTest {
+        val profile = AccountProfile(userId = "u1", email = "user@example.com", name = "User")
+        val model = createModel()
+
+        listOf(
+            ProfileState.Available(profile, isStale = false),
+            ProfileState.Available(profile, isStale = true),
+            ProfileState.Unavailable,
+            ProfileState.Loading,
+            ProfileState.SignedOut,
+        ).forEach { shown ->
+            profiles.state.value = shown
+
+            assertThat(model.state.value.profile).isEqualTo(shown)
+        }
+    }
+
+    // AC-8
+    @Test
+    fun retryingTheProfileAsksTheRepositoryAgain() = runTest {
+        val model = createModel()
+
+        model.onEvent(SettingsEvent.RetryProfile)
+
+        assertThat(profiles.refreshCalls).isEqualTo(2)
+    }
+
+    // AC-18
+    @Test
+    fun changingTheLanguageDoesNotStartAnotherProfileRefresh() = runTest {
+        val model = createModel()
+
+        model.onEvent(SettingsEvent.LanguageSelect(AppLanguage.ENGLISH))
+
+        assertThat(profiles.refreshCalls).isEqualTo(1)
     }
 }

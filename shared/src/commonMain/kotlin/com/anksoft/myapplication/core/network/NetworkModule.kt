@@ -1,7 +1,9 @@
 package com.anksoft.myapplication.core.network
 
+import com.anksoft.kmpdemo.contract.app.VersionPolicyPaths
 import com.anksoft.kmpdemo.contract.auth.AuthPaths
 import com.anksoft.kmpdemo.contract.auth.RefreshTokenRequestDto
+import com.anksoft.kmpdemo.contract.consent.ConsentPaths
 import com.anksoft.myapplication.core.config.AppConfig
 import com.anksoft.myapplication.core.config.AppEnvironment
 import com.anksoft.myapplication.core.logging.AppLogger
@@ -27,7 +29,9 @@ import io.ktor.client.request.setBody
 import io.ktor.client.statement.request
 import io.ktor.http.ContentType
 import io.ktor.http.HttpHeaders
+import io.ktor.http.HttpStatusCode
 import io.ktor.http.contentType
+import io.ktor.http.encodedPath
 import io.ktor.serialization.kotlinx.json.json
 import org.koin.dsl.module
 import io.ktor.client.plugins.logging.Logger as KtorLogger
@@ -37,6 +41,15 @@ private const val REQUEST_TIMEOUT_MILLIS = 15_000L
 
 /** A 401 from these endpoints is an answer (wrong password, rejected refresh), not an expired token. */
 private val NO_REFRESH_PATHS = listOf(AuthPaths.LOGIN, AuthPaths.REGISTER, AuthPaths.REFRESH)
+
+/**
+ * Public endpoints: never get the Authorization header and never trigger re-authorization
+ * (AC-21; analysis R1, R2).
+ */
+private val PUBLIC_PATHS = listOf(ConsentPaths.TEXTS, VersionPolicyPaths.VERSION_POLICY)
+
+/** True for [PUBLIC_PATHS]; matched by suffix because the base URL carries the `api/v1/` prefix. */
+internal fun isPublicPath(encodedPath: String): Boolean = PUBLIC_PATHS.any { encodedPath.endsWith(it) }
 
 private const val BEARER_PREFIX = "Bearer "
 
@@ -82,7 +95,15 @@ fun createHttpClient(
             requestTimeoutMillis = REQUEST_TIMEOUT_MILLIS
         }
         install(Auth) {
+            // A 401 on a request sent without a token would otherwise make the plugin skip the
+            // refresh and resend the request WITH the stored token, leaking it to a public
+            // endpoint. Public paths therefore never count as a reason to re-authorize.
+            reAuthorizeOnResponse { response ->
+                response.status == HttpStatusCode.Unauthorized &&
+                    !isPublicPath(response.request.url.encodedPath)
+            }
             bearer {
+                sendWithoutRequest { request -> !isPublicPath(request.url.encodedPath) }
                 // The refresh token is single-use: finish the exchange even if the caller leaves.
                 nonCancellableRefresh = true
                 // Attaches the stored access token to outgoing requests.

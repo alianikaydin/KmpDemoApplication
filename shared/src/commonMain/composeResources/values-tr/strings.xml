@@ -67,4 +67,18 @@
     <string name="consent_reject">Reddet</string>
     <string name="consent_status_load_failed">Gizlilik tercihiniz alınamadı.</string>
     <string name="settings_test_crash">Test çökmesi oluştur</string>
+
+    <!-- Uygulama güncellemesi -->
+    <string name="force_update_title">Güncelleme gerekli</string>
+    <string name="force_update_message">Uygulamanın bu sürümü artık desteklenmiyor. Kullanmaya devam etmek için uygulamayı güncelleyin.</string>
+    <string name="update_open_store">Güncelle</string>
+    <string name="update_prompt_title">Güncelleme var</string>
+    <string name="update_prompt_message">Uygulamanın yeni bir sürümü var.</string>
+    <string name="update_prompt_later">Daha sonra</string>
+    <string name="update_store_unavailable">Mağaza açılamadı.</string>
+
+    <!-- Ayarlar: hesap profili -->
+    <string name="settings_profile_loading">Profil yükleniyor</string>
+    <string name="settings_profile_stale_note">Güncel bilgiler alınamadı; son kaydedilen bilgiler gösteriliyor.</string>
+    <string name="settings_profile_unavailable">Profil yüklenemedi.</string>
 </resources>

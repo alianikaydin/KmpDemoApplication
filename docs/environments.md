@@ -3,7 +3,9 @@
 The app has three environments: **dev**, **stage** and **prod**. Dev is the default
 for local work. The environment is fixed when the app is built; there is no runtime
 switch and no debug-only control in Settings. Settings shows the environment name and
-the version (`Version 1.0 (1)`) in every environment, prod included.
+the version (`Version 1.0 (1)`) in every environment, prod included. The one exception to "no runtime
+switch" is demo mode only: the `kmpDemoVersionPolicy` launch argument picks the mock backend's version
+policy (see `docs/app-updates.md`); builds with a real backend ignore it.
 
 ## Commands
 
@@ -52,10 +54,22 @@ VERSION_NAME=1.0
 VERSION_CODE=1
 ```
 
+`VERSION_NAME` has one to three numeric components (`1.0`, `1.2.3`), because the update check compares it with
+the backend's policy. `scripts/ci/check-version-format.sh` (part of `static-checks.sh`) fails the build for
+anything else, such as `1.0-beta`.
+
 Android, iOS (`MARKETING_VERSION`, `CURRENT_PROJECT_VERSION` via an xcconfig include)
 and web read it. Do not add comment lines: `#` is a directive in xcconfig and breaks
 the iOS build. `-PkmpVersionCode=<n>` overrides the code for Android and web. The
 code is not raised automatically in CI.
+
+## App store links
+
+The update screen sends the user to the store. Android uses the app's own package name. iOS needs the numeric
+App Store ID in `KMP_APP_STORE_ID`: empty in dev and stage (the update screen then shows "Couldn't open the
+store."), set in `iosApp/Configuration/Prod.xcconfig`. A prod App Store archive (`ACTION=install`,
+`KMP_ENVIRONMENT=PROD`) fails when the ID is missing or not numeric (`verifyAppStoreReleaseConfig`). Details:
+`docs/app-updates.md`.
 
 ## Notes
 

@@ -5,6 +5,10 @@ import assertk.assertions.isEqualTo
 import assertk.assertions.isInstanceOf
 import assertk.assertions.isNotEqualTo
 import assertk.assertions.isNotNull
+import assertk.assertions.isNull
+import com.anksoft.kmpdemo.contract.app.AppPlatforms
+import com.anksoft.kmpdemo.contract.app.VersionPolicyDto
+import com.anksoft.kmpdemo.contract.app.VersionPolicyPaths
 import com.anksoft.kmpdemo.contract.auth.AuthPaths
 import com.anksoft.kmpdemo.contract.auth.AuthResponseDto
 import com.anksoft.kmpdemo.contract.auth.LoginRequestDto
@@ -25,12 +29,16 @@ import com.anksoft.myapplication.features.auth.data.datasource.AuthRemoteDataSou
 import com.anksoft.myapplication.features.auth.data.repository.AuthRepositoryImpl
 import com.anksoft.myapplication.features.auth.domain.model.User
 import com.anksoft.myapplication.features.consent.data.datasource.ConsentLocalDataSource
+import com.anksoft.myapplication.features.profile.FakeProfileRepository
 import com.anksoft.myapplication.features.consent.data.datasource.ConsentRemoteDataSource
 import com.anksoft.myapplication.features.consent.domain.model.ConsentChoice
+import com.anksoft.myapplication.features.profile.data.datasource.ProfileRemoteDataSource
+import com.anksoft.myapplication.features.update.data.datasource.VersionPolicyRemoteDataSource
 import com.russhwolf.settings.MapSettings
 import io.ktor.client.HttpClient
 import io.ktor.client.call.body
 import io.ktor.client.request.get
+import io.ktor.client.request.parameter
 import io.ktor.client.request.post
 import io.ktor.client.request.put
 import io.ktor.client.request.setBody
@@ -45,8 +53,9 @@ import kotlinx.coroutines.test.runTest
 class MockAuthServerTest {
 
     private val sessionManager = SessionManager(MapSettings())
+    private val server = MockAuthServer()
     private val httpClient = createHttpClient(
-        engine = createMockEngine(MockAuthServer()),
+        engine = createMockEngine(server),
         config = TestAppConfigs.demo(),
         sessionManager = sessionManager,
         logger = NoOpLogger
@@ -57,11 +66,13 @@ class MockAuthServerTest {
         sessionManager,
         KtorAuthTokenCache(httpClient),
         ConsentLocalDataSource(sessionManager),
+        FakeProfileRepository(),
         emptyList(),
         NoOpLogger
     )
 
     private val consentSource = ConsentRemoteDataSource(httpClient, NoOpLogger)
+    private val profileSource = ProfileRemoteDataSource(httpClient, NoOpLogger)
 
     private val demoUser = MockAuthServer.DEMO_USER
     private val consentUser = MockAuthServer.CONSENT_PENDING_USER
@@ -231,6 +242,53 @@ class MockAuthServerTest {
 
     private fun decision(status: String, version: Int = 1, language: String = "en") =
         ConsentDecisionDto(status = status, textVersion = version, textLanguage = language)
+
+    // region account profile
+
+    // AC-21
+    @Test
+    fun theDemoUserIsAnsweredByAuthMeWithItsEmailAndName() = runTest {
+        signIn(demoUser)
+
+        val me = profileSource.me().dataOrFail()
+
+        assertThat(me.id).isEqualTo(sessionManager.getUserId())
+        assertThat(me.email).isEqualTo("demo@example.com")
+        assertThat(me.name).isEqualTo("Demo User")
+    }
+
+    // AC-21
+    @Test
+    fun aRegisteredUserIsAnsweredByAuthMeWithoutAName() = runTest {
+        assertThat(repository.register("fresh@example.com", "Secret123", null)).isInstanceOf(Result.Success::class)
+
+        val me = profileSource.me().dataOrFail()
+
+        assertThat(me.email).isEqualTo("fresh@example.com")
+        assertThat(me.name).isNull()
+    }
+
+    // AC-21
+    @Test
+    fun authMeRefusesARequestWithoutAToken() = runTest {
+        val response = httpClient.get(AuthPaths.ME)
+
+        assertThat(response.status).isEqualTo(HttpStatusCode.Unauthorized)
+        assertThat(response.headers[HttpHeaders.WWWAuthenticate]).isEqualTo("Bearer")
+    }
+
+    // AC-21
+    @Test
+    fun authMeRefusesATokenThatNamesNoKnownUser() = runTest {
+        sessionManager.saveToken("mock-access-demo-99-1")
+        sessionManager.saveUserId("demo-99")
+
+        val result = profileSource.me()
+
+        assertThat(result).isEqualTo(Result.Failure(DataError.Remote.UNAUTHORIZED))
+    }
+
+    // endregion
 
     // region consent texts
 
@@ -450,5 +508,70 @@ class MockAuthServerTest {
         assertThat(result).isEqualTo(Result.Failure(DataError.Remote.UNPROCESSABLE))
         assertThat(repository.login("fresh@example.com", "Secret123"))
             .isEqualTo(Result.Failure(DataError.Remote.UNAUTHORIZED))
+    }
+
+    private val versionPolicySource = VersionPolicyRemoteDataSource(httpClient, NoOpLogger)
+
+    // AC-19
+    @Test
+    fun theVersionPolicyDefaultsToNoUpdate() = runTest {
+        val policy = versionPolicySource.getVersionPolicy(AppPlatforms.ANDROID).dataOrFail()
+
+        assertThat(policy).isEqualTo(VersionPolicyDto("0.0.0", "0.0.0"))
+    }
+
+    // AC-19
+    @Test
+    fun theRequiredPolicyAnswersAMinimumNoInstalledVersionReaches() = runTest {
+        server.useVersionPolicy(DemoVersionPolicy.REQUIRED)
+
+        val policy = versionPolicySource.getVersionPolicy(AppPlatforms.IOS).dataOrFail()
+
+        assertThat(policy).isEqualTo(VersionPolicyDto("999.0.0", "999.0.0"))
+    }
+
+    // AC-19
+    @Test
+    fun theOptionalPolicyAnswersANewerLatestWithNoMinimum() = runTest {
+        server.useVersionPolicy(DemoVersionPolicy.OPTIONAL)
+
+        val policy = versionPolicySource.getVersionPolicy(AppPlatforms.ANDROID).dataOrFail()
+
+        assertThat(policy).isEqualTo(VersionPolicyDto("0.0.0", "999.0.0"))
+    }
+
+    // AC-19
+    @Test
+    fun theVersionPolicyNeedsNoSessionAndNoToken() = runTest {
+        assertThat(sessionManager.getToken()).isNull()
+
+        assertThat(versionPolicySource.getVersionPolicy(AppPlatforms.ANDROID)).isInstanceOf(Result.Success::class)
+    }
+
+    // AC-19
+    @Test
+    fun aMissingOrUnknownPlatformIsRefusedLikeTheRealServer() = runTest {
+        val missing = httpClient.get(VersionPolicyPaths.VERSION_POLICY)
+        val web = httpClient.get(VersionPolicyPaths.VERSION_POLICY) {
+            parameter(VersionPolicyPaths.PLATFORM_PARAM, "web")
+        }
+        val wrongCase = httpClient.get(VersionPolicyPaths.VERSION_POLICY) {
+            parameter(VersionPolicyPaths.PLATFORM_PARAM, "Android")
+        }
+
+        assertThat(missing.status).isEqualTo(HttpStatusCode.BadRequest)
+        assertThat(web.status).isEqualTo(HttpStatusCode.BadRequest)
+        assertThat(wrongCase.status).isEqualTo(HttpStatusCode.BadRequest)
+    }
+
+    // AC-19
+    @Test
+    fun demoVersionPolicyParsingIsCaseInsensitiveAndFallsBackToNone() {
+        assertThat(DemoVersionPolicy.parse("required")).isEqualTo(DemoVersionPolicy.REQUIRED)
+        assertThat(DemoVersionPolicy.parse("REQUIRED")).isEqualTo(DemoVersionPolicy.REQUIRED)
+        assertThat(DemoVersionPolicy.parse("Optional")).isEqualTo(DemoVersionPolicy.OPTIONAL)
+        assertThat(DemoVersionPolicy.parse(null)).isEqualTo(DemoVersionPolicy.NONE)
+        assertThat(DemoVersionPolicy.parse("x")).isEqualTo(DemoVersionPolicy.NONE)
+        assertThat(DemoVersionPolicy.parse("")).isEqualTo(DemoVersionPolicy.NONE)
     }
 }
