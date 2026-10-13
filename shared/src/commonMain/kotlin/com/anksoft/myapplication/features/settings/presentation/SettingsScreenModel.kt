@@ -11,6 +11,7 @@ import com.anksoft.myapplication.core.domain.DataError
 import com.anksoft.myapplication.core.domain.onFailure
 import com.anksoft.myapplication.core.preferences.AppLanguage
 import com.anksoft.myapplication.core.preferences.AppPreferences
+import com.anksoft.myapplication.core.preferences.ThemeMode
 import com.anksoft.myapplication.core.presentation.UiText
 import com.anksoft.myapplication.core.presentation.toUiText
 import com.anksoft.myapplication.features.auth.domain.repository.AuthRepository
@@ -53,6 +54,7 @@ data class SettingsState(
     val versionName: String,
     val versionCode: Int,
     val selectedLanguage: AppLanguage = AppLanguage.SYSTEM,
+    val selectedThemeMode: ThemeMode = ThemeMode.SYSTEM,
     val privacy: PrivacyState = PrivacyState(),
     /** True only when the build binds a test crash trigger (dev and stage). */
     val showTestCrash: Boolean = false
@@ -61,6 +63,7 @@ data class SettingsState(
 sealed interface SettingsEvent {
     data object Logout : SettingsEvent
     data class LanguageSelect(val language: AppLanguage) : SettingsEvent
+    data class ThemeModeSelect(val themeMode: ThemeMode) : SettingsEvent
     data class ConsentToggle(val enabled: Boolean) : SettingsEvent
     data object RetryConsent : SettingsEvent
     data object TestCrash : SettingsEvent
@@ -83,6 +86,7 @@ class SettingsScreenModel(
         versionName = appConfig.versionName,
         versionCode = appConfig.versionCode,
         selectedLanguage = appPreferences.language.value,
+        selectedThemeMode = appPreferences.themeMode.value,
         showTestCrash = testCrashTrigger != null
     )
 ) {
@@ -120,12 +124,18 @@ class SettingsScreenModel(
                 mutableState.update { it.copy(selectedLanguage = language) }
             }
         }
+        screenModelScope.launch {
+            appPreferences.themeMode.collect { themeMode ->
+                mutableState.update { it.copy(selectedThemeMode = themeMode) }
+            }
+        }
     }
 
     fun onEvent(event: SettingsEvent) {
         when (event) {
             SettingsEvent.Logout -> logout()
             is SettingsEvent.LanguageSelect -> appPreferences.setLanguage(event.language)
+            is SettingsEvent.ThemeModeSelect -> appPreferences.setThemeMode(event.themeMode)
             is SettingsEvent.ConsentToggle -> toggleConsent(event.enabled)
             SettingsEvent.RetryProfile -> profileRepository.refresh()
             SettingsEvent.RetryConsent -> {

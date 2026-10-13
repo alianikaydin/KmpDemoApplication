@@ -1,0 +1,19 @@
+# Asserts that the radio option with the given id is the selected one.
+# Requires the ID env var. Compose's selectable + Role.RadioButton is read as `checked` on
+# Android and as `selected` on iOS.
+appId: ${APP_ID}
+---
+- runFlow:
+    when:
+      platform: Android
+    commands:
+      - assertVisible:
+          id: ${ID}
+          checked: true
+- runFlow:
+    when:
+      platform: iOS
+    commands:
+      - assertVisible:
+          id: ${ID}
+          selected: true

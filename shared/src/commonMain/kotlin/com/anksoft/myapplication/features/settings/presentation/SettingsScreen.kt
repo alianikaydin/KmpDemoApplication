@@ -30,6 +30,8 @@ import cafe.adriel.voyager.koin.koinScreenModel
 import cafe.adriel.voyager.navigator.LocalNavigator
 import cafe.adriel.voyager.navigator.currentOrThrow
 import com.anksoft.myapplication.core.preferences.AppLanguage
+import com.anksoft.myapplication.core.preferences.ThemeMode
+import com.anksoft.myapplication.core.presentation.theme.AppTheme
 import com.anksoft.myapplication.core.presentation.asString
 import com.anksoft.myapplication.features.auth.presentation.login.LoginScreen
 import com.anksoft.myapplication.features.consent.presentation.PrivacyPolicyLink
@@ -144,6 +146,17 @@ fun SettingsContent(
 
             Spacer(modifier = Modifier.height(16.dp))
 
+            ThemePicker(
+                selected = state.selectedThemeMode,
+                onSelect = { onEvent(SettingsEvent.ThemeModeSelect(it)) }
+            )
+
+            Spacer(modifier = Modifier.height(16.dp))
+
+            HorizontalDivider()
+
+            Spacer(modifier = Modifier.height(16.dp))
+
             PrivacySection(
                 privacy = state.privacy,
                 onEvent = onEvent,
@@ -176,7 +189,8 @@ fun SettingsContent(
                     .fillMaxWidth()
                     .testTag(SettingsTestTags.LOGOUT_BUTTON),
                 colors = ButtonDefaults.buttonColors(
-                    containerColor = MaterialTheme.colorScheme.error
+                    containerColor = MaterialTheme.colorScheme.error,
+                    contentColor = MaterialTheme.colorScheme.onError
                 ),
                 enabled = !state.isLoading
             ) {
@@ -399,11 +413,29 @@ private fun SettingsContentPreview() {
             environmentName = "DEV",
             versionName = "1.0",
             versionCode = 1,
-            selectedLanguage = AppLanguage.TURKISH
+            selectedLanguage = AppLanguage.TURKISH,
+            selectedThemeMode = ThemeMode.DARK
         ),
         onEvent = {},
         onBackClick = {}
     )
+}
+
+@Preview
+@Composable
+private fun SettingsContentDarkPreview() {
+    AppTheme(darkTheme = true) {
+        SettingsContent(
+            state = SettingsState(
+                environmentName = "DEV",
+                versionName = "1.0",
+                versionCode = 1,
+                selectedThemeMode = ThemeMode.DARK
+            ),
+            onEvent = {},
+            onBackClick = {}
+        )
+    }
 }
 
 @Preview

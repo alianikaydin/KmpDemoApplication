@@ -11,7 +11,7 @@ independent from `ci.yml`.
 | Path | Purpose |
 |------|---------|
 | `.maestro/flows/` | One file per flow, named `NN_what_it_checks.yaml` |
-| `.maestro/subflows/` | Reusable steps (`launch_clean`, `launch_with_version_policy`, `login_with`, `submit_signup`, `dismiss_consent_prompt`) |
+| `.maestro/subflows/` | Reusable steps (`launch_clean`, `launch_with_version_policy`, `login_with`, `submit_signup`, `dismiss_consent_prompt`, `assert_selected`, `assert_not_selected`, `logout_from_settings`) |
 | `.maestro/config.yaml` | Flow selection and execution order |
 | `scripts/ui-tests/` | Install, run, boot and classify scripts used by CI (and locally) |
 
@@ -24,7 +24,7 @@ environment and version), `07_language_switch` (in-app language change applies
 at once and the back stack is kept, AC-6), `08_signup_consent_unchecked` and
 `09_signup_consent_checked` (the optional consent box at sign-up and the Settings switch that follows),
 `10_consent_prompt_reject` and `11_consent_prompt_accept` (the one-time prompt, the Settings switch and
-no second prompt at the next login), `13_force_update` (the required-update screen, the store error and, on Android, Back not getting
+no second prompt at the next login), `12_theme_switch` (the theme choice applies at once, survives a restart and a logout, and the back stack is kept), `13_force_update` (the required-update screen, the store error and, on Android, Back not getting
 past the screen and the same running app showing it again when brought back without a restart, AC-1, AC-2, AC-4) and `14_optional_update` (the update prompt, "Later" and no prompt after a restart,
 AC-7, AC-8, AC-10) and `15_settings_profile` (Settings shows the signed-in account's own e-mail and name,
 and a second account on the same device never sees the first one's details). The app runs in demo mode (in-app mock backend), so no network is needed.
@@ -139,6 +139,10 @@ with the old NSUserDefaults `createSecureSettings()` restored. Then
    account's e-mail and name, which do not change with the language and are asserted with
    `id` and `text` together (`15_settings_profile`, the e2e flow).
 4. Take a `takeScreenshot` at the end of the flow.
+5. To check which theme is drawn, assert the marker `app_theme_light` or `app_theme_dark`
+   (see `docs/theming.md`), never colors. To check a radio option in Settings, use
+   `runFlow: ../subflows/assert_selected.yaml` with `env: ID: <option id>`; it asserts
+   `checked` on Android and `selected` on iOS; `assert_not_selected.yaml` is the opposite check.
 
 ## Running locally
 
@@ -152,10 +156,20 @@ Install Maestro (`curl -fsSL https://get.maestro.mobile.dev | bash`), then:
   `maestro test .maestro/ -e APP_ID=com.anksoft.myapplication.dev` (Android) or
   `-e APP_ID=com.anksoft.myapplication.MyApplication.dev` (iOS).
 
+## Appearance (light and dark)
+
+The device appearance is set by `SYSTEM_APPEARANCE` (`light` default, or `dark`). The run scripts
+apply it (`adb shell cmd uimode night yes|no` on Android, `xcrun simctl ui <udid> appearance` on
+iOS) and pass it to Maestro as `-e SYSTEM_APPEARANCE=...`; flows use it to know which theme marker
+to expect while the app follows the system. Pull requests run the suite once in light mode. To run
+the whole suite in dark mode, start the `UI Tests` workflow by hand (Actions, Run workflow) with
+`appearance: dark`, or locally: `SYSTEM_APPEARANCE=dark bash scripts/ui-tests/run-android.sh`.
+The artifact names end with the appearance (`android-ui-results-dark`).
+
 ## Results and artifacts
 
 Open the run in GitHub: Actions, `UI Tests`, the run, then **Artifacts** at the
-bottom. Download `android-ui-results` and `ios-ui-results`. They are kept for
+bottom. Download `android-ui-results-<appearance>` and `ios-ui-results-<appearance>`. They are kept for
 14 days. Layout:
 
 - `report.xml`: JUnit result per flow

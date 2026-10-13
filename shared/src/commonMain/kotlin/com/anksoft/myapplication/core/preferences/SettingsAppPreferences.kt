@@ -13,6 +13,12 @@ import kotlinx.coroutines.flow.asStateFlow
 internal const val LANGUAGE_KEY = "app_prefs.language"
 
 /**
+ * Key of the theme value (see [ThemeMode.storedValue]). The web page's inline script in
+ * `webApp/src/webMain/resources/index.html` reads this key; keep both in sync.
+ */
+internal const val THEME_KEY = "app_prefs.theme"
+
+/**
  * [AppPreferences] on top of a [Settings] store that is not the session store.
  * Reads and writes never throw: a broken store must not stop the app from starting.
  */
@@ -23,6 +29,9 @@ class SettingsAppPreferences(
 
     private val _language = MutableStateFlow(readLanguage())
     override val language: StateFlow<AppLanguage> = _language.asStateFlow()
+
+    private val _themeMode = MutableStateFlow(readThemeMode())
+    override val themeMode: StateFlow<ThemeMode> = _themeMode.asStateFlow()
 
     override fun setLanguage(language: AppLanguage) {
         val tag = language.tag
@@ -43,5 +52,26 @@ class SettingsAppPreferences(
             }
             .getOrNull()
         return AppLanguage.fromTag(stored)
+    }
+
+    override fun setThemeMode(themeMode: ThemeMode) {
+        val stored = themeMode.storedValue
+        runCatching {
+            if (stored == null) settings.remove(THEME_KEY) else settings.putString(THEME_KEY, stored)
+        }.onFailure { error ->
+            logger.warn(LogTags.APP, error) { "Could not persist the theme preference" }
+        }
+        // Update even when persisting failed, so the choice at least applies for this session.
+        _themeMode.value = themeMode
+        logger.debug(LogTags.APP) { "Theme set to ${themeMode.name}" }
+    }
+
+    private fun readThemeMode(): ThemeMode {
+        val stored = runCatching { settings.getStringOrNull(THEME_KEY) }
+            .onFailure { error ->
+                logger.warn(LogTags.APP, error) { "Could not read the theme preference" }
+            }
+            .getOrNull()
+        return ThemeMode.fromStored(stored)
     }
 }

@@ -5,13 +5,15 @@
 #
 # Env: APK (path to the debug APK), OUT_DIR (default ui-results/android),
 # FLOWS (Maestro workspace/flow path, default .maestro/),
-# MAESTRO_EXTRA_ARGS (extra `maestro test` arguments, e.g. "-e KEY=value").
+# MAESTRO_EXTRA_ARGS (extra `maestro test` arguments, e.g. "-e KEY=value"),
+# SYSTEM_APPEARANCE (light or dark, default light): the emulator's night mode for the run.
 set -euo pipefail
 
 OUT_DIR="${OUT_DIR:-ui-results/android}"
 APK="${APK:-androidApp/build/outputs/apk/dev/debug/androidApp-dev-debug.apk}"
 APP_ID="com.anksoft.myapplication.dev"
 FLOWS="${FLOWS:-.maestro/}"
+SYSTEM_APPEARANCE="${SYSTEM_APPEARANCE:-light}"
 export OUT_DIR
 
 # shellcheck source=scripts/ui-tests/common.sh
@@ -30,6 +32,13 @@ done
 [ "$booted" = "1" ] || infra_fail "Emulator did not finish booting within 120s"
 [ -f "$APK" ] || infra_fail "APK not found at $APK"
 adb install -r "$APK" || infra_fail "APK could not be installed"
+
+case "$SYSTEM_APPEARANCE" in
+  light) night_mode=no ;;
+  dark) night_mode=yes ;;
+  *) infra_fail "SYSTEM_APPEARANCE must be light or dark, got: $SYSTEM_APPEARANCE" ;;
+esac
+adb shell cmd uimode night "$night_mode" || infra_fail "Could not set the emulator appearance"
 
 adb logcat -c
 adb logcat > "$OUT_DIR/logcat.txt" &
@@ -89,6 +98,7 @@ status=0
 # shellcheck disable=SC2086  # MAESTRO_EXTRA_ARGS is intentionally word-split
 maestro test "$FLOWS" \
   -e APP_ID="$APP_ID" \
+  -e SYSTEM_APPEARANCE="$SYSTEM_APPEARANCE" \
   ${MAESTRO_EXTRA_ARGS:-} \
   --format junit \
   --output "$OUT_DIR/report.xml" \

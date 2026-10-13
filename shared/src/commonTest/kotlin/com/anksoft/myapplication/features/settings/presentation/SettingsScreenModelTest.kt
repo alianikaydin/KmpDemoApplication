@@ -24,6 +24,7 @@ import com.anksoft.myapplication.core.logging.NoOpLogger
 import com.anksoft.myapplication.core.preferences.AppLanguage
 import com.anksoft.myapplication.core.preferences.ContentLanguage
 import com.anksoft.myapplication.core.preferences.FakeAppPreferences
+import com.anksoft.myapplication.core.preferences.ThemeMode
 import com.anksoft.myapplication.core.presentation.UiText
 import com.anksoft.myapplication.features.auth.FakeAuthRepository
 import com.anksoft.myapplication.features.consent.FakeConsentRepository
@@ -448,6 +449,35 @@ class SettingsScreenModelTest {
     }
 
     // endregion
+
+    // AC-2
+    @Test
+    fun initialStateShowsTheStoredThemeMode() = runTest {
+        preferences = FakeAppPreferences(initialThemeMode = ThemeMode.DARK)
+
+        assertThat(createModel().state.value.selectedThemeMode).isEqualTo(ThemeMode.DARK)
+    }
+
+    // AC-5
+    @Test
+    fun themeModeSelectWritesThePreference() = runTest {
+        val model = createModel()
+
+        model.onEvent(SettingsEvent.ThemeModeSelect(ThemeMode.DARK))
+
+        assertThat(preferences.setThemeModeCalls).isEqualTo(listOf(ThemeMode.DARK))
+        assertThat(model.state.value.selectedThemeMode).isEqualTo(ThemeMode.DARK)
+    }
+
+    // AC-5
+    @Test
+    fun stateFollowsThemeChangesMadeElsewhere() = runTest {
+        val model = createModel()
+
+        preferences.setThemeMode(ThemeMode.LIGHT)
+
+        assertThat(model.state.value.selectedThemeMode).isEqualTo(ThemeMode.LIGHT)
+    }
 
     // AC-23
     @Test

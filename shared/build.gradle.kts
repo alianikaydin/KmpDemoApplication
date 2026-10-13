@@ -58,6 +58,7 @@ kotlin {
             implementation(libs.compose.uiTooling)
             implementation(libs.ktor.client.okhttp)
             implementation(libs.koin.android)
+            implementation(libs.androidx.activity.compose)
             implementation(libs.sqldelight.android.driver)
         }
         commonMain.dependencies {

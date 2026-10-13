@@ -81,4 +81,9 @@
     <string name="settings_profile_loading">Profil yükleniyor</string>
     <string name="settings_profile_stale_note">Güncel bilgiler alınamadı; son kaydedilen bilgiler gösteriliyor.</string>
     <string name="settings_profile_unavailable">Profil yüklenemedi.</string>
+
+    <string name="settings_theme">Tema</string>
+    <string name="theme_system">Sistem</string>
+    <string name="theme_light">Açık</string>
+    <string name="theme_dark">Koyu</string>
 </resources>
