@@ -217,12 +217,24 @@ class SessionManagerTest {
             .isEqualTo(ThemeMode.DARK)
     }
 
+    // AC-14: values older builds left behind are removed with the rest of the session.
+    @Test
+    fun clearRemovesTheEmailAndNameValuesLeftByOlderBuilds() {
+        val settings = MapSettings()
+        settings.putString(SessionManager.KEY_USER_EMAIL, "user@example.com")
+        settings.putString(SessionManager.KEY_USER_NAME, "Test User")
+        val sessionManager = SessionManager(settings)
+
+        sessionManager.clear()
+
+        assertThat(settings.getStringOrNull(SessionManager.KEY_USER_EMAIL)).isNull()
+        assertThat(settings.getStringOrNull(SessionManager.KEY_USER_NAME)).isNull()
+    }
+
     private fun SessionManager.saveAll() {
         saveToken("access-123")
         saveRefreshToken("refresh-456")
         saveUserId("u1")
-        saveUserEmail("user@example.com")
-        saveUserName("Test User")
         saveConsent("granted", 1)
     }
 }

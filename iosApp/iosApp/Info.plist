@@ -11,12 +11,18 @@
 		<string>en</string>
 		<string>tr</string>
 	</array>
+	<key>FirebaseCrashlyticsCollectionEnabled</key>
+	<false/>
+	<key>FirebaseDataCollectionDefaultEnabled</key>
+	<false/>
 	<key>KMPBackendURL</key>
 	<string>$(KMP_BACKEND_URL)</string>
 	<key>KMPDemoAllowed</key>
 	<string>$(KMP_DEMO_ALLOWED)</string>
 	<key>KMPEnvironment</key>
 	<string>$(KMP_ENVIRONMENT)</string>
+	<key>KMPAppStoreID</key>
+	<string>$(KMP_APP_STORE_ID)</string>
 	<key>NSAppTransportSecurity</key>
 	<dict>
 		<key>NSAllowsLocalNetworking</key>

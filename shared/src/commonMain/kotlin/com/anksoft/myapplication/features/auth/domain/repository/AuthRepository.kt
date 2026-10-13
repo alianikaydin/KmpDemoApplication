@@ -16,5 +16,4 @@ interface AuthRepository {
     suspend fun register(email: String, password: String, consent: ConsentChoice?): Result<User, DataError>
 
     suspend fun logout()
-    suspend fun getCurrentUser(): User?
 }

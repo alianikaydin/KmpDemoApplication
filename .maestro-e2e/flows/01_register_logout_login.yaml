@@ -45,6 +45,15 @@ appId: ${APP_ID}
 - takeScreenshot: e2e_01_home_after_register
 - tapOn:
     id: home_settings_button
+# The profile comes from the real backend: the sign-up response is stored and GET auth/me confirms it. The
+# account has no name, so only the e-mail shows.
+- extendedWaitUntil:
+    visible:
+      id: settings_profile_email
+      text: ${E2E_EMAIL}
+    timeout: 30000
+- assertNotVisible:
+    id: settings_profile_name
 # Settings is taller than a small screen; the button may start below the fold.
 - runFlow:
     file: ../../.maestro/subflows/logout_from_settings.yaml

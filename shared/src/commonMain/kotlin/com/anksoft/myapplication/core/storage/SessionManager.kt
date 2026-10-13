@@ -4,8 +4,8 @@ import com.anksoft.myapplication.core.concurrency.createReentrantLock
 import com.russhwolf.settings.Settings
 
 /**
- * Single owner of session state. Method names are unchanged from the previous
- * version so App.kt and SettingsScreenModel keep compiling.
+ * Single owner of session state: the tokens, the user id and the cached consent decision. The
+ * account's name and e-mail are not part of the session; they live in the profile cache.
  *
  * Backed by [createSecureSettings] rather than a plain Settings(). Only the iOS
  * actual (Keychain) is encrypted at rest today; see createSecureSettings for
@@ -64,18 +64,6 @@ class SessionManager(private val settings: Settings) {
     }
 
     fun getUserId(): String? = read(KEY_USER_ID)
-
-    fun saveUserEmail(email: String) {
-        write(KEY_USER_EMAIL, email)
-    }
-
-    fun getUserEmail(): String? = read(KEY_USER_EMAIL)
-
-    fun saveUserName(name: String) {
-        write(KEY_USER_NAME, name)
-    }
-
-    fun getUserName(): String? = read(KEY_USER_NAME)
 
     /**
      * Caches the account's consent decision for the current session: the status string and the
@@ -137,8 +125,11 @@ class SessionManager(private val settings: Settings) {
         internal const val KEY_TOKEN = "auth_token"
         internal const val KEY_REFRESH_TOKEN = "refresh_token"
         internal const val KEY_USER_ID = "user_id"
+
+        // No longer written: kept so clear() and the migrator remove values left by older builds.
         internal const val KEY_USER_EMAIL = "user_email"
         internal const val KEY_USER_NAME = "user_name"
+
         internal const val KEY_CONSENT_STATUS = "consent_status"
         internal const val KEY_CONSENT_TEXT_VERSION = "consent_text_version"
 

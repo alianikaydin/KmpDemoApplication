@@ -6,6 +6,7 @@ import com.anksoft.myapplication.core.analytics.AnalyticsEvent
 import com.anksoft.myapplication.core.analytics.AnalyticsScreen
 import com.anksoft.myapplication.core.analytics.AnalyticsTracker
 import com.anksoft.myapplication.core.config.AppConfig
+import com.anksoft.myapplication.core.crash.TestCrashTrigger
 import com.anksoft.myapplication.core.domain.DataError
 import com.anksoft.myapplication.core.domain.onFailure
 import com.anksoft.myapplication.core.preferences.AppLanguage
@@ -20,6 +21,8 @@ import com.anksoft.myapplication.features.consent.domain.model.ConsentStatus
 import com.anksoft.myapplication.features.consent.domain.model.ConsentTexts
 import com.anksoft.myapplication.features.consent.domain.usecase.ConsentTextsLoad
 import com.anksoft.myapplication.features.consent.domain.usecase.ObserveConsentTextsUseCase
+import com.anksoft.myapplication.features.profile.domain.model.ProfileState
+import com.anksoft.myapplication.features.profile.domain.repository.ProfileRepository
 import kotlinx.coroutines.flow.MutableSharedFlow
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.combine
@@ -45,14 +48,16 @@ data class PrivacyState(
 data class SettingsState(
     val isLoading: Boolean = false,
     val isLoggedOut: Boolean = false,
-    val userName: String = "Mock User",
-    val userEmail: String = "mock@example.com",
+    /** The account's profile as the profile area shows it (AC-1..AC-9). */
+    val profile: ProfileState = ProfileState.Loading,
     val environmentName: String,
     val versionName: String,
     val versionCode: Int,
     val selectedLanguage: AppLanguage = AppLanguage.SYSTEM,
     val selectedThemeMode: ThemeMode = ThemeMode.SYSTEM,
-    val privacy: PrivacyState = PrivacyState()
+    val privacy: PrivacyState = PrivacyState(),
+    /** True only when the build binds a test crash trigger (dev and stage). */
+    val showTestCrash: Boolean = false
 )
 
 sealed interface SettingsEvent {
@@ -61,22 +66,28 @@ sealed interface SettingsEvent {
     data class ThemeModeSelect(val themeMode: ThemeMode) : SettingsEvent
     data class ConsentToggle(val enabled: Boolean) : SettingsEvent
     data object RetryConsent : SettingsEvent
+    data object TestCrash : SettingsEvent
+    data object RetryProfile : SettingsEvent
 }
 
 class SettingsScreenModel(
     private val authRepository: AuthRepository,
+    private val profileRepository: ProfileRepository,
     appConfig: AppConfig,
     private val appPreferences: AppPreferences,
     private val consentManager: AccountConsentManager,
     observeConsentTexts: ObserveConsentTextsUseCase,
-    analytics: AnalyticsTracker
+    analytics: AnalyticsTracker,
+    /** Bound only in dev and stage builds; null hides the test crash action. */
+    private val testCrashTrigger: TestCrashTrigger? = null
 ) : StateScreenModel<SettingsState>(
     SettingsState(
         environmentName = appConfig.environment.name,
         versionName = appConfig.versionName,
         versionCode = appConfig.versionCode,
         selectedLanguage = appPreferences.language.value,
-        selectedThemeMode = appPreferences.themeMode.value
+        selectedThemeMode = appPreferences.themeMode.value,
+        showTestCrash = testCrashTrigger != null
     )
 ) {
 
@@ -93,6 +104,11 @@ class SettingsScreenModel(
         analytics.track(AnalyticsEvent.ScreenView(AnalyticsScreen.SETTINGS))
         // Opening Settings looks at the account's decision again (AC-12).
         consentManager.refresh()
+        // Opening Settings shows the stored profile at once and refreshes it in the background (AC-3).
+        profileRepository.refresh()
+        screenModelScope.launch {
+            profileRepository.state.collect { profile -> mutableState.update { it.copy(profile = profile) } }
+        }
         screenModelScope.launch {
             combine(
                 consentManager.status,
@@ -121,11 +137,15 @@ class SettingsScreenModel(
             is SettingsEvent.LanguageSelect -> appPreferences.setLanguage(event.language)
             is SettingsEvent.ThemeModeSelect -> appPreferences.setThemeMode(event.themeMode)
             is SettingsEvent.ConsentToggle -> toggleConsent(event.enabled)
+            SettingsEvent.RetryProfile -> profileRepository.refresh()
             SettingsEvent.RetryConsent -> {
                 consentError.value = null
                 consentManager.refresh()
                 retryTexts.tryEmit(Unit)
             }
+            // Called directly, not in screenModelScope: the exception must leave the click handler
+            // on the main thread, where the crash handler of the platform sees it.
+            SettingsEvent.TestCrash -> testCrashTrigger?.crash()
         }
     }
 

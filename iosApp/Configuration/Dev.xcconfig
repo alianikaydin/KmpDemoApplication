@@ -6,3 +6,5 @@ KMP_DEMO_ALLOWED = YES
 BUNDLE_ID_SUFFIX = .dev
 APP_DISPLAY_NAME = MyApplication Dev
 KOTLIN_FRAMEWORK_BUILD_TYPE = debug
+// Compiles the test crash action of Settings in (Prod.xcconfig does not set it).
+SWIFT_ACTIVE_COMPILATION_CONDITIONS = $(inherited) TEST_CRASH_ENABLED

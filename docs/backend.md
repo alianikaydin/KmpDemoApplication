@@ -88,6 +88,16 @@ iOS physical device: the phone can reach the Mac as `http://<mac-name>.local:808
 `127.0.0.1` only, so its port binding must be changed to allow LAN access
 first. Android physical devices should use `adb reverse` as above.
 
+## Endpoints the client sends no token to
+
+| Endpoint | Used for |
+|----------|----------|
+| `GET consent/texts` | the consent text on the sign-up form |
+| `GET app/version-policy?platform=android\|ios` | the update check (`docs/app-updates.md`) |
+
+These are public: the HTTP client sends no `Authorization` header to them, and a `401` from them is not a
+reason to refresh the token or end the session. The client matches them by path in `NetworkModule.kt`.
+
 ## Sessions and token refresh
 
 The access token is short-lived. When a protected request gets `401`, the client
@@ -110,6 +120,9 @@ because a refresh token may be used only once.
 - Logging in, registering and logging out clear the client's cached bearer
   token, so a request after an account switch never carries the old account's
   token.
+
+`GET auth/me` (protected) refreshes the profile Settings shows (`docs/local-database.md`); the sign-in
+and registration responses already carry the same user.
 
 The demo mock server follows the same rules: `auth/refresh` accepts each refresh
 token once, and every `401` carries `WWW-Authenticate: Bearer`.

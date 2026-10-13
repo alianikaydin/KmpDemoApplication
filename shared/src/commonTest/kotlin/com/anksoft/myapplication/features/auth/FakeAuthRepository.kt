@@ -45,6 +45,4 @@ class FakeAuthRepository : AuthRepository {
     override suspend fun logout() {
         logoutCallCount++
     }
-
-    override suspend fun getCurrentUser(): User? = null
 }

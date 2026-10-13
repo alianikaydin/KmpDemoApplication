@@ -1,5 +1,8 @@
 package com.anksoft.myapplication.core.network.mock
 
+import com.anksoft.kmpdemo.contract.app.AppPlatforms
+import com.anksoft.kmpdemo.contract.app.VersionPolicyDto
+import com.anksoft.kmpdemo.contract.app.VersionPolicyPaths
 import com.anksoft.kmpdemo.contract.auth.AuthPaths
 import com.anksoft.kmpdemo.contract.auth.AuthResponseDto
 import com.anksoft.kmpdemo.contract.auth.LoginRequestDto
@@ -26,6 +29,7 @@ import io.ktor.http.HttpHeaders
 import io.ktor.http.HttpMethod
 import io.ktor.http.HttpStatusCode
 import io.ktor.http.headersOf
+import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.sync.Mutex
 import kotlinx.coroutines.sync.withLock
 import kotlinx.serialization.KSerializer
@@ -52,10 +56,16 @@ data class SeedUser(
  * does for a reused token. Every 401 carries `WWW-Authenticate: Bearer` like the real backend; the
  * client's single bearer provider does not depend on it, but a second auth provider would.
  *
+ * `GET auth/me` answers the user the Bearer token names, like the real backend.
+ *
  * The consent endpoints follow the consent API of the contract: `GET consent/texts` (public, one text
  * version in Turkish and English), and `GET`/`PUT account/consent` for the user the Bearer access
  * token names. Registering can carry a decision, and the response always reports it. The decision
  * time is a fixed demo value.
+ *
+ * `GET app/version-policy?platform=android|ios` is public and answers the policy picked with
+ * [useVersionPolicy] (default: no update). Like the real server it refuses any other `platform` with 400.
+ * The policy is set once, before the first screen, by the demo launch arguments.
  */
 class MockAuthServer(seedUsers: List<SeedUser> = listOf(DEMO_USER, CONSENT_PENDING_USER)) {
 
@@ -66,6 +76,7 @@ class MockAuthServer(seedUsers: List<SeedUser> = listOf(DEMO_USER, CONSENT_PENDI
     private var nextId = 1
     private var nextTokenSerial = 1
     private val usedRefreshTokens = mutableSetOf<String>()
+    private val selectedVersionPolicy = MutableStateFlow(DemoVersionPolicy.NONE)
 
     init {
         seedUsers.forEach { seed ->
@@ -74,15 +85,22 @@ class MockAuthServer(seedUsers: List<SeedUser> = listOf(DEMO_USER, CONSENT_PENDI
         }
     }
 
+    /** Picks what `GET app/version-policy` answers from now on. */
+    fun useVersionPolicy(policy: DemoVersionPolicy) {
+        selectedVersionPolicy.value = policy
+    }
+
     suspend fun handle(scope: MockRequestHandleScope, request: HttpRequestData): HttpResponseData {
         val path = request.url.encodedPath.trimStart('/')
         return when (request.method to path) {
             HttpMethod.Post to AuthRemoteDataSource.PATH_LOGIN -> login(scope, request)
             HttpMethod.Post to AuthRemoteDataSource.PATH_REGISTER -> register(scope, request)
             HttpMethod.Post to AuthPaths.REFRESH -> refresh(scope, request)
+            HttpMethod.Get to AuthPaths.ME -> me(scope, request)
             HttpMethod.Get to ConsentPaths.TEXTS -> consentTexts(scope, request)
             HttpMethod.Get to ConsentPaths.ACCOUNT_CONSENT -> readConsent(scope, request)
             HttpMethod.Put to ConsentPaths.ACCOUNT_CONSENT -> writeConsent(scope, request)
+            HttpMethod.Get to VersionPolicyPaths.VERSION_POLICY -> versionPolicy(scope, request)
             else -> scope.respondStatus(HttpStatusCode.NotFound)
         }
     }
@@ -106,6 +124,12 @@ class MockAuthServer(seedUsers: List<SeedUser> = listOf(DEMO_USER, CONSENT_PENDI
             if (user == null || !usedRefreshTokens.add(body.refreshToken)) null else issueTokens(user)
         } ?: return scope.respondUnauthorized()
         return scope.respondJson(response)
+    }
+
+    private suspend fun me(scope: MockRequestHandleScope, request: HttpRequestData): HttpResponseData {
+        val user = mutex.withLock { accountFor(request)?.user }
+            ?: return scope.respondUnauthorized()
+        return scope.respondJson(UserDto.serializer(), user)
     }
 
     /** Refresh tokens look like `mock-refresh-<userId>-<serial>`; unknown users and formats are rejected. */
@@ -137,6 +161,18 @@ class MockAuthServer(seedUsers: List<SeedUser> = listOf(DEMO_USER, CONSENT_PENDI
             }
         } ?: return scope.respondStatus(HttpStatusCode.Conflict)
         return scope.respondJson(response)
+    }
+
+    private fun versionPolicy(scope: MockRequestHandleScope, request: HttpRequestData): HttpResponseData {
+        val platform = request.url.parameters[VersionPolicyPaths.PLATFORM_PARAM]
+        if (platform != AppPlatforms.ANDROID && platform != AppPlatforms.IOS) {
+            return scope.respondStatus(HttpStatusCode.BadRequest)
+        }
+        val policy = selectedVersionPolicy.value
+        return scope.respondJson(
+            VersionPolicyDto.serializer(),
+            VersionPolicyDto(minSupportedVersion = policy.minSupported, latestVersion = policy.latest),
+        )
     }
 
     private fun consentTexts(scope: MockRequestHandleScope, request: HttpRequestData): HttpResponseData {
@@ -228,7 +264,7 @@ class MockAuthServer(seedUsers: List<SeedUser> = listOf(DEMO_USER, CONSENT_PENDI
         respond(
             content = appJson.encodeToString(serializer, value),
             status = HttpStatusCode.OK,
-            headers = headersOf(HttpHeaders.ContentType, ContentType.Application.Json.toString())
+            headers = headersOf(HttpHeaders.ContentType, ContentType.Application.Json.toString()),
         )
 
     private fun MockRequestHandleScope.respondUnknownConsentVersion(): HttpResponseData =

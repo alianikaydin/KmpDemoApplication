@@ -15,6 +15,9 @@ import com.anksoft.myapplication.core.analytics.testTracker
 import com.anksoft.myapplication.core.config.AppConfig
 import com.anksoft.myapplication.core.config.AppEnvironment
 import com.anksoft.myapplication.core.consent.OptionalDataConsent
+import com.anksoft.myapplication.core.crash.RecordingTestCrashTrigger
+import com.anksoft.myapplication.core.crash.TestCrashException
+import com.anksoft.myapplication.core.crash.TestCrashTrigger
 import com.anksoft.myapplication.core.domain.DataError
 import com.anksoft.myapplication.core.domain.Result
 import com.anksoft.myapplication.core.logging.NoOpLogger
@@ -31,6 +34,9 @@ import com.anksoft.myapplication.features.consent.domain.model.ConsentChoice
 import com.anksoft.myapplication.features.consent.domain.model.ConsentDecision
 import com.anksoft.myapplication.features.consent.domain.model.ConsentStatus
 import com.anksoft.myapplication.features.consent.domain.usecase.ObserveConsentTextsUseCase
+import com.anksoft.myapplication.features.profile.FakeProfileRepository
+import com.anksoft.myapplication.features.profile.domain.model.AccountProfile
+import com.anksoft.myapplication.features.profile.domain.model.ProfileState
 import kotlinx.coroutines.CompletableDeferred
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
@@ -46,12 +52,14 @@ import myapplication.shared.generated.resources.consent_error_text_updated
 import kotlin.test.AfterTest
 import kotlin.test.BeforeTest
 import kotlin.test.Test
+import kotlin.test.assertFailsWith
 
 class SettingsScreenModelTest {
 
     private lateinit var repository: FakeAuthRepository
     private lateinit var preferences: FakeAppPreferences
     private lateinit var consent: FakeConsentRepository
+    private lateinit var profiles: FakeProfileRepository
 
     // Owned by the test; the trackers here never call start(), the scope only satisfies the constructor.
     private val trackerScope = CoroutineScope(SupervisorJob())
@@ -63,6 +71,7 @@ class SettingsScreenModelTest {
         repository = FakeAuthRepository()
         preferences = FakeAppPreferences()
         consent = FakeConsentRepository()
+        profiles = FakeProfileRepository()
     }
 
     @AfterTest
@@ -80,9 +89,11 @@ class SettingsScreenModelTest {
     private fun createModel(
         environment: AppEnvironment = AppEnvironment.PROD,
         manager: AccountConsentManager = createManager(),
-        analytics: AnalyticsTracker = testTracker(scope = trackerScope)
+        analytics: AnalyticsTracker = testTracker(scope = trackerScope),
+        testCrashTrigger: TestCrashTrigger? = null
     ) = SettingsScreenModel(
         authRepository = repository,
+        profileRepository = profiles,
         appConfig = AppConfig.create(
             environment = environment,
             backendUrl = null,
@@ -93,7 +104,8 @@ class SettingsScreenModelTest {
         appPreferences = preferences,
         consentManager = manager,
         observeConsentTexts = ObserveConsentTextsUseCase(consent, ContentLanguage(preferences) { "en" }),
-        analytics = analytics
+        analytics = analytics,
+        testCrashTrigger = testCrashTrigger
     )
 
     // AC-7
@@ -465,5 +477,96 @@ class SettingsScreenModelTest {
         preferences.setThemeMode(ThemeMode.LIGHT)
 
         assertThat(model.state.value.selectedThemeMode).isEqualTo(ThemeMode.LIGHT)
+    }
+
+    // AC-23
+    @Test
+    fun testCrashActionIsHiddenWithoutATrigger() = runTest {
+        assertThat(createModel().state.value.showTestCrash).isFalse()
+    }
+
+    // AC-23
+    @Test
+    fun testCrashActionIsShownWithATrigger() = runTest {
+        val model = createModel(testCrashTrigger = RecordingTestCrashTrigger())
+
+        assertThat(model.state.value.showTestCrash).isTrue()
+    }
+
+    // AC-23
+    @Test
+    fun testCrashEventInvokesTheTrigger() = runTest {
+        val trigger = RecordingTestCrashTrigger()
+        val model = createModel(testCrashTrigger = trigger)
+
+        assertFailsWith<TestCrashException> { model.onEvent(SettingsEvent.TestCrash) }
+
+        assertThat(trigger.callCount).isEqualTo(1)
+    }
+
+    // AC-23: without a trigger the event does nothing, so a stray event cannot crash a prod build.
+    @Test
+    fun testCrashEventWithoutATriggerDoesNothing() = runTest {
+        val model = createModel()
+
+        model.onEvent(SettingsEvent.TestCrash)
+
+        assertThat(model.state.value.showTestCrash).isFalse()
+    }
+
+    // AC-3, AC-8, AC-18
+    @Test
+    fun openingSettingsRefreshesTheProfileExactlyOnce() = runTest {
+        createModel()
+
+        assertThat(profiles.refreshCalls).isEqualTo(1)
+    }
+
+    // AC-4
+    @Test
+    fun theProfileStartsAsWhateverTheRepositoryReports() = runTest {
+        assertThat(createModel().state.value.profile).isEqualTo(ProfileState.Loading)
+
+        profiles.state.value = ProfileState.SignedOut
+        assertThat(createModel().state.value.profile).isEqualTo(ProfileState.SignedOut)
+    }
+
+    // AC-1, AC-4, AC-5, AC-7
+    @Test
+    fun everyProfileStateOfTheRepositoryIsMirroredInTheScreenState() = runTest {
+        val profile = AccountProfile(userId = "u1", email = "user@example.com", name = "User")
+        val model = createModel()
+
+        listOf(
+            ProfileState.Available(profile, isStale = false),
+            ProfileState.Available(profile, isStale = true),
+            ProfileState.Unavailable,
+            ProfileState.Loading,
+            ProfileState.SignedOut,
+        ).forEach { shown ->
+            profiles.state.value = shown
+
+            assertThat(model.state.value.profile).isEqualTo(shown)
+        }
+    }
+
+    // AC-8
+    @Test
+    fun retryingTheProfileAsksTheRepositoryAgain() = runTest {
+        val model = createModel()
+
+        model.onEvent(SettingsEvent.RetryProfile)
+
+        assertThat(profiles.refreshCalls).isEqualTo(2)
+    }
+
+    // AC-18
+    @Test
+    fun changingTheLanguageDoesNotStartAnotherProfileRefresh() = runTest {
+        val model = createModel()
+
+        model.onEvent(SettingsEvent.LanguageSelect(AppLanguage.ENGLISH))
+
+        assertThat(profiles.refreshCalls).isEqualTo(1)
     }
 }

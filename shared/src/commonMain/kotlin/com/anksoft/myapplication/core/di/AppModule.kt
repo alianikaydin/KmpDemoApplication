@@ -2,6 +2,8 @@ package com.anksoft.myapplication.core.di
 
 import com.anksoft.myapplication.core.analytics.AnalyticsTracker
 import com.anksoft.myapplication.core.config.AppConfig
+import com.anksoft.myapplication.core.crash.CrashReportingController
+import com.anksoft.myapplication.core.crash.crashModule
 import com.anksoft.myapplication.core.logging.AppLogger
 import com.anksoft.myapplication.core.logging.LogTags
 import com.anksoft.myapplication.core.logging.info
@@ -15,8 +17,9 @@ import org.koin.dsl.module
 /**
  * Starts Koin. [config] has no default on purpose: a forgotten call must not compile instead of
  * silently falling back to the mock or prod backend. [platformModules] are loaded last so a
- * platform can add or override bindings. A platform with an analytics vendor binds its `Analytics`
- * under `named(PLATFORM_ANALYTICS)`; without one, analytics stays a no-op.
+ * platform can add or override bindings. A platform with a crash vendor binds its `CrashReporter`
+ * there under `named(PLATFORM_CRASH_REPORTER)`, and one with an analytics vendor binds its
+ * `Analytics` under `named(PLATFORM_ANALYTICS)`; without them, both stay a no-op.
  */
 fun initKoin(
     config: AppConfig,
@@ -27,6 +30,7 @@ fun initKoin(
     modules(
         module { single { config } },
         loggingModule,
+        crashModule,
         networkModule,
         storageModule,
         applicationScopeModule,
@@ -38,6 +42,8 @@ fun initKoin(
     )
     modules(platformModules)
 }.also { app ->
+    // Before the startup line, so with a granted consent that line is already a breadcrumb.
+    app.koin.get<CrashReportingController>().start()
     // Before any screen exists: collection is switched to the current consent first.
     app.koin.get<AnalyticsTracker>().start()
     // Single startup line for every platform, including iOS.

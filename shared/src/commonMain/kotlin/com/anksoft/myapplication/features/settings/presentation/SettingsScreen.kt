@@ -17,11 +17,13 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.semantics.LiveRegionMode
 import androidx.compose.ui.semantics.Role
+import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.heading
 import androidx.compose.ui.semantics.liveRegion
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.semantics.stateDescription
 import androidx.compose.ui.tooling.preview.Preview
+import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import cafe.adriel.voyager.core.screen.Screen
 import cafe.adriel.voyager.koin.koinScreenModel
@@ -33,6 +35,8 @@ import com.anksoft.myapplication.core.presentation.theme.AppTheme
 import com.anksoft.myapplication.core.presentation.asString
 import com.anksoft.myapplication.features.auth.presentation.login.LoginScreen
 import com.anksoft.myapplication.features.consent.presentation.PrivacyPolicyLink
+import com.anksoft.myapplication.features.profile.domain.model.AccountProfile
+import com.anksoft.myapplication.features.profile.domain.model.ProfileState
 import myapplication.shared.generated.resources.Res
 import myapplication.shared.generated.resources.common_back
 import myapplication.shared.generated.resources.common_retry
@@ -45,6 +49,10 @@ import myapplication.shared.generated.resources.settings_language
 import myapplication.shared.generated.resources.settings_consent_toggle_label
 import myapplication.shared.generated.resources.settings_logout
 import myapplication.shared.generated.resources.settings_privacy_title
+import myapplication.shared.generated.resources.settings_test_crash
+import myapplication.shared.generated.resources.settings_profile_loading
+import myapplication.shared.generated.resources.settings_profile_stale_note
+import myapplication.shared.generated.resources.settings_profile_unavailable
 import myapplication.shared.generated.resources.settings_title
 import myapplication.shared.generated.resources.settings_version
 import org.jetbrains.compose.resources.stringResource
@@ -115,14 +123,10 @@ fun SettingsContent(
 
             Spacer(modifier = Modifier.height(16.dp))
 
-            Text(
-                text = state.userName,
-                style = MaterialTheme.typography.headlineMedium
-            )
-            Text(
-                text = state.userEmail,
-                style = MaterialTheme.typography.bodyLarge,
-                color = MaterialTheme.colorScheme.onSurfaceVariant
+            ProfileSection(
+                profile = state.profile,
+                onRetryClick = { onEvent(SettingsEvent.RetryProfile) },
+                modifier = Modifier.fillMaxWidth()
             )
 
             Spacer(modifier = Modifier.height(32.dp))
@@ -199,7 +203,104 @@ fun SettingsContent(
                     Text(stringResource(Res.string.settings_logout))
                 }
             }
+
+            // Last, below the logout button, so the layout above stays as it was. Only dev and stage
+            // builds bind a trigger; in prod there is no button and nothing to call.
+            if (state.showTestCrash) {
+                Spacer(modifier = Modifier.height(16.dp))
+
+                OutlinedButton(
+                    onClick = { onEvent(SettingsEvent.TestCrash) },
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .testTag(SettingsTestTags.TEST_CRASH)
+                ) {
+                    Text(stringResource(Res.string.settings_test_crash))
+                }
+            }
         }
+    }
+}
+
+/**
+ * The account's name and e-mail, or what stands in for them: a loading indicator, a note that the shown
+ * details may be outdated, or an empty state. The rest of the screen works in every state (AC-1..AC-8).
+ */
+@Composable
+private fun ProfileSection(
+    profile: ProfileState,
+    onRetryClick: () -> Unit,
+    modifier: Modifier = Modifier
+) {
+    Column(modifier = modifier, horizontalAlignment = Alignment.CenterHorizontally) {
+        when (profile) {
+            ProfileState.SignedOut -> Unit
+
+            ProfileState.Loading -> {
+                val loadingDescription = stringResource(Res.string.settings_profile_loading)
+                CircularProgressIndicator(
+                    modifier = Modifier
+                        .size(32.dp)
+                        .semantics { contentDescription = loadingDescription }
+                        .testTag(SettingsTestTags.PROFILE_LOADING)
+                )
+            }
+
+            is ProfileState.Available -> {
+                // Without a name the e-mail stands alone on one line (AC-1).
+                profile.profile.name?.let { name ->
+                    Text(
+                        text = name,
+                        style = MaterialTheme.typography.headlineSmall,
+                        modifier = Modifier.testTag(SettingsTestTags.PROFILE_NAME)
+                    )
+                }
+                Text(
+                    text = profile.profile.email,
+                    style = MaterialTheme.typography.bodyLarge,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    modifier = Modifier.testTag(SettingsTestTags.PROFILE_EMAIL)
+                )
+                if (profile.isStale) {
+                    Spacer(modifier = Modifier.height(8.dp))
+                    Text(
+                        text = stringResource(Res.string.settings_profile_stale_note),
+                        style = MaterialTheme.typography.bodyMedium,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        textAlign = TextAlign.Center,
+                        modifier = Modifier
+                            .semantics { liveRegion = LiveRegionMode.Polite }
+                            .testTag(SettingsTestTags.PROFILE_STALE_NOTE)
+                    )
+                    ProfileRetryButton(onClick = onRetryClick)
+                }
+            }
+
+            ProfileState.Unavailable -> {
+                Text(
+                    text = stringResource(Res.string.settings_profile_unavailable),
+                    style = MaterialTheme.typography.bodyMedium,
+                    color = MaterialTheme.colorScheme.error,
+                    textAlign = TextAlign.Center,
+                    modifier = Modifier
+                        .semantics { liveRegion = LiveRegionMode.Polite }
+                        .testTag(SettingsTestTags.PROFILE_UNAVAILABLE)
+                )
+                ProfileRetryButton(onClick = onRetryClick)
+            }
+        }
+    }
+}
+
+@Composable
+private fun ProfileRetryButton(onClick: () -> Unit, modifier: Modifier = Modifier) {
+    TextButton(
+        onClick = onClick,
+        modifier = modifier
+            .heightIn(min = 48.dp)
+            .testTag(SettingsTestTags.PROFILE_RETRY)
+    ) {
+        Text(stringResource(Res.string.common_retry))
     }
 }
 
@@ -305,6 +406,10 @@ private fun AppLanguage.testTag(): String = when (this) {
 private fun SettingsContentPreview() {
     SettingsContent(
         state = SettingsState(
+            profile = ProfileState.Available(
+                AccountProfile(userId = "u1", email = "ali@example.com", name = "Ali"),
+                isStale = false
+            ),
             environmentName = "DEV",
             versionName = "1.0",
             versionCode = 1,
@@ -331,4 +436,52 @@ private fun SettingsContentDarkPreview() {
             onBackClick = {}
         )
     }
+}
+
+@Preview
+@Composable
+private fun SettingsContentWithTestCrashPreview() {
+    SettingsContent(
+        state = SettingsState(
+            environmentName = "STAGE",
+            versionName = "1.0",
+            versionCode = 1,
+            showTestCrash = true
+        ),
+        onEvent = {},
+        onBackClick = {}
+    )
+}
+
+@Preview
+@Composable
+private fun SettingsContentStaleProfilePreview() {
+    SettingsContent(
+        state = SettingsState(
+            profile = ProfileState.Available(
+                AccountProfile(userId = "u1", email = "ali@example.com", name = null),
+                isStale = true
+            ),
+            environmentName = "DEV",
+            versionName = "1.0",
+            versionCode = 1
+        ),
+        onEvent = {},
+        onBackClick = {}
+    )
+}
+
+@Preview
+@Composable
+private fun SettingsContentUnavailableProfilePreview() {
+    SettingsContent(
+        state = SettingsState(
+            profile = ProfileState.Unavailable,
+            environmentName = "DEV",
+            versionName = "1.0",
+            versionCode = 1
+        ),
+        onEvent = {},
+        onBackClick = {}
+    )
 }

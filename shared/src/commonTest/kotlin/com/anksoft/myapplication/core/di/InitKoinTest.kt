@@ -5,6 +5,7 @@ import assertk.assertions.contains
 import assertk.assertions.containsExactly
 import assertk.assertions.isEmpty
 import assertk.assertions.isEqualTo
+import assertk.assertions.isFalse
 import assertk.assertions.isInstanceOf
 import assertk.assertions.isTrue
 import com.anksoft.myapplication.core.analytics.Analytics
@@ -13,15 +14,22 @@ import com.anksoft.myapplication.core.analytics.AnalyticsScreen
 import com.anksoft.myapplication.core.analytics.AnalyticsTracker
 import com.anksoft.myapplication.core.analytics.FakeAnalytics
 import com.anksoft.myapplication.core.config.AppConfig
+import com.anksoft.myapplication.core.config.AppEnvironment
 import com.anksoft.myapplication.core.consent.ConsentManager
+import com.anksoft.myapplication.core.consent.FakeConsentManager
 import com.anksoft.myapplication.core.consent.OptionalDataConsent
 import com.anksoft.myapplication.core.config.TestAppConfigs
+import com.anksoft.myapplication.core.crash.CrashGate
+import com.anksoft.myapplication.core.crash.CrashReporter
+import com.anksoft.myapplication.core.crash.FakeCrashReporter
+import com.anksoft.myapplication.core.crash.PLATFORM_CRASH_REPORTER
 import com.anksoft.myapplication.core.domain.Result
 import com.anksoft.myapplication.core.logging.AppLogger
 import com.anksoft.myapplication.core.logging.CONSOLE_LOG_WRITER
 import com.anksoft.myapplication.core.logging.LogSeverity
 import com.anksoft.myapplication.core.logging.LogTags
 import com.anksoft.myapplication.core.logging.LogWriter
+import com.anksoft.myapplication.core.logging.error
 import com.anksoft.myapplication.core.logging.RecordingLogWriter
 import com.anksoft.myapplication.core.network.mock.MockAuthServer
 import com.anksoft.myapplication.features.auth.domain.repository.AuthRepository
@@ -70,7 +78,7 @@ class InitKoinTest {
     fun demoConfigWiresMockBackendEndToEnd() = runTest {
         val koin = initKoin(
             config = TestAppConfigs.demo(),
-            platformModules = listOf(consoleOverride, preferencesOverride, sessionOverride)
+            platformModules = listOf(consoleOverride, preferencesOverride, sessionOverride, fakeProfileStoreModule)
         ).koin
 
         val demoUser = MockAuthServer.DEMO_USER
@@ -86,7 +94,7 @@ class InitKoinTest {
 
         val koin = initKoin(
             config = config,
-            platformModules = listOf(consoleOverride, preferencesOverride, sessionOverride)
+            platformModules = listOf(consoleOverride, preferencesOverride, sessionOverride, fakeProfileStoreModule)
         ).koin
 
         assertThat(koin.get<AppConfig>()).isEqualTo(config)
@@ -99,7 +107,13 @@ class InitKoinTest {
 
         val koin = initKoin(
             config = TestAppConfigs.demo(),
-            platformModules = listOf(consoleOverride, preferencesOverride, sessionOverride, platformModule)
+            platformModules = listOf(
+                consoleOverride,
+                preferencesOverride,
+                sessionOverride,
+                fakeProfileStoreModule,
+                platformModule,
+            )
         ).koin
 
         assertThat(koin.get<String>(named("platform"))).isEqualTo("from-platform")
@@ -110,7 +124,7 @@ class InitKoinTest {
     fun startupLogsOneAppEntryWithEnvironmentAndVersion() {
         initKoin(
             config = TestAppConfigs.demo(),
-            platformModules = listOf(consoleOverride, preferencesOverride, sessionOverride)
+            platformModules = listOf(consoleOverride, preferencesOverride, sessionOverride, fakeProfileStoreModule)
         )
 
         val entry = recorder.entries.single { it.tag == LogTags.APP }
@@ -124,7 +138,7 @@ class InitKoinTest {
     fun loggerIsProvidedFromOnePlaceAndSharedAcrossConsumers() {
         val koin = initKoin(
             config = TestAppConfigs.demo(),
-            platformModules = listOf(consoleOverride, preferencesOverride, sessionOverride)
+            platformModules = listOf(consoleOverride, preferencesOverride, sessionOverride, fakeProfileStoreModule)
         ).koin
 
         assertThat(koin.get<AppLogger>() === koin.get<AppLogger>()).isTrue()
@@ -135,7 +149,7 @@ class InitKoinTest {
     fun preferencesUseTheirOwnStorageNotTheSessionStorage() {
         val koin = initKoin(
             config = TestAppConfigs.demo(),
-            platformModules = listOf(consoleOverride, preferencesOverride, sessionOverride)
+            platformModules = listOf(consoleOverride, preferencesOverride, sessionOverride, fakeProfileStoreModule)
         ).koin
 
         koin.get<AppPreferences>().setLanguage(AppLanguage.TURKISH)
@@ -151,7 +165,7 @@ class InitKoinTest {
     fun preferencesAreOneSharedInstance() {
         val koin = initKoin(
             config = TestAppConfigs.demo(),
-            platformModules = listOf(consoleOverride, preferencesOverride, sessionOverride)
+            platformModules = listOf(consoleOverride, preferencesOverride, sessionOverride, fakeProfileStoreModule)
         ).koin
 
         assertThat(koin.get<AppPreferences>() === koin.get<AppPreferences>()).isTrue()
@@ -167,6 +181,7 @@ class InitKoinTest {
                 consoleOverride,
                 preferencesOverride,
                 sessionOverride,
+                fakeProfileStoreModule,
                 module { single<SessionObserver> { observer } }
             )
         ).koin
@@ -188,7 +203,7 @@ class InitKoinTest {
     fun sessionExpiryIsOneSharedInstance() {
         val koin = initKoin(
             config = TestAppConfigs.demo(),
-            platformModules = listOf(consoleOverride, preferencesOverride, sessionOverride)
+            platformModules = listOf(consoleOverride, preferencesOverride, sessionOverride, fakeProfileStoreModule)
         ).koin
 
         assertThat(koin.get<SessionExpiry>() === koin.get<SessionExpiry>()).isTrue()
@@ -199,7 +214,7 @@ class InitKoinTest {
     fun theConsentFacadeAndTheSessionObserverAreTheSameAccountConsentManager() {
         val koin = initKoin(
             config = TestAppConfigs.demo(),
-            platformModules = listOf(consoleOverride, preferencesOverride, sessionOverride)
+            platformModules = listOf(consoleOverride, preferencesOverride, sessionOverride, fakeProfileStoreModule)
         ).koin
 
         val manager = koin.get<AccountConsentManager>()
@@ -226,6 +241,7 @@ class InitKoinTest {
                 consoleOverride,
                 preferencesOverride,
                 sessionOverride,
+                fakeProfileStoreModule,
                 module { single<ConsentRepository> { spyRepository } }
             )
         )
@@ -238,7 +254,7 @@ class InitKoinTest {
     fun withoutASessionTheConsentFacadeSaysUnknown() {
         val koin = initKoin(
             config = TestAppConfigs.demo(),
-            platformModules = listOf(consoleOverride, preferencesOverride, sessionOverride)
+            platformModules = listOf(consoleOverride, preferencesOverride, sessionOverride, fakeProfileStoreModule)
         ).koin
 
         assertThat(koin.get<ConsentManager>().optionalDataConsent.value).isEqualTo(OptionalDataConsent.UNKNOWN)
@@ -255,10 +271,56 @@ class InitKoinTest {
 
         val koin = initKoin(
             config = TestAppConfigs.demo(),
-            platformModules = listOf(consoleOverride, preferencesOverride, sessionOverride)
+            platformModules = listOf(consoleOverride, preferencesOverride, sessionOverride, fakeProfileStoreModule)
         ).koin
 
         assertThat(koin.get<ConsentManager>().optionalDataConsent.value).isEqualTo(OptionalDataConsent.GRANTED)
+    }
+
+    // AC-2, AC-19: no vendor is bound in a host test, so crash reporting is a no-op.
+    @Test
+    fun appStartsWithNoCrashVendorAndErrorsAreSafeToLog() {
+        val koin = initKoin(
+            config = TestAppConfigs.demo(),
+            platformModules = listOf(consoleOverride, preferencesOverride, sessionOverride, fakeProfileStoreModule)
+        ).koin
+
+        koin.get<AppLogger>().error(LogTags.APP, RuntimeException("boom")) { "caught" }
+
+        assertThat(koin.get<CrashGate>().isOpen).isFalse()
+    }
+
+    // AC-5, AC-9: a bound vendor is switched on from the consent state read at start, and the
+    // startup log line already reaches it as a breadcrumb.
+    @Test
+    fun aBoundVendorWithAGrantedConsentIsEnabledAtStartBeforeTheStartupLine() {
+        val vendor = FakeCrashReporter()
+        val vendorModule = module {
+            single<Settings>(CrashReportingSettings) { MapSettings() }
+            single<ConsentManager> { FakeConsentManager(OptionalDataConsent.GRANTED) }
+            single<CrashReporter>(named(PLATFORM_CRASH_REPORTER)) { vendor }
+        }
+
+        val koin = initKoin(
+            config = AppConfig.create(AppEnvironment.STAGE, null, false, "1.0", 1),
+            platformModules = listOf(
+                consoleOverride,
+                preferencesOverride,
+                sessionOverride,
+                fakeProfileStoreModule,
+                vendorModule,
+            )
+        ).koin
+
+        assertThat(koin.get<CrashGate>().isOpen).isTrue()
+        val calls = vendor.calls.toList()
+        val enabledAt = calls.indexOf(FakeCrashReporter.Call.SetCollection(true))
+        val startupLineAt = calls.indexOfFirst {
+            it is FakeCrashReporter.Call.Breadcrumb && it.message.contains("Started env=STAGE")
+        }
+        assertThat(enabledAt >= 0).isTrue()
+        assertThat(startupLineAt >= 0).isTrue()
+        assertThat(enabledAt < startupLineAt).isTrue()
     }
 
     // AC-2, AC-3
@@ -266,7 +328,7 @@ class InitKoinTest {
     fun appStartsWithoutAnAnalyticsVendorAndTrackingIsSafe() {
         val koin = initKoin(
             config = TestAppConfigs.demo(),
-            platformModules = listOf(consoleOverride, preferencesOverride, sessionOverride)
+            platformModules = listOf(consoleOverride, preferencesOverride, sessionOverride, fakeProfileStoreModule)
         ).koin
 
         // An explicit choice, so the device language (a platform call) is not needed.
@@ -289,6 +351,7 @@ class InitKoinTest {
                 consoleOverride,
                 preferencesOverride,
                 sessionOverride,
+                fakeProfileStoreModule,
                 module { single<Analytics>(named(PLATFORM_ANALYTICS)) { vendor } }
             )
         )
@@ -314,6 +377,7 @@ class InitKoinTest {
                 consoleOverride,
                 preferencesOverride,
                 sessionOverride,
+                fakeProfileStoreModule,
                 module { single<Analytics>(named(PLATFORM_ANALYTICS)) { vendor } }
             )
         ).koin

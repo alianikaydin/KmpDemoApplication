@@ -1,3 +1,4 @@
+import com.google.gms.googleservices.GoogleServicesPlugin.MissingGoogleServicesStrategy
 import org.jetbrains.kotlin.gradle.dsl.JvmTarget
 import java.io.StringReader
 import java.util.Properties
@@ -5,6 +6,8 @@ import java.util.Properties
 plugins {
     alias(libs.plugins.androidApplication)
     alias(libs.plugins.composeCompiler)
+    alias(libs.plugins.googleServices)
+    alias(libs.plugins.firebaseCrashlytics)
 }
 
 kotlin {
@@ -38,12 +41,26 @@ require(backendUrl.isEmpty() || Regex("^https?://[^\\s\"\\\\$]+$").matches(backe
     "kmpBackendUrl must start with http:// or https:// and contain no spaces, quotes, backslashes or '$'"
 }
 
+// Firebase config files are not in the repo (docs/crash-reporting.md). A flavor without its
+// google-services.json warns instead of failing, so builds without the files (CI, outside
+// contributors) stay green and the SDK stays inert: AC-19.
+googleServices {
+    missingGoogleServicesStrategy = MissingGoogleServicesStrategy.WARN
+}
+
 dependencies {
     implementation(project(":shared"))
 
     implementation(libs.androidx.activity.compose)
     implementation(libs.compose.foundation)
     implementation(libs.koin.android)
+
+    // Crashlytics SDK. Without a google-services.json no FirebaseApp exists and the SDK stays
+    // inert, so crash reporting falls back to the no-op reporter.
+    implementation(platform(libs.firebase.bom))
+    implementation(libs.firebase.crashlytics)
+    // Used directly (FID deletion), so declared instead of relying on the transitive dependency.
+    implementation(libs.firebase.installations)
 
     implementation(libs.compose.uiToolingPreview)
     debugImplementation(libs.compose.uiTooling)
