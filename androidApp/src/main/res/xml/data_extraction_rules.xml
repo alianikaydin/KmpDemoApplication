@@ -1,12 +1,15 @@
 <?xml version="1.0" encoding="utf-8"?>
 <!--
-  Android 12 and newer (API 31+). The crash install id is install-level data: a restore or a device
-  transfer must start with a new one. The local database is a re-downloadable cache
-  (docs/local-database.md). Both stay out of cloud backups and device-to-device transfers; everything
-  else is backed up as before.
+  Android 12 and newer (API 31+). Excluded from cloud backups and device-to-device transfers:
+  - the crash install id: install-level data, a restore or transfer must start with a new one;
+  - the local database: a re-downloadable cache (docs/local-database.md);
+  - the encrypted session (session_secure.xml): its Keystore key is bound to this device, so the file
+    would be unreadable elsewhere and the user signs in again instead (AC-5).
+  Everything else is backed up as before.
 -->
 <data-extraction-rules>
     <cloud-backup>
+        <exclude domain="sharedpref" path="session_secure.xml" />
         <exclude domain="sharedpref" path="crash_reporting.xml" />
         <exclude domain="database" path="app.db" />
         <exclude domain="database" path="app.db-journal" />
@@ -14,6 +17,7 @@
         <exclude domain="database" path="app.db-shm" />
     </cloud-backup>
     <device-transfer>
+        <exclude domain="sharedpref" path="session_secure.xml" />
         <exclude domain="sharedpref" path="crash_reporting.xml" />
         <exclude domain="database" path="app.db" />
         <exclude domain="database" path="app.db-journal" />
