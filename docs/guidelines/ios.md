@@ -22,7 +22,7 @@ iOS work is the `iosApp/` host and the Kotlin API that Swift sees.
 
 ## Platform code (`expect`/`actual`)
 - [ ] Every `expect` has an `actual` for android, ios, js and wasmJs.
-- [ ] Secrets (tokens) belong in the Keychain, never plain `NSUserDefaults`. Known gap: `SecureSettings.iosMain.kt` currently returns plain `Settings()` (NSUserDefaults); flag it rather than adding new secrets on top of it.
+- [ ] Secrets (tokens) belong in the Keychain, never plain `NSUserDefaults`. `SecureSettings.iosMain.kt` already uses `KeychainSettings` with `AfterFirstUnlockThisDeviceOnly`; keep new secrets behind `createSecureSettings()`.
 
 ## Language
 - [ ] The app language is chosen in the Compose Settings screen and written to the `AppleLanguages` user default on every launch. Do not add a second language setting in Swift. See `docs/localization.md`.

@@ -1,5 +1,6 @@
 package com.anksoft.myapplication.core.storage
 
+import java.io.IOException
 import java.security.GeneralSecurityException
 import java.security.ProviderException
 import javax.crypto.Cipher
@@ -49,6 +50,8 @@ internal class AesGcmSessionCipher(private val keys: SecretKeyProvider) : Sessio
     } catch (e: ProviderException) {
         throw SessionCipherException(e)
     } catch (e: IllegalArgumentException) {
+        throw SessionCipherException(e)
+    } catch (e: IOException) {
         throw SessionCipherException(e)
     }
 

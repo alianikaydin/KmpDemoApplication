@@ -8,6 +8,8 @@ import assertk.assertions.isEqualTo
 import assertk.assertions.isInstanceOf
 import assertk.assertions.isNotEqualTo
 import assertk.assertions.isNull
+import java.security.KeyStoreException
+import javax.crypto.SecretKey
 import kotlin.io.encoding.Base64
 import kotlin.test.Test
 
@@ -113,7 +115,7 @@ class AesGcmSessionCipherTest {
     fun keyProviderFailureOnEncryptSurfacesAsCipherException() {
         val failing = object : SecretKeyProvider {
             override fun existing() = null
-            override fun getOrCreate(): javax.crypto.SecretKey = throw java.security.KeyStoreException("boom")
+            override fun getOrCreate(): SecretKey = throw KeyStoreException("boom")
             override fun delete() = Unit
         }
 

@@ -19,7 +19,7 @@ class LegacySessionCleanupTest {
         SessionManager.SESSION_KEYS.forEach { legacy.putString(it, "plain-value-for-$it") }
     }
 
-    // AC-4
+    // Plan T4: old plain session is deleted, never migrated (AC-4 is out of scope: users sign in again)
     @Test
     fun removesEverySessionKeyFromThePlainFile() {
         seedLegacySession()
@@ -29,7 +29,7 @@ class LegacySessionCleanupTest {
         assertThat(legacy.keys).isEmpty()
     }
 
-    // AC-4
+    // Plan T4: old plain session is deleted, never migrated (AC-4 is out of scope: users sign in again)
     @Test
     fun keepsKeysThatAreNotPartOfTheSession() {
         seedLegacySession()
@@ -40,7 +40,7 @@ class LegacySessionCleanupTest {
         assertThat(legacy.keys).isEqualTo(setOf("unrelated_pref"))
     }
 
-    // AC-4
+    // Plan T4: old plain session is deleted, never migrated (AC-4 is out of scope: users sign in again)
     @Test
     fun doesNotMigrateAnythingIntoTheEncryptedStore() {
         seedLegacySession()
@@ -52,7 +52,7 @@ class LegacySessionCleanupTest {
         assertThat(SessionManager(settings).getToken()).isNull()
     }
 
-    // AC-4b
+    // Plan T4: a failed removal must not block app start (AC-4b is out of scope: no migration)
     @Test
     fun aFailingRemovalDoesNotStopTheStoreFromBeingCreated() {
         seedLegacySession()
