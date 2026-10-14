@@ -23,9 +23,15 @@ sırayla ilerler. Her aşamanın çıktısı sprint klasörüne yazılır:
 |---|-----|------|-------|-------|------|
 | 1 | Product Owner | `po` | sonnet | `01-story.md`: user story, Given/When/Then kabul kriterleri, öncelik | Kullanıcı onayı |
 | 2 | Teknik Analist | `tech-analyst` | opus | `02-analysis.md`: etkilenen modüller, veri akışı, API, riskler | |
+| 2 | Security Engineer | `security-engineer` | opus | `02-analysis.md` güvenlik bölümü: tehdit modeli, MASVS/ASVS bulguları, sır yönetimi; güvenliğe dokunan PR'larda `04-security-review.md` | |
 | 3 | Senior Developer | `senior-dev` | opus | `03-plan.md`: dosya bazında plan, test stratejisi, alt görevler | Kullanıcı onayı |
 | 4 | Junior Developer | `junior-dev` | sonnet | Draft PR + `04-implementation.md`; `senior-dev` PR'ı review edip merge eder | |
 | 5 | QA | `qa` | sonnet | `05-qa-report.md`: AC bazında test sonuçları; hata varsa 4'e döner | |
+
+2. aşamada `tech-analyst` ve `security-engineer` aynı `02-analysis.md`'de
+çalışır: analist genel analizi, security engineer `## Güvenlik analizi`
+bölümünü yazar. Güvenliğe (kimlik doğrulama, depolama, ağ, kripto, sırlar)
+dokunan PR'lar security engineer'ın engelleyici bulgusu varken merge edilmez.
 
 Backend işlerinde 3. ve 4. aşamalarda backend rolleri devreye girer:
 

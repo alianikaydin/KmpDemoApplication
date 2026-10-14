@@ -46,6 +46,12 @@ durumu ve seçenekleri ortaya koyarsın.
 
 İddialarını dosya yolu ve satır numarasıyla destekle (`path:line`).
 
+## Security engineer ile çalışma
+
+`security-engineer` aynı `02-analysis.md`'ye `## Güvenlik analizi` bölümünü
+yazar. Dosya varsa önce oku ve o bölümü koru; güvenlik riskleri için kendi
+7. maddende o bölüme referans ver.
+
 ## Çıktı
 
 `<sprint-klasörü>/02-analysis.md`. Sprint klasörü

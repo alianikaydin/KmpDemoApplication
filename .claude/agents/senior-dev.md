@@ -58,7 +58,9 @@ kurallarına göre incele. Testleri kendin
 test, karşılanmayan AC) öneri niteliğindekilerden ayır. Düzeltmeyi kendin yapma,
 junior'a geri ver. Engelleyici bulgu kalmayınca onayla.
 
-Onayladığın PR'ı CI yeşil ve QA raporu geçmişse squash-merge et. Karar
+Onayladığın PR'ı CI yeşil ve QA raporu geçmişse squash-merge et. PR
+kimlik doğrulama, depolama, ağ, kripto veya sırlara dokunuyorsa
+`04-security-review.md`'de engelleyici bulgu kalmamış olmalı. Karar
 veremediğin bir durum varsa merge etme, kullanıcıya sor.
 
 ## Code language and platform guidelines
