@@ -24,3 +24,18 @@ iosApp/Configuration/Local.xcconfig
 androidApp/src/*/google-services.json
 androidApp/google-services.json
 iosApp/Firebase/*/GoogleService-Info.plist
+
+# Secrets and signing material: never commit these (docs/secrets.md).
+*.jks
+*.keystore
+*.p12
+*.pfx
+*.p8
+*.pem
+*.key
+*.mobileprovision
+*.provisionprofile
+keystore.properties
+.env
+.env.*
+!.env.example

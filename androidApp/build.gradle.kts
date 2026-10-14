@@ -41,6 +41,24 @@ require(backendUrl.isEmpty() || Regex("^https?://[^\\s\"\\\\$]+$").matches(backe
     "kmpBackendUrl must start with http:// or https:// and contain no spaces, quotes, backslashes or '$'"
 }
 
+// Release signing comes only from Gradle properties (in CI: ORG_GRADLE_PROJECT_<name> from Actions
+// secrets), never from a file in the repo (docs/secrets.md). With none of the four set, release is
+// built unsigned; with only some set the build fails, naming the missing properties but no values.
+val uploadSigningProperties = listOf(
+    "kmpUploadStoreFile",
+    "kmpUploadStorePassword",
+    "kmpUploadKeyAlias",
+    "kmpUploadKeyPassword",
+)
+val uploadSigningValues: Map<String, String?> = uploadSigningProperties.associateWith { name ->
+    providers.gradleProperty(name).orNull?.takeIf { it.isNotBlank() }
+}
+val missingUploadSigning = uploadSigningValues.filterValues { it == null }.keys
+require(missingUploadSigning.isEmpty() || missingUploadSigning.size == uploadSigningProperties.size) {
+    "Incomplete release signing, missing Gradle properties: ${missingUploadSigning.joinToString()}"
+}
+val hasUploadSigning = missingUploadSigning.isEmpty()
+
 // Firebase config files are not in the repo (docs/crash-reporting.md). A flavor without its
 // google-services.json warns instead of failing, so builds without the files (CI, outside
 // contributors) stay green and the SDK stays inert: AC-19.
@@ -104,6 +122,16 @@ android {
             buildConfigField("boolean", "DEMO_ALLOWED", "false")
         }
     }
+    if (hasUploadSigning) {
+        signingConfigs {
+            create("upload") {
+                storeFile = file(requireNotNull(uploadSigningValues["kmpUploadStoreFile"]))
+                storePassword = uploadSigningValues["kmpUploadStorePassword"]
+                keyAlias = uploadSigningValues["kmpUploadKeyAlias"]
+                keyPassword = uploadSigningValues["kmpUploadKeyPassword"]
+            }
+        }
+    }
     packaging {
         resources {
             excludes += "/META-INF/{AL2.0,LGPL2.1}"
@@ -111,6 +139,7 @@ android {
     }
     buildTypes {
         release {
+            if (hasUploadSigning) signingConfig = signingConfigs.getByName("upload")
             isMinifyEnabled = false
             proguardFiles(
                 getDefaultProguardFile("proguard-android-optimize.txt"),
