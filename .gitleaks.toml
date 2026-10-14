@@ -1,0 +1,11 @@
+# Secret scan configuration (docs/secrets.md). Extends the default rules.
+# Every allowlist entry needs a description and must match BOTH a file and the exact value, so a real
+# secret in the same file is still reported. Add entries only for values the scan has reported.
+[extend]
+useDefault = true
+
+[[allowlists]]
+description = "Emulator snapshot cache key in the UI test workflow; a name, not a credential"
+condition = "AND"
+paths = ['''^\.github/workflows/ui-tests\.yml$''']
+regexes = ['''^avd-34-x86_64-default-pixel_6-4cpu-4gb$''']
