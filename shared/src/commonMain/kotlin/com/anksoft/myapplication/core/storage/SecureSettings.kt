@@ -1,6 +1,7 @@
 package com.anksoft.myapplication.core.storage
 
 import com.russhwolf.settings.Settings
+import org.koin.core.scope.Scope
 
 /**
  * Storage boundary for session tokens.
@@ -16,4 +17,4 @@ import com.russhwolf.settings.Settings
  * Tokens are therefore NOT yet encrypted at rest on Android and web. Treated as
  * a known follow-up rather than silently marked done.
  */
-expect fun createSecureSettings(): Settings
+expect fun Scope.createSecureSettings(): Settings
