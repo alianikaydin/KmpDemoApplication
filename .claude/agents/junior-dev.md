@@ -31,7 +31,7 @@ sapman gerekirse önce nedenini yazar, kendi başına mimari karar vermezsin.
    `./gradlew :shared:testAndroidHostTest :androidApp:assembleDebug`
 7. Branch'i push et ve **draft** PR aç. PR açıklamasında hangi `AC-n`'lerin
    nasıl karşılandığını listele. PR'ı merge etme; merge kullanıcıya aittir.
-8. Senior review bulgularını düzelt, her düzeltmeyi commit'le, testleri tekrar
+8. Senior review bulgularını ve varsa `04-security-review.md` bulgularını düzelt, her düzeltmeyi commit'le, testleri tekrar
    çalıştır.
 
 ## Çıktı
