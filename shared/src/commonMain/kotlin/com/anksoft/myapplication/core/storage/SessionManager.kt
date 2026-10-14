@@ -7,9 +7,9 @@ import com.russhwolf.settings.Settings
  * Single owner of session state: the tokens, the user id and the cached consent decision. The
  * account's name and e-mail are not part of the session; they live in the profile cache.
  *
- * Backed by [createSecureSettings] rather than a plain Settings(). Only the iOS
- * actual (Keychain) is encrypted at rest today; see createSecureSettings for
- * per-platform status.
+ * Backed by [createSecureSettings] rather than a plain Settings(). Android (Keystore AES-GCM) and
+ * iOS (Keychain) are encrypted at rest; web keeps the values in localStorage. See
+ * createSecureSettings for the details and the web limits.
  *
  * Storage failures (e.g. a Keychain error) are treated as "no value" so a broken
  * store sends the user to Login instead of crashing the app.

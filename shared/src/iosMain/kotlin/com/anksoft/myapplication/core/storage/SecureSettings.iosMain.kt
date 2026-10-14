@@ -6,6 +6,7 @@ import com.russhwolf.settings.KeychainSettings
 import com.russhwolf.settings.NSUserDefaultsSettings
 import com.russhwolf.settings.Settings
 import kotlinx.cinterop.ExperimentalForeignApi
+import org.koin.core.scope.Scope
 import platform.Foundation.CFBridgingRetain
 import platform.Foundation.NSUserDefaults
 import platform.Security.kSecAttrAccessible
@@ -32,7 +33,7 @@ internal fun createSessionKeychain(): Settings = KeychainSettings(
     kSecAttrAccessible to kSecAttrAccessibleAfterFirstUnlockThisDeviceOnly,
 )
 
-actual fun createSecureSettings(): Settings {
+actual fun Scope.createSecureSettings(): Settings {
     val keychain = createSessionKeychain()
     val userDefaults = NSUserDefaultsSettings(NSUserDefaults.standardUserDefaults)
     // A failed migration must not crash app launch; it is retried next launch.
