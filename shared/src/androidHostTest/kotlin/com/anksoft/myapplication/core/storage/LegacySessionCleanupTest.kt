@@ -1,7 +1,6 @@
 package com.anksoft.myapplication.core.storage
 
 import assertk.assertThat
-import assertk.assertions.containsExactly
 import assertk.assertions.isEmpty
 import assertk.assertions.isEqualTo
 import assertk.assertions.isNull
@@ -38,7 +37,7 @@ class LegacySessionCleanupTest {
 
         create()
 
-        assertThat(legacy.keys).containsExactly("unrelated_pref")
+        assertThat(legacy.keys).isEqualTo(setOf("unrelated_pref"))
     }
 
     // AC-4

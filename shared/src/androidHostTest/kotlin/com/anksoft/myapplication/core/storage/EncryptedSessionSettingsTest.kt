@@ -3,7 +3,6 @@ package com.anksoft.myapplication.core.storage
 import assertk.assertFailure
 import assertk.assertThat
 import assertk.assertions.contains
-import assertk.assertions.containsExactly
 import assertk.assertions.doesNotContain
 import assertk.assertions.isEmpty
 import assertk.assertions.isEqualTo
@@ -146,7 +145,7 @@ class EncryptedSessionSettingsTest {
         runCatching { settings.putString("auth_token", "x") }
 
         assertThat(settings.getStringOrNull("refresh_token")).isEqualTo("refresh-123")
-        assertThat(store.keys).containsExactly("refresh_token")
+        assertThat(store.keys).isEqualTo(setOf("refresh_token"))
     }
 
     // AC-7
