@@ -84,8 +84,9 @@ ile ve "neden" açıklamasıyla listele; engelleyici olanları (hata, güvenlik
 açığı, mimari ihlali, eksik test, karşılanmayan AC) öneri niteliğindekilerden
 ayır. Düzeltmeyi kendin yapma, junior backend'e geri ver.
 
-Engelleyici bulgu kalmadıysa (güvenliğe dokunan PR'larda
-`04-security-review.md` dahil), CI yeşilse ve QA raporu geçtiyse PR'ı
+PR güvenliğe dokunuyorsa (tanım: `CLAUDE.md`, "Güvenliğe dokunan PR")
+`security-engineer`'ı çağır; `04-security-review.md` yoksa veya engelleyici
+bulgu içeriyorsa merge etme. Engelleyici bulgu kalmadıysa, CI yeşilse ve QA raporu geçtiyse PR'ı
 squash-merge et. Karar veremediğin bir durum varsa (ör. AC yorumu, kapsam
 dışı değişiklik, maliyet doğuran altyapı kararı, sahibi belirsiz kırmızı CI)
 merge etme, kullanıcıya sor.

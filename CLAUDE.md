@@ -23,15 +23,22 @@ sırayla ilerler. Her aşamanın çıktısı sprint klasörüne yazılır:
 |---|-----|------|-------|-------|------|
 | 1 | Product Owner | `po` | sonnet | `01-story.md`: user story, Given/When/Then kabul kriterleri, öncelik | Kullanıcı onayı |
 | 2 | Teknik Analist | `tech-analyst` | opus | `02-analysis.md`: etkilenen modüller, veri akışı, API, riskler | |
-| 2 | Security Engineer | `security-engineer` | opus | `02-analysis.md` güvenlik bölümü: tehdit modeli, MASVS/ASVS bulguları, sır yönetimi; güvenliğe dokunan PR'larda `04-security-review.md` | |
+| 2 | Security Engineer | `security-engineer` | opus | `02-analysis.md` güvenlik bölümü: tehdit modeli, MASVS/ASVS bulguları, sır yönetimi | |
 | 3 | Senior Developer | `senior-dev` | opus | `03-plan.md`: dosya bazında plan, test stratejisi, alt görevler | Kullanıcı onayı |
 | 4 | Junior Developer | `junior-dev` | sonnet | Draft PR + `04-implementation.md`; `senior-dev` PR'ı review edip merge eder | |
+| 4 | Security Engineer | `security-engineer` | opus | Güvenliğe dokunan PR'larda `04-security-review.md` | |
 | 5 | QA | `qa` | sonnet | `05-qa-report.md`: AC bazında test sonuçları; hata varsa 4'e döner | |
 
-2. aşamada `tech-analyst` ve `security-engineer` aynı `02-analysis.md`'de
-çalışır: analist genel analizi, security engineer `## Güvenlik analizi`
-bölümünü yazar. Güvenliğe (kimlik doğrulama, depolama, ağ, kripto, sırlar)
-dokunan PR'lar security engineer'ın engelleyici bulgusu varken merge edilmez.
+2. aşamada önce `tech-analyst` genel analizi yazar, ardından
+`security-engineer` aynı `02-analysis.md`'ye `## Güvenlik analizi` bölümünü
+ekler. İkisi paralel çalıştırılmaz.
+
+**Güvenliğe dokunan PR:** kimlik doğrulama, oturum/token, yerel depolama, ağ
+(TLS, cleartext), kripto, yapılandırma veya build/CI sırları, imzalama ya da
+yetki (permission/entitlement) değiştiren PR. Bu tanım tek kaynaktır; ajan
+dosyaları buna atıf yapar. Böyle bir PR'da reviewer (`senior-dev` veya
+`backend-architect`) `security-engineer`'ı çağırır; `04-security-review.md`
+yoksa ya da engelleyici bulgu içeriyorsa PR merge edilmez.
 
 Backend işlerinde 3. ve 4. aşamalarda backend rolleri devreye girer:
 
@@ -49,14 +56,16 @@ reposundadır; API sözleşmesi bu repoya, backend reposundan yayımlanan sürü
 Model: Her ajanın modeli kendi dosyasındaki `model:` satırıyla belirlenir
 (`.claude/agents/<ajan>.md`). Değerler: `opus`, `sonnet`, `haiku`, tam model
 ID'si veya ana oturumun modelini kullanmak için `inherit`. Karar ve review
-gerektiren roller (analist, senior) daha güçlü modelde, uygulama ve test
-rolleri daha ekonomik modelde çalışır.
+gerektiren roller (analist, security engineer, senior, backend architect)
+daha güçlü modelde, uygulama ve test rolleri daha ekonomik modelde çalışır.
 
 Kurallar:
 
 - 1 ve 3 sonrası kullanıcı onayı olmadan bir sonraki aşamaya geçilmez.
-- Junior'ın PR'ını `senior-dev` (backend PR'larını `backend-architect`) review eder ve şu üç koşul sağlanınca
-  squash-merge eder: CI yeşil, QA raporu geçti, açık review bulgusu yok.
+- Junior'ın PR'ını `senior-dev` (backend PR'larını `backend-architect`) review eder ve şu
+  koşullar sağlanınca squash-merge eder: CI yeşil, QA raporu geçti, açık review bulgusu yok;
+  güvenliğe dokunan PR'larda ayrıca `04-security-review.md` var ve
+  engelleyici bulgu içermiyor.
   Karar veremediği bir durum olursa (ör. AC yorumu, kapsam dışı değişiklik,
   geçmeyen ama nedeni belirsiz test) merge etmez, kullanıcıya sorar.
 - Kullanıcıyla ve sprint dokümanlarında Türkçe yazılır; kod, yorumlar, commit

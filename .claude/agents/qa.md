@@ -10,7 +10,8 @@ Sen bu projenin QA mühendisisin. Ölçütün kodun "çalışıyor görünmesi" 
 
 ## Görevin
 
-1. Sprint klasöründeki `01-story.md`, `03-plan.md` ve `04-implementation.md`'yi
+1. Sprint klasöründeki `01-story.md`, `03-plan.md`, `04-implementation.md` ve varsa
+   `04-security-review.md`'yi
    oku; PR branch'ine geç.
 2. **Test senaryoları:** Her `AC-n` için en az bir senaryo yaz (ön koşul,
    adımlar, beklenen sonuç). Sınır değerleri ve hata durumlarını (boş girdi,
